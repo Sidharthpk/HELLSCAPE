@@ -1,0 +1,420 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0c561eed5945bc4d8f4f14ff093e520, type: 3}
+  m_Name: SoundLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::SoundLibrary
+  masterMusicVolume: 1
+  crossfadeSeconds: 2.5
+  areas:
+  - name: Title
+    music: {fileID: 8300000, guid: 7e86c891d3eb621459edec1b9ec2ea66, type: 3}
+    musicVolume: 0.8
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds:
+    - name: Start pressed
+      note: 'Hit when you press START (built-in: a low thud). Title music = this
+        area''s Music (built-in: a drone).'
+      clips:
+      - {fileID: 8300000, guid: af7950687aaf6dd4d9e05e309232e234, type: 3}
+      volume: 1
+  - name: Prologue
+    music: {fileID: 0}
+    musicVolume: 0.6
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds:
+    - name: Heartbeat
+      note: 'Heartbeat under the prologue from the open flat door onwards (now: WakeHeartbeat).'
+      clips:
+      - {fileID: 8300000, guid: 18c03eddad57f0346806f3bcc915c181, type: 3}
+      volume: 1
+    - name: Sting (body, spotted)
+      note: 'Stinger when you find Derek and when you spot the killer (now: TitleSting).'
+      clips:
+      - {fileID: 8300000, guid: 02ce3e023f831e84281d0e9fc5386181, type: 3}
+      volume: 1
+    - name: Stabbing on the tape
+      note: 'The stabbing on the CCTV tape (now: the stabbing sound effect).'
+      clips:
+      - {fileID: 8300000, guid: 0413bc46f8aacb04c8367105b75c9ae0, type: 3}
+      volume: 1
+    - name: Street ambience
+      note: 'The morning street outside the flats (now: New York City Streets Ambience).'
+      clips:
+      - {fileID: 8300000, guid: 39076266763ce9c44a2abfe307cd800e, type: 3}
+      volume: 1
+    - name: TV murmur
+      note: 'The TV murmuring in the living room (built-in: generated murmur).'
+      clips:
+      - {fileID: 8300000, guid: ef35ffc3fb482284d8d4bbebebb31ba4, type: 3}
+      volume: 1
+    - name: Wind (roof and fall)
+      note: 'Wind on the roof and during the fall (built-in: generated wind).'
+      clips:
+      - {fileID: 8300000, guid: a73cb703fdad8ac45ba884b6e042e293, type: 3}
+      volume: 1
+    - name: Whisper (the fall)
+      note: 'Whisper as the killer goes over and halfway down the fall (built-in:
+        generated whisper).'
+      clips:
+      - {fileID: 8300000, guid: 9bcdddf8d7c76864ca613b78aaf93b7c, type: 3}
+      volume: 1
+    - name: Push
+      note: 'The shove on the roof (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: 0fea46f960b2df4468e0ce80e4bb096a, type: 3}
+      volume: 1
+    - name: Impact (hitting the street)
+      note: 'Hitting the ground at the end of the fall (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: 0856f9492ca642040a6ae9f9e2de377c, type: 3}
+      volume: 1
+    - name: Door creak
+      note: 'Apartment doors opening (built-in: creak).'
+      clips:
+      - {fileID: 8300000, guid: ccf713fce2f4dab4390e4347cffba0aa, type: 3}
+      - {fileID: 8300000, guid: bfb1cc8d022284a4eb5e9167049a3b2c, type: 3}
+      - {fileID: 8300000, guid: 1a2659204077a7944b96049c3c603ba8, type: 3}
+      volume: 1
+    - name: Door flung open
+      note: 'The killer bursting doors open (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: 3c5e1a8e2e902604284f51833681533e, type: 3}
+      volume: 1
+    - name: Killer footsteps
+      note: 'The killer''s footsteps while sneaking and fleeing (now: Footstep_1-7).'
+      clips:
+      - {fileID: 8300000, guid: 88958193bf885d64e800671ad3d664b5, type: 3}
+      - {fileID: 8300000, guid: 07eb715e70264f94a8be2d1e56708a61, type: 3}
+      - {fileID: 8300000, guid: 7a2b32784a0e3894092becb1a142f76a, type: 3}
+      - {fileID: 8300000, guid: 840c54a7e5575bb4fa53164a4822f7f3, type: 3}
+      - {fileID: 8300000, guid: 4360394a148089b46bc14c41597b3ec2, type: 3}
+      - {fileID: 8300000, guid: 5a37ed6d0591a5b48a444c1cec6f9c5a, type: 3}
+      volume: 1
+  - name: Prologue Chase
+    music: {fileID: 0}
+    musicVolume: 0.75
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds: []
+  - name: Hell City
+    music: {fileID: 0}
+    musicVolume: 0.6
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds:
+    - name: Wake heartbeat
+      note: 'Heartbeat when you come to on the red street (now: WakeHeartbeat).'
+      clips:
+      - {fileID: 8300000, guid: 47eecacc55e21fc4c929121815ff6f76, type: 3}
+      volume: 1
+    - name: Hell ambience
+      note: 'The hell city''s background (now: D&D Ambience Hell Cries).'
+      clips:
+      - {fileID: 8300000, guid: 6715c03982488f149b23a38ec24d49c1, type: 3}
+      volume: 1
+    - name: Eerie music (street trigger)
+      note: 'Music that starts at the street trigger in the hell city (now: Song
+        of Unhealing).'
+      clips: []
+      volume: 1
+    - name: Zombie moans
+      note: 'The damned moaning (now: Half Life 2 zombie cries reversed). Several
+        clips = variety.'
+      clips:
+      - {fileID: 8300000, guid: 24772e498fb837b4cbaf44aeb9e86dec, type: 3}
+      - {fileID: 8300000, guid: e7625d6b97e0e41459628b6df9528435, type: 3}
+      - {fileID: 8300000, guid: 2b9220bda9b438448a2b099315919033, type: 3}
+      - {fileID: 8300000, guid: 9c584cf8f214f8144aa9632c9b75100a, type: 3}
+      - {fileID: 8300000, guid: ff9e5f2cc72edfa46a0ef6214ec593f4, type: 3}
+      volume: 1
+    - name: Zombie scream
+      note: 'A zombie screaming when it notices you (built-in: its moan, pitched
+        down).'
+      clips:
+      - {fileID: 8300000, guid: 019a5c25d2be2274aa9e13b42977fcd8, type: 3}
+      - {fileID: 8300000, guid: 278a50027a34f8847a0c51e41c4000d7, type: 3}
+      - {fileID: 8300000, guid: e999addd195abf645a2f39e36c610709, type: 3}
+      volume: 1
+    - name: Punch hits
+      note: 'Your fists landing (now: PunchHit_1-3).'
+      clips:
+      - {fileID: 8300000, guid: e90a329c31b7d5642ae205e77604d16b, type: 3}
+      - {fileID: 8300000, guid: aaf6dc0557282ae47b2b1bffac6c858f, type: 3}
+      - {fileID: 8300000, guid: 849488a4831145c4ea5aa28ef2daafe5, type: 3}
+      volume: 1
+    - name: Car hits a zombie
+      note: 'The car ploughing into one (now: CarHit_1-3).'
+      clips:
+      - {fileID: 8300000, guid: 761c1054da0b5984bbc97876bc54ae79, type: 3}
+      - {fileID: 8300000, guid: 5560d1728c038054fa35188394c5676a, type: 3}
+      - {fileID: 8300000, guid: 1b0766193ef70a444866a7e1811f2f41, type: 3}
+      volume: 1
+    - name: Car engine
+      note: 'The car''s engine loop (now: CarEngine).'
+      clips:
+      - {fileID: 8300000, guid: 3f5e307916003b846807a925a68eb1e9, type: 3}
+      volume: 1
+    - name: Tire screech
+      note: 'Tyre screech loop (now: TireScreech).'
+      clips:
+      - {fileID: 8300000, guid: 812e5864979f5a74aac4bf1d2b9c0787, type: 3}
+      volume: 1
+  - name: Office
+    music: {fileID: 0}
+    musicVolume: 0.6
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds:
+    - name: Ghost whispers
+      note: 'The office ghosts'' whispering loop (built-in: generated whisper).'
+      clips:
+      - {fileID: 8300000, guid: a934f2b9ed75cc34fb4073eb48996c6f, type: 3}
+      volume: 1
+    - name: Fuse clunk
+      note: 'A fuse pushed into the fuse box (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: 80184420c1e82714abc64a6a504ad683, type: 3}
+      volume: 1
+    - name: Kessler door latch
+      note: 'Kessler''s door unlocking (built-in: click).'
+      clips:
+      - {fileID: 8300000, guid: 31cbed83971abbd4f959d6d556c40232, type: 3}
+      volume: 1
+    - name: Kessler door creak
+      note: 'Kessler''s door swinging open (built-in: creak).'
+      clips:
+      - {fileID: 8300000, guid: ad7d9bcd30ced36429f51287075fd216, type: 3}
+      volume: 1
+    - name: Kessler turning (whisper)
+      note: 'Kessler burning red as he confesses (built-in: whisper).'
+      clips:
+      - {fileID: 8300000, guid: e38157898bd24a44fbdff8648ecb22b0, type: 3}
+      volume: 1
+    - name: Kessler becomes the damned
+      note: 'The flash when he turns (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: 7de265062107b3e488f846c45505d05d, type: 3}
+      volume: 1
+    - name: Kessler lunges
+      note: 'The damned Kessler lunging at you (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: 8b7369f061507eb4197ab0d4c10583c6, type: 3}
+      volume: 1
+    - name: CCTV stabbing
+      note: The CCTV tape of Derek stabbing Tomas (the flashback after the camera
+        puzzle).
+      clips:
+      - {fileID: 8300000, guid: a27ce9c678fde0f48b4e5c0e9b5ee0ff, type: 3}
+      volume: 1
+  - name: Kessler Fight
+    music: {fileID: 0}
+    musicVolume: 0.6
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds: []
+  - name: Silo Complex
+    music: {fileID: 0}
+    musicVolume: 0.6
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds:
+    - name: Killer sting
+      note: 'Stinger when the killer steps out of the dark / sprints at the lift
+        (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: 9e06cb0953bb5c94280a7de501d62dc4, type: 3}
+      volume: 1
+    - name: Lift doors slam on him
+      note: 'The lift doors slamming in the killer''s face (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: a2d1a6f9b2a2dee489c530165d6468df, type: 3}
+      volume: 1
+    - name: Lift doors
+      note: 'The freight lift''s doors (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: 227a9801afb625448bacae887c56ddb4, type: 3}
+      volume: 1
+    - name: Lift ride rumble
+      note: 'The lift moving (built-in: rumble).'
+      clips:
+      - {fileID: 8300000, guid: 4939098f0ab1d2a45a0de55f5d601c6f, type: 3}
+      volume: 1
+    - name: Ladder rung
+      note: 'Each rung on the hatch ladder (built-in: click).'
+      clips:
+      - {fileID: 8300000, guid: 7f5cb374a6069f741afb6ff332c7361a, type: 3}
+      - {fileID: 8300000, guid: d46c02801c96fa7429a1124a20464433, type: 3}
+      - {fileID: 8300000, guid: 2f15361a94950c04889a0dad52037810, type: 3}
+      volume: 1
+    - name: Killer hits you (chase)
+      note: 'The killer catching you during the chase (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: cf88b58d8647e6649b516a87b2efb51f, type: 3}
+      volume: 1
+  - name: Silo Chase
+    music: {fileID: 8300000, guid: 58265cdf61cf4d7479e3bd100308c3c6, type: 3}
+    musicVolume: 0.75
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds: []
+  - name: Silo Fight
+    music: {fileID: 8300000, guid: 2f66e20db29e1ff4abcb60a43c2616d8, type: 3}
+    musicVolume: 0.55
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds:
+    - name: Push and fall thud
+      note: 'Footsteps behind you, the shove, the landing (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: 0856f9492ca642040a6ae9f9e2de377c, type: 3}
+      volume: 1
+    - name: Killer hurt
+      note: The killer grunting when you hit him.
+      clips:
+      - {fileID: 8300000, guid: 67d92c8a1852b9f4b8ba3c9a1d734acb, type: 3}
+      - {fileID: 8300000, guid: 4ecd7de3deddf8d45abb610625df3725, type: 3}
+      - {fileID: 8300000, guid: bea2fbf6b51375242a9c5439094909aa, type: 3}
+      volume: 1
+    - name: Rifle shot
+      note: 'The rifle firing (built-in: generated gunshot).'
+      clips:
+      - {fileID: 8300000, guid: 1d64d97bfc0c9774aa7776277594f1fc, type: 3}
+      volume: 1
+    - name: Rifle reload
+      note: Reloading (silent while empty).
+      clips: []
+      volume: 1
+    - name: Blood flood rumble
+      note: 'The silo flooding with blood (built-in: rumble).'
+      clips:
+      - {fileID: 8300000, guid: 62d7d4531937c8d4c8749e2ab6c6689b, type: 3}
+      volume: 1
+    - name: Swim stroke
+      note: Each Space kick while swimming up through the blood.
+      clips:
+      - {fileID: 8300000, guid: 80195c955741e9343b142eed454aa446, type: 3}
+      - {fileID: 8300000, guid: b0f0d3b5195e007439349452cb61a10e, type: 3}
+      - {fileID: 8300000, guid: 42e104441f7a1e342bb36a590f9b22b4, type: 3}
+      - {fileID: 8300000, guid: e0831e85d351d094dbdc8f1bd34a4676, type: 3}
+      volume: 1
+    - name: Drowning
+      note: You going under for good (the air bar ran out).
+      clips:
+      - {fileID: 8300000, guid: 61b3d4c97f150854f9022965cbb8a866, type: 3}
+      volume: 1
+    - name: Survivor drowning
+      note: Maya or Sam slipping under when you let the air bar run too low.
+      clips:
+      - {fileID: 8300000, guid: b03c6b7e415ed50449bab16b5532dfa2, type: 3}
+      - {fileID: 8300000, guid: 6a3d86aa90dbb7b4d900f8c2dd4e1ed2, type: 3}
+      volume: 1
+    - name: Colleague turns into the Lost
+      note: 'Cutscene: a drowned colleague''s ghost rising out of the blood.'
+      clips:
+      - {fileID: 8300000, guid: f8a724daa8f38ed40ba078fd3c4b7e3c, type: 3}
+      volume: 1
+    - name: Colleague turns into the Damned
+      note: 'Cutscene: Maya burning into one of the Damned.'
+      clips:
+      - {fileID: 8300000, guid: 05dcc3aa6bba42b4e8e9a9ee740fd2be, type: 3}
+      volume: 1
+  - name: Escape
+    music: {fileID: 8300000, guid: 58265cdf61cf4d7479e3bd100308c3c6, type: 3}
+    musicVolume: 0.75
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds:
+    - name: Blood wave roar
+      note: 'The blood wave chasing the car (built-in: rumble).'
+      clips:
+      - {fileID: 8300000, guid: 2a3a77f1fa6a0764ea3d9ecd043e7298, type: 3}
+      volume: 1
+  - name: Ending
+    music: {fileID: 0}
+    musicVolume: 0.6
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds:
+    - name: Angel choir
+      note: 'The angel descending (now: AngelChoir).'
+      clips:
+      - {fileID: 8300000, guid: 6827eda149303b640888a87fcb05174c, type: 3}
+      volume: 1
+    - name: Demon rises
+      note: 'The demon rising (now: DemonRise).'
+      clips:
+      - {fileID: 8300000, guid: 89d1b1c1695190445b1a1ac08d6cf2de, type: 3}
+      volume: 1
+  - name: General
+    music: {fileID: 0}
+    musicVolume: 0.6
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds:
+    - name: Dialogue blip
+      note: 'The typing blip of the dialogue box (now: TextBlip).'
+      clips:
+      - {fileID: 8300000, guid: be87fbe4b9c14ac4883129ebd41db211, type: 3}
+      - {fileID: 8300000, guid: 8f753553aedd99245ae3a164a6d9ce98, type: 3}
+      - {fileID: 8300000, guid: 74dbc743ea78fef4c98dabc4d3fd056f, type: 3}
+      - {fileID: 8300000, guid: 998e110b666c20a4a9e3bf58edf9c5a6, type: 3}
+      - {fileID: 8300000, guid: 5f13497d4afe1924ea40166306418e01, type: 3}
+      - {fileID: 8300000, guid: f585e0fb43b0a144393dcff0ac118fbe, type: 3}
+      volume: 1
+    - name: Player footsteps
+      note: 'Your footsteps (now: Footstep_1-7).'
+      clips:
+      - {fileID: 8300000, guid: 88958193bf885d64e800671ad3d664b5, type: 3}
+      - {fileID: 8300000, guid: 07eb715e70264f94a8be2d1e56708a61, type: 3}
+      - {fileID: 8300000, guid: 7a2b32784a0e3894092becb1a142f76a, type: 3}
+      - {fileID: 8300000, guid: 840c54a7e5575bb4fa53164a4822f7f3, type: 3}
+      - {fileID: 8300000, guid: 4360394a148089b46bc14c41597b3ec2, type: 3}
+      - {fileID: 8300000, guid: 5a37ed6d0591a5b48a444c1cec6f9c5a, type: 3}
+      volume: 1
+    - name: Door transition latch
+      note: 'Resident Evil door: the latch (built-in: click).'
+      clips:
+      - {fileID: 8300000, guid: d0c1c9a2550c9314f96dcedcb2ebdd68, type: 3}
+      volume: 1
+    - name: Door transition creak
+      note: 'Resident Evil door: the creak (built-in: creak).'
+      clips:
+      - {fileID: 8300000, guid: 2db2150a49a78094c9c68631f159ead2, type: 3}
+      volume: 1
+    - name: Door transition step
+      note: 'Resident Evil door: the step through (built-in: thud).'
+      clips:
+      - {fileID: 8300000, guid: 0f8578a55255c7045a0f46603ec638c6, type: 3}
+      volume: 1
+    - name: Player footsteps (metal)
+      note: 'Your footsteps in the silo complex: metal stairs and walkways.'
+      clips:
+      - {fileID: 8300000, guid: 340570b69e6e9d6419dfc0e65da6086a, type: 3}
+      - {fileID: 8300000, guid: e265b339ab3508446a3e9daf4838ccf2, type: 3}
+      - {fileID: 8300000, guid: cf2bf270aa5209648beb28d6b4d914c0, type: 3}
+      - {fileID: 8300000, guid: 7ca0adf4d2b62474699a28fb7fc33ada, type: 3}
+      - {fileID: 8300000, guid: abd8f227751a51a4591425775d020e17, type: 3}
+      volume: 1
+    - name: Door transition (full)
+      note: 'Resident Evil door: one recording of the whole thing. When set, it replaces
+        latch/creak/step.'
+      clips:
+      - {fileID: 8300000, guid: 3ec3440aad66ea0429dc715df775f226, type: 3}
+      volume: 1
+  - name: Blood Orb
+    music: {fileID: 8300000, guid: 5694e799781833a4b94bc066ee6ecbc5, type: 3}
+    musicVolume: 0.85
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds: []
