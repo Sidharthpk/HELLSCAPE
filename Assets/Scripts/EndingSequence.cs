@@ -66,6 +66,7 @@ public class EndingSequence : MonoBehaviour
     public float endTrackVolume = 0.8f;
     public float walkerSpeed = 0.5f;        // m/s: the clip's own stride (2.27 m per 4.97 s loop), so the feet don't skate
     public float walkAwayTime = 16f;       // at least this long, and until the boundLine is done
+    public float besideTime = 2.5f;        // the camera stays at his shoulder this long before it starts to pull out
 
     [Header("Where you stand for it")]
     public Transform standPoint;            // on the deck near the end of the bridge, facing out (empty: wherever you are)
@@ -254,6 +255,14 @@ public class EndingSequence : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        // Enter: back to the title, as a new game
+        var hint = card != null ? card.transform.Find("MenuHint") : null;
+        if (hint != null) hint.gameObject.SetActive(true);
+        while (!Input.GetKeyDown(KeyCode.Return) && !Input.GetKeyDown(KeyCode.KeypadEnter)) yield return null;
+        var menu = FindFirstObjectByType<PauseMenu>(FindObjectsInactive.Include);
+        if (menu != null) menu.ToTitle();
+        else { NewGame.Reset(); UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.name); }
     }
 
     // a short blackout, and you're at the end of the bridge looking out over the edge (wherever the fight left you)
@@ -350,7 +359,8 @@ public class EndingSequence : MonoBehaviour
     }
 
     // Not damned, the last shot: you (the Meshy walker) head off toward the city while the boundLine plays over it,
-    // the camera hanging back, rising and swinging off toward the skyline; HELLSCAPE / TO BE CONTINUED fades in on the left.
+    // the camera at his shoulder at first, then slowly pulling back, rising and swinging off toward the skyline;
+    // HELLSCAPE fades in on the left with TO BE CONTINUED along the bottom.
     IEnumerator WalkAway()
     {
         if (fader != null) yield return fader.FadeTo(1f, 0.6f);
@@ -372,8 +382,13 @@ public class EndingSequence : MonoBehaviour
         var listener = cutsceneCam.GetComponent<AudioListener>();
         if (listener != null) listener.enabled = true;
         Camera.SetupCurrent(cutsceneCam);
-        Vector3 camStart = feet - dir * 5f + left * 3f + Vector3.up * 1.7f;
+        // the camera starts right beside him, at his shoulder, then slowly pulls back and up
+        Vector3 beside = left * 1.2f - dir * 1.8f + Vector3.up * 1.5f;
+        Vector3 camEnd = feet - dir * 8f + left * 4f + Vector3.up * 3.5f;
         Vector3 skyline = feet + dir * 120f + Vector3.up * 12f;
+        float fovEnd = cutsceneCam.fieldOfView, fovStart = fovEnd * 0.72f;
+        cutsceneCam.transform.position = feet + beside;
+        cutsceneCam.transform.rotation = Quaternion.LookRotation(feet + Vector3.up * 1.3f + dir * 1.5f + left * 0.75f - cutsceneCam.transform.position);
 
         CanvasGroup titleGroup = null;
         if (titleCard != null)
@@ -393,9 +408,12 @@ public class EndingSequence : MonoBehaviour
             if (t > walkAwayTime && !talking) break;
             body.position += dir * walkerSpeed * Time.deltaTime;
             float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / walkAwayTime));
-            cutsceneCam.transform.position = camStart + Vector3.up * (t * 0.35f) - dir * (t * 0.1f);
-            // aim left of him so he sits on the right of the frame, easing off toward the skyline as he shrinks
-            Vector3 aim = Vector3.Lerp(body.position + Vector3.up * 1.1f + left * 2.5f, skyline + left * 2.5f, k * 0.7f);
+            float pull = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - besideTime) / Mathf.Max(0.1f, walkAwayTime - besideTime)));
+            cutsceneCam.transform.position = Vector3.Lerp(body.position + beside, camEnd, pull);
+            cutsceneCam.fieldOfView = Mathf.Lerp(fovStart, fovEnd, pull);
+            // aim left of him so he sits on the right of the frame (less so up close), easing off toward the skyline as he shrinks
+            float aside = Mathf.Min(2.5f, 0.35f * Vector3.Distance(cutsceneCam.transform.position, body.position));
+            Vector3 aim = Vector3.Lerp(body.position + Vector3.up * 1.3f + dir * 1.5f * (1f - pull) + left * aside, skyline + left * 2.5f, k * 0.3f);
             cutsceneCam.transform.rotation = Quaternion.Slerp(cutsceneCam.transform.rotation, Quaternion.LookRotation(aim - cutsceneCam.transform.position), 1f - Mathf.Exp(-3f * Time.deltaTime));
             if (titleGroup != null) titleGroup.alpha = Mathf.Clamp01((t - 3f) / 2f);
             yield return null;

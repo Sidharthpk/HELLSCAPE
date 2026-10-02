@@ -52,36 +52,84 @@ public static class MeshyEndingBuilder
         walker.SetActive(false);
         ending.walker = walker;
 
-        // title card: the continued card's fonts, moved to the left, HELLSCAPE big with TO BE CONTINUED under it
+        string cardMsg = TitleCard(ending);
+        EditorUtility.SetDirty(ending);
+        EditorSceneManager.MarkSceneDirty(ending.gameObject.scene);
+        AssetDatabase.SaveAssets();
+        return $"Walker '{walker.name}' ({clip.name}, {clip.length:0.0}s loop) wired. " + cardMsg;
+    }
+
+    [MenuItem("HellScape/Finale/End Title Card")]
+    public static void CardMenu()
+    {
+        var ending = Object.FindFirstObjectByType<EndingSequence>(FindObjectsInactive.Include);
+        if (EditorApplication.isPlaying || ending == null || ending.continuedCard == null) { Debug.Log("Stop Play / open MainGameScene first."); return; }
+        Debug.Log(TitleCard(ending));
+        EditorUtility.SetDirty(ending);
+        EditorSceneManager.MarkSceneDirty(ending.gameObject.scene);
+    }
+
+    // The end screen: HELLSCAPE on the left in the title screen's own lettering (its red face + shadow, bleeding in),
+    // TO BE CONTINUED along the bottom in the pixel font, and an [ENTER] hint (EndingSequence shows it at the very
+    // end, on whichever end card is up).
+    public static string TitleCard(EndingSequence ending)
+    {
+        var titleScreen = Object.FindFirstObjectByType<TitleScreen>(FindObjectsInactive.Include);
+        var faces = titleScreen != null ? titleScreen.GetComponentsInChildren<TextMeshProUGUI>(true).Where(t => t.text == "HELLSCAPE").ToArray() : new TextMeshProUGUI[0];
+        if (faces.Length == 0) return "No HELLSCAPE lettering on the title screen to copy.";
+
         Transform canvas = ending.continuedCard.transform.parent;
         Transform card = canvas.Find("EndCard_Title");
         if (card != null) Object.DestroyImmediate(card.gameObject);
         card = Object.Instantiate(ending.continuedCard, canvas).transform;
         card.name = "EndCard_Title";
         card.SetSiblingIndex(ending.continuedCard.transform.GetSiblingIndex() + 1);
+        if (card.GetComponent<CanvasGroup>() == null) card.gameObject.AddComponent<CanvasGroup>();   // (the lettering bleeds in as this fades up)
         var texts = card.GetComponentsInChildren<TextMeshProUGUI>(true);
-        var title = texts.First(t => t.name == "Line1");
         var sub = texts.First(t => t.name == "Line2");
-        title.text = "HELLSCAPE"; sub.text = "TO BE CONTINUED";
-        title.enableAutoSizing = false; title.fontSize = 110f;
-        sub.enableAutoSizing = false; sub.fontSize = 40f;
-        foreach (var t in new[] { title, sub })
+        Object.DestroyImmediate(texts.First(t => t.name == "Line1").gameObject);
+
+        foreach (var face in faces)   // (shadow first, as on the title)
         {
-            t.alignment = TextAlignmentOptions.Left;
-            t.textWrappingMode = TextWrappingModes.NoWrap;
-            var r = t.rectTransform;
-            r.anchorMin = r.anchorMax = new Vector2(0f, 0.5f);
-            r.pivot = new Vector2(0f, 0.5f);
-            r.sizeDelta = new Vector2(900f, t == title ? 140f : 60f);
-            r.anchoredPosition = new Vector2(90f, t == title ? 30f : -60f);
-            EditorUtility.SetDirty(t);
+            var t = Object.Instantiate(face, card);
+            t.name = "Title " + face.name;
+            Vector2 nudge = face.rectTransform.anchoredPosition - faces[faces.Length - 1].rectTransform.anchoredPosition;   // the shadow's offset
+            t.enableAutoSizing = false; t.fontSize = 130f;
+            Left(t, new Vector2(0f, 0.5f), new Vector2(90f, 20f) + nudge * (130f / face.fontSize), new Vector2(1100f, 220f));
+        }
+
+        sub.text = "TO BE CONTINUED";
+        sub.enableAutoSizing = false; sub.fontSize = 40f; sub.characterSpacing = 12f;
+        Left(sub, Vector2.zero, new Vector2(90f, 24f), new Vector2(900f, 60f));   // (under the dialogue box, which is still talking)
+
+        foreach (var c in new[] { card.gameObject, ending.continuedCard, ending.demon.endCard })
+        {
+            if (c == null) continue;
+            Transform old = c.transform.Find("MenuHint");
+            if (old != null) Object.DestroyImmediate(old.gameObject);
+            var hint = Object.Instantiate(sub, c.transform);
+            hint.name = "MenuHint";
+            hint.text = "[ENTER]  MENU";
+            hint.fontSize = 30f; hint.characterSpacing = 0f;
+            hint.color = new Color(0.6f, 0.55f, 0.52f, 0.7f);
+            Left(hint, new Vector2(1f, 0f), new Vector2(-90f, 24f), new Vector2(500f, 60f));
+            hint.alignment = TextAlignmentOptions.Right;
+            hint.gameObject.SetActive(false);
+            EditorUtility.SetDirty(c);
         }
         card.gameObject.SetActive(false);
         ending.titleCard = card.gameObject;
+        return "End title card: HELLSCAPE in the title lettering on the left, TO BE CONTINUED along the bottom, [ENTER] hint on every end card.";
+    }
 
-        EditorUtility.SetDirty(ending);
-        EditorSceneManager.MarkSceneDirty(ending.gameObject.scene);
-        AssetDatabase.SaveAssets();
-        return $"Walker '{walker.name}' ({clip.name}, {clip.length:0.0}s loop) and title card wired.";
+    static void Left(TextMeshProUGUI t, Vector2 anchor, Vector2 pos, Vector2 size)
+    {
+        t.alignment = TextAlignmentOptions.Left;
+        t.textWrappingMode = TextWrappingModes.NoWrap;
+        var r = t.rectTransform;
+        r.anchorMin = r.anchorMax = r.pivot = anchor;
+        r.sizeDelta = size;
+        r.anchoredPosition = pos;
+        EditorUtility.SetDirty(t);
     }
 }
