@@ -2046,13 +2046,16 @@ public class DemonBoss : MonoBehaviour
 
     void Roar(float volume = 1f)
     {
-        var clip = Sounds.Clip("Hell City/Zombie scream", null);
+        // its own scream if there is one (as recorded); otherwise a zombie's, pitched right down
+        var own = Sounds.Clip("Demon Fight/Boss scream", null);
+        var clip = own != null ? own : Sounds.Clip("Hell City/Zombie scream", null);
         if (clip == null) return;
-        var s = MakeSource(clip, false, volume);
-        s.pitch = 0.45f;
+        float pitch = own != null ? 1f : 0.45f;
+        var s = MakeSource(clip, false, volume * (own != null ? Sounds.Volume("Demon Fight/Boss scream") : 1f));
+        s.pitch = pitch;
         s.maxDistance = 120f;
         s.Play();
-        Destroy(s.gameObject, clip.length / 0.45f + 0.2f);
+        Destroy(s.gameObject, Mathf.Min(clip.length / pitch + 0.2f, 4f));   // (the recording is long: each roar is just its opening)
     }
 
     AudioSource MakeSource(AudioClip clip, bool loop, float volume)

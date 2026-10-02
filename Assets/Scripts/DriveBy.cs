@@ -20,7 +20,7 @@ public class DriveBy : MonoBehaviour
     public float overRoof = 0.75f;               // aiming across to the other side you pull yourself up this much, over the roof
     public float aimFov = 58f;
     public float sensitivity = 2.2f;
-    public Vector2 pitchLimits = new Vector2(-25f, 35f);
+    public Vector2 pitchLimits = new Vector2(-70f, 35f);   // (negative = up: the boss towers over the van, 25 couldn't reach his heart up close)
 
     [Header("Rifle")]
     public bool needsRifle = true;               // GunController.Equipped
@@ -56,6 +56,7 @@ public class DriveBy : MonoBehaviour
     void Start()
     {
         ammo = magSize;
+        pitchLimits.x = Mathf.Min(pitchLimits.x, -70f);   // the scene still serialises the old -25
         shot = Sounds.Clip("Silo Fight/Rifle shot", ProceduralAudio.Gunshot());
         source = gameObject.AddComponent<AudioSource>();
         source.spatialBlend = 0f;
