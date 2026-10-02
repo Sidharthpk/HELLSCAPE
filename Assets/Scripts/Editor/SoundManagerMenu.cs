@@ -57,6 +57,8 @@ static class SoundManagerMenu
         ("Silo Complex", "Lift doors", "The freight lift's doors (built-in: thud)."),
         ("Silo Complex", "Lift ride rumble", "The lift moving (built-in: rumble)."),
         ("Silo Complex", "Ladder rung", "Each rung on the hatch ladder (built-in: click)."),
+        ("Silo Complex", "Ladder climb", "One recording for the whole climb down the hatch ladder (replaces the per-rung clank; cut off when you reach the bottom)."),
+        ("Silo Complex", "Door break", "Kessler tearing the tunnel door off its hinges."),
         ("Silo Complex", "Killer hits you (chase)", "The killer catching you during the chase (built-in: thud)."),
 
         ("Silo Chase", "", ""),
@@ -78,9 +80,11 @@ static class SoundManagerMenu
 
         ("Demon Fight", "", ""),   // music for the bridge fight with Kessler's true form
         ("Demon Fight", "Boss footsteps", "Kessler's monster stomping after you in the chase (built-in: deep bass stomp)."),
+        ("Demon Fight", "Boss scream", "Kessler's demon form roaring (every roar in the chase and the bridge fight; built-in: a zombie scream pitched down)."),
         ("Demon Fight", "Boss dragged under", "The drowned dragging it into the water when it dies (built-in: rumble)."),
 
         ("Ending", "Angel choir", "The angel descending (now: AngelChoir)."),
+        ("Ending", "Demon King talking", "The Demon King's voice while he passes sentence, after he rises."),
         ("Ending", "Demon rises", "The demon rising (now: DemonRise)."),
 
         ("General", "Dialogue blip", "The typing blip of the dialogue box (now: TextBlip)."),

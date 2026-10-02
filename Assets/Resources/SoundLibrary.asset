@@ -101,6 +101,16 @@ MonoBehaviour:
       - {fileID: 8300000, guid: 4360394a148089b46bc14c41597b3ec2, type: 3}
       - {fileID: 8300000, guid: 5a37ed6d0591a5b48a444c1cec6f9c5a, type: 3}
       volume: 1
+    - name: Grandma horn
+      note: 'The scooter horn as the grandma cuts across the van (built-in: generated
+        beep-beeeep).'
+      clips: []
+      volume: 1
+    - name: Grandma scooter
+      note: 'Her scooter''s engine as she crosses, looped (built-in: generated two-stroke
+        buzz).'
+      clips: []
+      volume: 1
   - name: Prologue Chase
     music: {fileID: 0}
     musicVolume: 0.75
@@ -171,7 +181,7 @@ MonoBehaviour:
       - {fileID: 8300000, guid: 812e5864979f5a74aac4bf1d2b9c0787, type: 3}
       volume: 1
   - name: Office
-    music: {fileID: 0}
+    music: {fileID: 8300000, guid: 65d3e788b8cb5f849ba4d7159c940e9f, type: 3}
     musicVolume: 0.6
     ambience: {fileID: 0}
     ambienceVolume: 0.5
@@ -262,8 +272,19 @@ MonoBehaviour:
       clips:
       - {fileID: 8300000, guid: cf88b58d8647e6649b516a87b2efb51f, type: 3}
       volume: 1
+    - name: Ladder climb
+      note: One recording for the whole climb down the hatch ladder (replaces the
+        per-rung clank; cut off when you reach the bottom).
+      clips:
+      - {fileID: 8300000, guid: e495b4eed8bb9ca418b46a778f33a8e5, type: 3}
+      volume: 1
+    - name: Door break
+      note: Kessler tearing the tunnel door off its hinges.
+      clips:
+      - {fileID: 8300000, guid: 286a1c6c19145ed409647bcbbc19fdf7, type: 3}
+      volume: 1
   - name: Silo Chase
-    music: {fileID: 8300000, guid: 58265cdf61cf4d7479e3bd100308c3c6, type: 3}
+    music: {fileID: 8300000, guid: d7928f3c89348af4e853be0d97df81ba, type: 3}
     musicVolume: 0.75
     ambience: {fileID: 0}
     ambienceVolume: 0.5
@@ -289,11 +310,13 @@ MonoBehaviour:
     - name: Rifle shot
       note: 'The rifle firing (built-in: generated gunshot).'
       clips:
-      - {fileID: 8300000, guid: 1d64d97bfc0c9774aa7776277594f1fc, type: 3}
+      - {fileID: 8300000, guid: b2933261d77c10b488c9ef8edab0d701, type: 3}
+      - {fileID: 8300000, guid: 0d17a4b777c00d0419820c62f572ea3d, type: 3}
       volume: 1
     - name: Rifle reload
       note: Reloading (silent while empty).
-      clips: []
+      clips:
+      - {fileID: 8300000, guid: d3b8d7493e0b05c4a9af9f9659344e85, type: 3}
       volume: 1
     - name: Blood flood rumble
       note: 'The silo flooding with blood (built-in: rumble).'
@@ -330,7 +353,7 @@ MonoBehaviour:
       - {fileID: 8300000, guid: 05dcc3aa6bba42b4e8e9a9ee740fd2be, type: 3}
       volume: 1
   - name: Escape
-    music: {fileID: 8300000, guid: 58265cdf61cf4d7479e3bd100308c3c6, type: 3}
+    music: {fileID: 8300000, guid: 28de22ec250a96549b838a7434b3b319, type: 3}
     musicVolume: 0.75
     ambience: {fileID: 0}
     ambienceVolume: 0.5
@@ -355,6 +378,11 @@ MonoBehaviour:
       note: 'The demon rising (now: DemonRise).'
       clips:
       - {fileID: 8300000, guid: 89d1b1c1695190445b1a1ac08d6cf2de, type: 3}
+      volume: 1
+    - name: Demon King talking
+      note: The Demon King's voice while he passes sentence, after he rises.
+      clips:
+      - {fileID: 8300000, guid: 8d015c3b96de8da408f2820dcaf19307, type: 3}
       volume: 1
   - name: General
     music: {fileID: 0}
@@ -413,8 +441,30 @@ MonoBehaviour:
       - {fileID: 8300000, guid: 3ec3440aad66ea0429dc715df775f226, type: 3}
       volume: 1
   - name: Blood Orb
-    music: {fileID: 8300000, guid: 5694e799781833a4b94bc066ee6ecbc5, type: 3}
+    music: {fileID: 0}
     musicVolume: 0.85
     ambience: {fileID: 0}
     ambienceVolume: 0.5
     sounds: []
+  - name: Demon Fight
+    music: {fileID: 8300000, guid: cd44ea9d6cf8ffe43820e032d269ad2b, type: 3}
+    musicVolume: 0.6
+    ambience: {fileID: 0}
+    ambienceVolume: 0.5
+    sounds:
+    - name: Boss footsteps
+      note: 'Kessler''s monster stomping after you in the chase (built-in: deep bass
+        stomp).'
+      clips:
+      - {fileID: 8300000, guid: 19162342903136845b2c96cc89e26591, type: 3}
+      volume: 1
+    - name: Boss dragged under
+      note: 'The drowned dragging it into the water when it dies (built-in: rumble).'
+      clips: []
+      volume: 1
+    - name: Boss scream
+      note: 'Kessler''s demon form roaring (every roar in the chase and the bridge
+        fight; built-in: a zombie scream pitched down).'
+      clips:
+      - {fileID: 8300000, guid: 2c141c1551ccf0f489f0a7fc690c3c04, type: 3}
+      volume: 1

@@ -233,6 +233,7 @@ public class EndingSequence : MonoBehaviour
         if (DialogueBox.Instance != null)
         {
             DialogueBox.Instance.SayNow(VerdictLines(damned));
+            Sounds.OneShot(being.sound, "Ending/Demon King talking", null);   // his voice; the end track comes in once he's gone
             yield return null;
             for (float w = 0f; DialogueBox.Instance.Busy && w < 90f; w += Time.deltaTime)
             {

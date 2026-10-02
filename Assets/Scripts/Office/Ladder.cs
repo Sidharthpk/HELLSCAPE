@@ -55,6 +55,18 @@ public class Ladder : MonoBehaviour
         ShowFists(false);
         if (sfx != null) rungClip = Sounds.Clip("Silo Complex/Ladder rung", rungClip != null ? rungClip : ProceduralAudio.Click());
 
+        // a recording of the whole climb replaces the per-rung clanks; it's cut off when you reach the bottom
+        var climbClip = sfx != null ? Sounds.Clip("Silo Complex/Ladder climb", null) : null;
+        AudioSource climbSrc = null;
+        if (climbClip != null)
+        {
+            climbSrc = gameObject.AddComponent<AudioSource>();
+            climbSrc.spatialBlend = 0f;
+            climbSrc.clip = climbClip;
+            climbSrc.volume = Sounds.Volume("Silo Complex/Ladder climb");
+            climbSrc.Play();
+        }
+
         // turn to the rungs
         Vector3 face = faceDirection; face.y = 0f;
         Quaternion from = player.rotation, to = Quaternion.LookRotation(face.normalized);
@@ -85,7 +97,7 @@ public class Ladder : MonoBehaviour
             {
                 Vector3 a = player.position, b = start + delta * i / steps;
                 float side = rung % 2 == 0 ? 1f : -1f;   // left hand, right hand
-                if (sfx != null) { sfx.pitch = Random.Range(0.8f, 1.1f); sfx.PlayOneShot(rungClip, 0.6f * Sounds.Volume("Silo Complex/Ladder rung")); }
+                if (sfx != null && climbSrc == null) { sfx.pitch = Random.Range(0.8f, 1.1f); sfx.PlayOneShot(rungClip, 0.6f * Sounds.Volume("Silo Complex/Ladder rung")); }
                 for (float t = 0f; t < rungTime; t += Time.deltaTime)
                 {
                     float k = t / rungTime;
@@ -102,6 +114,7 @@ public class Ladder : MonoBehaviour
             }
         }
 
+        if (climbSrc != null) { climbSrc.Stop(); Destroy(climbSrc); }
         if (head != null) { head.localPosition = headRest; head.localRotation = headRot; }
         rb.isKinematic = false;
         rb.linearVelocity = Vector3.zero;

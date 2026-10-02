@@ -206,7 +206,7 @@ public class KesslerChase : MonoBehaviour
         yield return new WaitForSeconds(0.25f);
 
         // it comes off its hinges, and he's standing in the hole
-        Play(thud, 1f);
+        PlayDoorBreak();
         PlaceKessler(d - into * 0.5f, into);
         if (doorLight != null) doorLight.enabled = true;
         StartCoroutine(DoorFlies(0.85f));
@@ -269,7 +269,7 @@ public class KesslerChase : MonoBehaviour
     IEnumerator QuickBurst()
     {
         phase = Phase.Cutscene;
-        Play(thud, 1f);
+        PlayDoorBreak();
         PlaceKessler(doorway.position + doorway.forward * 0.6f, doorway.forward);
         if (doorLight != null) doorLight.enabled = true;
         yield return DoorFlies(0.7f);
@@ -556,6 +556,12 @@ public class KesslerChase : MonoBehaviour
         foreach (var t in under.GetComponentsInChildren<Transform>())
             if (t.name.EndsWith(endsWith)) return t;
         return null;
+    }
+
+    void PlayDoorBreak()
+    {
+        var c = Sounds.Clip("Silo Complex/Door break", null);
+        if (c != null) Play(c, Sounds.Volume("Silo Complex/Door break")); else Play(thud, 1f);
     }
 
     void Play(AudioClip clip, float volume) { if (sfx != null && clip != null) sfx.PlayOneShot(clip, volume); }
