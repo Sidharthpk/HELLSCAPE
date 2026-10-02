@@ -68,6 +68,14 @@ public class EndingSequence : MonoBehaviour
     public float walkAwayTime = 16f;       // at least this long, and until the boundLine is done
     public float besideTime = 2.5f;        // the camera stays at his shoulder this long before it starts to pull out
 
+    [Header("The mark: you look down at your hands as it burns in")]
+    public Texture2D markedSkin;            // the arms' skin, reddened, a pentagram etched in the back of each hand (Tools/ending/make_marked_arms.py)
+    public float handsHold = 3f;            // how long you stare at them
+    public float handsPitch = 30f;          // looking this far down
+    public float handsFov = 42f;
+    public float handsRaise = 0.12f;        // the fists come up into the picture
+    public Vector2 handsTwist = new Vector2(130f, -135f);   // forearms turned over (right, left): the backs of the fists face you
+
     [Header("Where you stand for it")]
     public Transform standPoint;            // on the deck near the end of the bridge, facing out (empty: wherever you are)
 
@@ -304,9 +312,18 @@ public class EndingSequence : MonoBehaviour
         Vector3 cam0 = playerCamera.transform.localPosition;
         Sounds.OneShot(king.sound, "Ending/Demon rises", null, 0.8f);
         const float flare = 1.1f;
+        var arms = Arms();
+        bool marked = false;
         for (float t = 0f; t < flare; t += Time.deltaTime)
         {
             float k = t / flare;
+            // at the height of the flare (it hides the change) the mark is on your skin
+            if (!marked && k >= 0.5f && arms != null && markedSkin != null)
+            {
+                marked = true;
+                arms.material.mainTexture = markedSkin;
+                arms.transform.parent.gameObject.SetActive(true);   // (the fists are put away while you carry the rifle)
+            }
             if (fader != null) fader.fade.alpha = 0.6f * Mathf.Sin(k * Mathf.PI);
             playerCamera.transform.localPosition = cam0 + Random.insideUnitSphere * 0.07f * (1f - k);
             Frame(king, 4f);
@@ -316,7 +333,8 @@ public class EndingSequence : MonoBehaviour
         if (fader != null) fader.fade.alpha = 0f;
         if (img != null) img.color = black;
         if (DialogueBox.Instance != null && !string.IsNullOrEmpty(brandLine)) DialogueBox.Instance.SayNow(brandLine);
-        for (float w = 0f; w < 2.2f; w += Time.deltaTime) { Frame(king, 4f); yield return null; }
+        if (marked) yield return LookAtHands(arms);
+        else for (float w = 0f; w < 2.2f; w += Time.deltaTime) { Frame(king, 4f); yield return null; }
 
         // he goes back down the way he came
         Vector3 from = king.root.transform.position, to = king.startPoint.position;
@@ -356,6 +374,60 @@ public class EndingSequence : MonoBehaviour
             for (float w = 0f; DialogueBox.Instance.Busy && w < 30f; w += Time.deltaTime) { TurnCamera(city, 2.2f); yield return null; }
         }
         yield return new WaitForSeconds(0.6f);
+    }
+
+    SkinnedMeshRenderer Arms()
+    {
+        var fists = playerCamera != null ? playerCamera.GetComponentInChildren<PunchController>(true) : null;
+        return fists != null ? fists.GetComponentInChildren<SkinnedMeshRenderer>(true) : null;
+    }
+
+    // You look down, your fists come up and turn over, and there it is on the back of each hand: his mark, still
+    // glowing. The arms' animator is stopped for it (the forearms are turned by hand) and started again after.
+    IEnumerator LookAtHands(SkinnedMeshRenderer arms)
+    {
+        Transform cam = playerCamera.transform, rig = arms.transform.parent;
+        var anim = rig.GetComponentInParent<Animator>();
+        if (anim != null) { anim.Update(2f); anim.enabled = false; }   // (past any draw: settled in the guard)
+        var fore = new Transform[2]; var rot0 = new Quaternion[2]; var axis = new Vector3[2];
+        string[] side = { "R", "L" };
+        foreach (var b in arms.bones)
+            for (int s = 0; s < 2; s++)
+            {
+                if (b == null || b.name != "forearm." + side[s]) continue;
+                fore[s] = b; rot0[s] = b.localRotation;
+                Transform hand = b.Find("hand." + side[s]);
+                Vector3 along = hand != null ? hand.position - b.position : b.up;
+                axis[s] = b.parent.InverseTransformDirection(along.normalized);   // (in the parent's space: the camera turns under it)
+            }
+
+        var glow = new GameObject("MarkGlow").AddComponent<Light>();
+        glow.transform.SetParent(cam, false);
+        glow.transform.localPosition = new Vector3(0f, 0.05f, 0.25f);
+        glow.type = LightType.Point; glow.color = new Color(1f, 0.55f, 0.45f); glow.range = 1.6f; glow.intensity = 0f; glow.shadows = LightShadows.None;
+
+        Vector3 pos0 = rig.localPosition;
+        float fovWas = playerCamera.fieldOfView, pitch0 = cam.eulerAngles.x, yaw = cam.eulerAngles.y;
+        const float turn = 0.9f, back = 0.7f;
+        float total = turn + handsHold + back;
+        for (float t = 0f; t < total; t += Time.deltaTime)
+        {
+            float k = t < turn ? t / turn : t > total - back ? (total - t) / back : 1f;
+            k = Mathf.SmoothStep(0f, 1f, k);
+            cam.rotation = Quaternion.Euler(Mathf.LerpAngle(pitch0, handsPitch, k), yaw, 0f);
+            playerCamera.fieldOfView = Mathf.Lerp(fovWas, handsFov, k);
+            rig.localPosition = pos0 + Vector3.up * handsRaise * k + Random.insideUnitSphere * 0.004f * k;   // they're shaking
+            for (int s = 0; s < 2; s++)
+                if (fore[s] != null) fore[s].localRotation = Quaternion.AngleAxis(handsTwist[s] * k, axis[s]) * rot0[s];
+            glow.intensity = k * (0.28f + 0.1f * Mathf.Sin(Time.time * 9f));
+            yield return null;
+        }
+        cam.rotation = Quaternion.Euler(pitch0, yaw, 0f);
+        playerCamera.fieldOfView = fovWas;
+        rig.localPosition = pos0;
+        for (int s = 0; s < 2; s++) if (fore[s] != null) fore[s].localRotation = rot0[s];
+        Destroy(glow.gameObject);
+        if (anim != null) anim.enabled = true;
     }
 
     // Not damned, the last shot: you (the Meshy walker) head off toward the city while the boundLine plays over it,
