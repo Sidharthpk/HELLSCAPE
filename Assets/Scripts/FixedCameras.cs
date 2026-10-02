@@ -2,8 +2,9 @@ using UnityEngine;
 
 // The driving camera for the escape. As the user settled it (2026-10-01, after trying the others): CINEMATIC, one
 // film set-up per stretch of road (see "the cinematic director" below), at most 3 camera changes before the tunnel
-// and 4 after it, the last stretch (the bridge) from IN FRONT of the van; in the garage, the tunnel and the boss
-// arena the chase camera rides behind the van.
+// and 4 after it, the last stretch (the bridge) from IN FRONT of the van; in the tunnel (user, 2026-10-02: the chase
+// camera "keeps flying away and coming back" there) a camera fixed to the van at the foot of its windscreen, showing
+// its bonnet and the road ahead; in the garage and the boss arena the chase camera rides behind the van.
 // Two earlier designs are still here, switched off: topDown (high over the van, tilted: "boring"), and, with both
 // flags off, a handful of fixed spots along the road (HellScape > Finale > Place Escape
 // Cameras), at most three before the tunnel and five after it. Each stands behind the start of its stretch looking
@@ -55,6 +56,9 @@ public class FixedCameras : MonoBehaviour
     public float frontSide = 2.2f;           // ...off to one side of its path
     public float frontHeight = 1.9f;
     public float frontFov = 50f;
+    public Vector3 bonnetMount = new Vector3(0f, 1.78f, 1.5f);   // the tunnel camera, in the van's own space: foot of the windscreen
+    public float bonnetPitch = 9f;           // tipped down this much, so the bonnet is along the bottom of the picture
+    public float bonnetFov = 66f;
 
     [Header("Top-down (tried and dropped: 'looks boring')")]
     public bool topDown = false;             // on (and cinematic off) = high over the van, tilted
@@ -115,7 +119,7 @@ public class FixedCameras : MonoBehaviour
         // (cinematic: the only roof that counts is the garage you start in; the tunnel is its own stretch, and the
         //  gantry over the bridge must not cost a camera change)
         bool garage = roofed && Along(van.position) < 12f;
-        if (cinematic && !pick.chase && !garage && Cinematic(van))
+        if (cinematic && !pick.arena && !garage && Cinematic(van))
         {
             current = pick;
             inTop = false;
@@ -192,13 +196,16 @@ public class FixedCameras : MonoBehaviour
     // road for the whole length of its stretch (checked as the van gets there); otherwise the next set-up on the
     // stretch's list is tried, and every list ends in one that rides with the van, which always works. So nothing
     // cuts in the middle of a stretch. Kessler never counts as in the way: BossSeeThrough ghosts him.
-    enum Shot { Side, SideOther, Front, PassBy, Behind, Crane }
+    //   Bonnet             bolted to the van at the foot of the windscreen, looking forward: its bonnet and the road
+    //                      ahead (the tunnel: a camera that follows had to keep dodging the walls and roof)
+    enum Shot { Side, SideOther, Front, PassBy, Behind, Crane, Bonnet }
 
-    // metres along the road. The tunnel (198-369) is the chase camera's; the last straight, 660 on, is the bridge.
+    // metres along the road. The tunnel is 198-369; the last straight, 660 on, is the bridge.
     static readonly (float from, float to, Shot[] tries)[] Plan =
     {
         (float.MinValue, 95f, new[] { Shot.Side }),
         (95f, 198f, new[] { Shot.PassBy, Shot.Behind, Shot.SideOther }),
+        (198f, 369f, new[] { Shot.Bonnet }),
         (369f, 480f, new[] { Shot.Side }),
         (480f, 660f, new[] { Shot.Crane, Shot.PassBy, Shot.SideOther }),
         (660f, float.MaxValue, new[] { Shot.Front }),
@@ -244,6 +251,15 @@ public class FixedCameras : MonoBehaviour
         inCine = true;
         Active = true;
         if (follow != null && follow.enabled) follow.enabled = false;
+
+        if (shot == Shot.Bonnet)
+        {
+            // fixed to the van itself: nothing to smooth, nothing to dodge
+            transform.SetPositionAndRotation(van.TransformPoint(bonnetMount), van.rotation * Quaternion.Euler(bonnetPitch, 0f, 0f));
+            cam.fieldOfView = bonnetFov;
+            glideVel = Vector3.zero;
+            return true;
+        }
 
         Vector3 pos, look; float wantFov;
         if (shotStanding)
@@ -296,7 +312,7 @@ public class FixedCameras : MonoBehaviour
     bool SetUp(Shot s, Transform van, float a, float from, float to)
     {
         float y = van.position.y;
-        if (s == Shot.Front) { shot = s; shotStanding = false; return true; }
+        if (s == Shot.Front || s == Shot.Bonnet) { shot = s; shotStanding = false; return true; }
         if (s == Shot.Side || s == Shot.SideOther)
         {
             // whichever flank has the room (SideOther: the one Side didn't take, if there's room there too)
