@@ -89,10 +89,14 @@ public class DemonBoss : MonoBehaviour
     public float waveReach = 22f;
     public float waveDamage = 20f;
 
-    [Header("Below half health: centre leap, 8-way orbs, swings, the blood beams")]
+    [Header("Below half health: centre leap, rings of orbs, swings, the blood beams")]
     [Range(0f, 1f)] public float patternBelow = 0.5f;
     public float patternEvery = 22f;         // seconds between runs of the whole pattern (rage: x0.7)
     public int swingCount = 3;
+    public float[] ringRadii = { 12f, 24f }; // the orbs come down in circles this far out from the middle, inner ring first
+    public float ringOrbSpacing = 9.4f;      // metres between orbs round a ring (their bursts just about touch)
+    public float ringGap = 1f;               // seconds between one ring and the next
+    public int beamCount = 4;                // beams of blood, evenly round it (user: more than 4 is too hard)
     public float beamDamage = 14f;           // per touch, at most every beamHitGap seconds
     public float beamHitGap = 0.5f;
     public float beamLength = 60f;
@@ -1114,9 +1118,9 @@ public class DemonBoss : MonoBehaviour
         busy = false;
     }
 
-    // Below half health, every patternEvery seconds: it leaps to the middle of the deck and bursts orbs out in 8
-    // directions, comes at you with a run of swings, leaps back to the middle and sweeps four beams of blood round
-    // like a fan (on foot you can jump them).
+    // Below half health, every patternEvery seconds: it leaps to the middle of the deck and drops orbs in rings round
+    // itself, comes at you with a run of swings, leaps back to the middle and sweeps beams of blood round like a fan
+    // (on foot you can jump them).
     IEnumerator BloodPattern()
     {
         busy = true;
@@ -1127,9 +1131,7 @@ public class DemonBoss : MonoBehaviour
         Play(throwState);
         Roar(0.9f);
         yield return new WaitForSeconds(0.6f);
-        Vector3 from = transform.position + Vector3.up * orbRadius;
-        for (int k = 0; k < 8; k++)
-            StartCoroutine(RollOrb(from + Quaternion.Euler(0f, k * 45f, 0f) * north * 3f, Quaternion.Euler(0f, k * 45f, 0f) * north));
+        yield return RingOrbs(transform.position, north);
         yield return new WaitForSeconds(1.2f);
 
         for (int n = 0; n < swingCount && !defeated; n++)
@@ -1152,6 +1154,25 @@ public class DemonBoss : MonoBehaviour
         patternTimer = patternEvery * (phase >= 3 ? 0.7f : 1f);
         actTimer = 1.5f;
         busy = false;
+    }
+
+    // orbs thrown up to come down in circles round it, evenly spaced, the inner ring first (each ring half a step
+    // round from the last): the red circles show where; be between the rings when they land
+    IEnumerator RingOrbs(Vector3 mid, Vector3 north)
+    {
+        Vector3 hand = Centre() + Vector3.up * 2f;
+        for (int r = 0; r < ringRadii.Length && !defeated; r++)
+        {
+            int n = Mathf.Max(6, Mathf.RoundToInt(2f * Mathf.PI * ringRadii[r] / ringOrbSpacing));
+            for (int k = 0; k < n; k++)
+            {
+                Vector3 to = mid + Quaternion.Euler(0f, (k + r * 0.5f) * 360f / n, 0f) * north * ringRadii[r];
+                if (arena != null && !InArena(to, 3f)) continue;   // (that part of the circle is over the river)
+                to.y = Ground(to);
+                StartCoroutine(LobOrb(hand, to));
+            }
+            yield return new WaitForSeconds(ringGap);
+        }
     }
 
     // a short hop to a spot on the deck: anything under it when it lands gets hurt
@@ -1180,14 +1201,15 @@ public class DemonBoss : MonoBehaviour
         yield return new WaitForSeconds(0.4f);
     }
 
-    // four beams of blood from its middle, N/E/S/W, turning: a red line shows where they'll be first
+    // beams of blood from its middle, evenly round it, turning: a red line shows where they'll be first
     IEnumerator Beams(Vector3 north)
     {
         Locomote(0f);
         Play(roarState);
         Roar(1.1f);
-        var beams = new LineRenderer[4];
-        for (int i = 0; i < 4; i++)
+        int n = Mathf.Max(1, beamCount);
+        var beams = new LineRenderer[n];
+        for (int i = 0; i < n; i++)
         {
             var g = new GameObject("BloodBeam");
             g.transform.SetParent(transform, false);   // (cleared with its other lines on death / retry)
@@ -1207,9 +1229,9 @@ public class DemonBoss : MonoBehaviour
             bool live = t >= warn;
             if (live) angle += spin * Time.deltaTime;
             Vector3 o = Flat(transform.position) + Vector3.up * (Ground(transform.position) + 1.2f);
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < n; i++)
             {
-                Vector3 dir = Quaternion.Euler(0f, angle + i * 90f, 0f) * north;
+                Vector3 dir = Quaternion.Euler(0f, angle + i * 360f / n, 0f) * north;
                 beams[i].SetPosition(0, o);
                 beams[i].SetPosition(1, o + dir * beamLength);
                 beams[i].sharedMaterial = live ? boltMat : ringMat;
