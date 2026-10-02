@@ -29,6 +29,41 @@ Your choices decide how that judgement goes: who you spare, who you take with yo
 - **Diegetic UI.** A beating anatomical heart and a van that dents and smokes, with no health numbers.
 - **Resident Evil-style door transitions** between areas.
 
+## Game mechanics
+
+### Judgement
+- **Karma from conversations.** Every ghost offers several answers, some kind and some cruel. Each one is counted.
+- **Kill or spare.** When the killer is on his knees, the choice is yours, and the story branches on it.
+- **Who you save.** Colleagues you pull out of the flood, and those you leave, weigh on the verdict.
+- **The verdict.** At the bridge, the ending is built from what you actually did.
+
+### The dead
+- **The Lost** drift and whisper. You can talk to them, and making one confess turns them.
+- **The Damned** wander, lie dormant, feed, or crawl. They hunt by sight and by sound, scream before they charge, and alert the others nearby when hit.
+- **The second death.** Anyone who dies again in the red city comes back as one of the Lost or the Damned, including people you failed to save.
+
+### On foot
+- **Fists and a rifle.** Jabs chain left and right. The rifle comes later and has to be reloaded.
+- **Puzzles.** Find the fuses to restore power, work out the keypad code, and put the CCTV route in order.
+- **Readable notes.** Ledgers, rotas and reports carry the clues and the backstory.
+- **Chase sequences.** Ladders, a lift you have to call, an ambush and a blind leap, with the killer a few metres behind.
+- **Swimming the flood.** Mash Space to keep your air up while the blood rises. Colleagues cling to you, and if your air runs low they drown first.
+- **Checkpoints.** Dying sends you back to the start of the current act, not the start of the game.
+
+### In the van
+- **Deliveries.** The prologue is a morning delivery run through live traffic and pedestrians.
+- **Damage you can see.** The van has no health bar. Its paint dents and scrapes, and it smokes when it is close to wrecked.
+- **The horde.** The damned grab onto a slow van and tear at it. Keep moving and swerve to throw them off.
+- **Drive-by shooting.** Hold right mouse to lean out of the window and fire. Middle mouse locks onto the boss's heart.
+- **Ramming.** Hitting the boss at speed hurts him.
+- **Cinematic cameras.** The chase cuts between side, kerb, crane and front cameras on its own.
+
+### The boss
+- **Three phases** with rolling blood orbs, slams, charges and the drowned climbing the rails.
+- **A weak point.** His exposed heart takes triple damage.
+- **Charges can be punished.** Dodge one and he is stunned.
+- **Lose the van and the fight goes on.** You finish it on foot.
+
 ## Gameplay
 
 | | |
