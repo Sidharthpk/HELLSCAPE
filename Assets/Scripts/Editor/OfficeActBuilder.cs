@@ -2222,6 +2222,7 @@ public static class OfficeActBuilder
         back.hasExitTime = true;
         back.exitTime = 0.85f;
         back.duration = 0.2f;
+        EliasFightBuilder.AddStates(ac);   // his fight moves: dodges, the charge, the throw, stunned, getting up
         return ac;
     }
 

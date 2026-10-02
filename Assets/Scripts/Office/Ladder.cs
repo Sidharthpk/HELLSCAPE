@@ -21,7 +21,19 @@ public class Ladder : MonoBehaviour
     public static bool Climbing { get; private set; }   // the killer can't land a hit on someone stuck on the rungs
 
     // cut off mid-climb (a reload, a checkpoint): don't leave the flag stuck on
-    void OnDisable() { if (busy) { Climbing = false; busy = false; } }
+    void OnDisable() { if (busy) { Climbing = false; busy = false; ShowFists(true); } }
+
+    // your fists are out of the picture on the rungs (held stiff in their guard they looked wrong: user, 2026-10-02)
+    Renderer[] fists;
+    void ShowFists(bool on)
+    {
+        if (!on)
+        {
+            var rig = player != null ? player.GetComponentInChildren<PunchController>() : null;
+            fists = rig != null ? System.Array.FindAll(rig.GetComponentsInChildren<Renderer>(), r => r.enabled) : null;
+        }
+        if (fists != null) foreach (var r in fists) if (r != null) r.enabled = on;
+    }
 
     public void Climb()
     {
@@ -40,6 +52,7 @@ public class Ladder : MonoBehaviour
         Quaternion headRot = head != null ? head.localRotation : Quaternion.identity;
         if (move != null) move.enabled = false;
         rb.isKinematic = true;
+        ShowFists(false);
         if (sfx != null) rungClip = Sounds.Clip("Silo Complex/Ladder rung", rungClip != null ? rungClip : ProceduralAudio.Click());
 
         // turn to the rungs
@@ -93,6 +106,7 @@ public class Ladder : MonoBehaviour
         rb.isKinematic = false;
         rb.linearVelocity = Vector3.zero;
         if (move != null) move.enabled = true;
+        ShowFists(true);
         busy = false;
         Climbing = false;
         onClimbed.Invoke();

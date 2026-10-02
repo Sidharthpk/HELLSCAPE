@@ -75,7 +75,7 @@ public static class StoryScript
         ("MainGameScene", "OfficeAct/OfficeEntrance (City)/OfficeDoor", "Teleporter", "arriveLine",
             "The office. Pitch black.|...hello?|Voices, in the dark. Whispering my name.|These are the people I work with. Worked with."),
         ("MainGameScene", "OfficeAct/Office/SiloDoor", "Interactable", "lockedLine",
-            "SILO 2 - AUTHORISED STAFF ONLY.|Locked. Kessler kept the only key in his safe."),
+            "SILO 2 - AUTHORISED STAFF ONLY.|Locked. Kessler keeps the only key on him."),
         ("MainGameScene", "OfficeAct/Office/FuseBox (breaker)/BreakerUse", "Interactable", "lockedLine",
             "The fuse box. Three slots, all empty.|Someone pulled them out on purpose."),
 
@@ -154,10 +154,13 @@ public static class StoryScript
         // ---- the tape, and Kessler's confession
         ("MainGameScene", "OfficeAct/Flashback (CCTV)/Cutscene - Derek kills Tomas", "StabCutscene", "afterLine",
             "The screen cuts to red.|...Derek. My brother. My little brother did that.|The tape keeps rolling. Kessler walks into frame and points at the silo.|They drag Tomas to the edge... and throw him in.|Kessler didn't just cover it up. He gave the order.|His ghost is still by his door. I want to hear him say it."),
+        // (no fight in the office any more: he drops the silo key as he turns and you run. KesslerChase has the rest)
+        ("MainGameScene", "OfficeAct/Office/KesslerConfrontation", "KesslerConfrontation", "keyLine",
+            "He said it out loud... and the city's TAKING him.|That's what the Damned are. People whose sins came out.|Something fell out of his coat. Keys. The SILO key.|Grab it and GO, before he's finished turning!"),
         ("MainGameScene", "OfficeAct/Office/KesslerConfrontation", "KesslerConfrontation", "afterTurnLine",
-            "He said it out loud... and the city TOOK him.|That's what the Damned are. People whose sins came out."),
+            "Too slow-- he's TURNED. The silo door. NOW!"),
         ("MainGameScene", "OfficeAct/Office/KesslerConfrontation", "KesslerConfrontation", "defeatedLine",
-            "...it's over. Whatever was left of him.|Something black is seeping out of the body. It slides under the door... toward the river.|Behind me, in his wing, the safe clicks open."),
+            ""),
 
         // ================================================================ SILO 2
         ("MainGameScene", "OfficeAct/SiloComplex/KillerCutscenes", "KillerCutscenes", "scareLine",

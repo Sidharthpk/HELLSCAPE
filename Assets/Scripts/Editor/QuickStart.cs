@@ -13,11 +13,22 @@ public static class QuickStart
     static int step;
 
     [MenuItem("HellScape/Play/Car Chase (from the garage)")]
-    public static void CarChase()
+    public static void CarChase() => Begin("chase");
+
+    // HellScape > Play > Elias Fight: onto the silo floor, as if you'd just jumped. The landing plays, Elias drops in,
+    // Maya throws the rifle down: pick it up (F) and the fight is on.
+    [MenuItem("HellScape/Play/Elias Fight (silo floor)")]
+    public static void EliasFight() => Begin("fight");
+
+    // HellScape > Play > Kessler Chase: through the office's silo door with the key in your hand, into the tunnel.
+    [MenuItem("HellScape/Play/Kessler Chase (tunnel)")]
+    public static void KesslerChase() => Begin("tunnel");
+
+    static void Begin(string what)
     {
         if (EditorApplication.isPlaying) { Debug.LogWarning("Stop Play first."); return; }
         if (SceneManager.GetActiveScene().name != "MainGameScene") { Debug.LogWarning("Open MainGameScene first."); return; }
-        SessionState.SetString(Key, "chase");
+        SessionState.SetString(Key, what);
         EditorApplication.isPlaying = true;
     }
 
@@ -52,6 +63,29 @@ public static class QuickStart
         if (TitleScreen.Showing) return;
         var fpc = Object.FindFirstObjectByType<FirstPersonController>();
         if (fpc == null || !fpc.enabled || Time.timeSinceLevelLoad < 1f) return;   // still getting up off the street
+
+        if (SessionState.GetString(Key, "") == "tunnel")
+        {
+            Inventory.Add("SiloKey");
+            var door = Object.FindObjectsByType<Teleporter>(FindObjectsInactive.Include, FindObjectsSortMode.None).FirstOrDefault(t => t.name == "SiloDoor");
+            if (door != null) door.Go();
+            Done();
+            return;
+        }
+
+        if (SessionState.GetString(Key, "") == "fight")
+        {
+            var enc = Object.FindFirstObjectByType<SiloEncounter>(FindObjectsInactive.Include);
+            if (enc != null)
+            {
+                var body = fpc.GetComponent<Rigidbody>();
+                if (body != null) body.linearVelocity = Vector3.zero;
+                fpc.transform.SetPositionAndRotation(enc.siloCenter.position + new Vector3(0.5f, 1.2f, 2.5f), Quaternion.LookRotation(Vector3.back));
+                Physics.SyncTransforms();
+            }
+            Done();
+            return;
+        }
 
         var garage = GarageBuilder.Find(fpc.gameObject.scene);
         var spot = garage != null ? garage.Find("Escape respawn") : null;
