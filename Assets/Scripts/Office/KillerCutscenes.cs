@@ -498,7 +498,14 @@ public class KillerCutscenes : MonoBehaviour
         if (box != null) box.SayNow(rant);
         yield return null;
         Vector3 jab = (inward * 0.8f - side * 0.45f + Vector3.down * 0.3f).normalized;   // pointing down at the two of you
-        latePose = () => Arm(maya.animator, true, (jab + Random.insideUnitSphere * 0.03f).normalized);
+        // she stabs her finger at you about once a second, the arm drifting a little between: a new random aim every
+        // frame (what this was) made her hand buzz
+        latePose = () =>
+        {
+            float stab = Mathf.Pow(Mathf.Abs(Mathf.Sin(Time.time * 2.6f)), 6f);
+            Vector3 drift = (side * (Mathf.PerlinNoise(Time.time * 0.6f, 3f) - 0.5f) + Vector3.up * (Mathf.PerlinNoise(7f, Time.time * 0.6f) - 0.5f)) * 0.12f;
+            Arm(maya.animator, true, (jab + drift + Vector3.up * 0.14f * (1f - stab)).normalized);
+        };
         for (float t = 0f; t < 2.5f || (box != null && box.Busy && t < 60f); t += Time.deltaTime)
         {
             float k = Mathf.SmoothStep(0f, 1f, t / 13f);
@@ -691,9 +698,9 @@ public class KillerCutscenes : MonoBehaviour
         playerHead.localRotation = Quaternion.Slerp(playerHead.localRotation, PitchTo(playerHead, p), k);
     }
 
-    // ---------------------------------------------------------------- shared
+    // ---------------------------------------------------------------- shared (KesslerChase's door cutscene uses these too)
 
-    void Begin()
+    public void Begin()
     {
         Playing = true;
         wasOn = new bool[lockDuring.Length];
@@ -712,7 +719,7 @@ public class KillerCutscenes : MonoBehaviour
     }
 
     // (unlock = false: back to your own eyes, but still frozen; the caller hands control back)
-    void End(bool unlock = true)
+    public void End(bool unlock = true)
     {
         cam.enabled = false;
         if (key != null) key.enabled = false;

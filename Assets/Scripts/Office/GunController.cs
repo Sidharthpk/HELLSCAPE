@@ -15,7 +15,7 @@ public class GunController : MonoBehaviour
     public GameObject fistsRig;             // the punching arms, hidden while the gun is out
 
     [Header("Shooting")]
-    public float fireRate = 9f;
+    public float fireRate = 6.5f;           // shots a second (user: 9 was too rapid)
     public float damage = 14f;
     public float range = 150f;
     public int magSize = 30;
@@ -104,6 +104,7 @@ public class GunController : MonoBehaviour
         if (viewModel != null) viewModel.transform.localPosition = restPos - Vector3.forward * kickBack;
 
         Vector3 dir = cam.transform.forward + Random.insideUnitSphere * 0.012f;
+        KillerBoss.ShotFired(cam.transform.position, dir);   // (Elias may not be there by the time it lands)
         // nearest hit that isn't our own body (the camera sits at the edge of the player's capsule)
         var hits = Physics.RaycastAll(cam.transform.position, dir, range, ~0, QueryTriggerInteraction.Ignore);
         System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));

@@ -5,9 +5,13 @@ using UnityEngine.Events;
 
 // After the tape: back to Kessler's ghost. The lost turn into the damned when they're caught and own up to it.
 //   Arm()        the CCTV flashback is over: his talk becomes the confrontation (confrontNodes)
-//   (talk ends)  he admits it -> "YOU SHOULD BE THANKING ME" -> the blue ghost burns red -> a damned thing lunges out
-//   the fight    fists only; it follows you room to room (line of sight, else your trail)
-//   onDefeated   it drops: his safe opens (the silo key)
+//   (talk ends)  he admits it -> "YOU SHOULD BE THANKING ME" -> the blue ghost starts to burn red, shaking itself
+//                apart, and the silo key falls out of his coat (user, 2026-10-02: there is no fight here any more).
+//                You get a couple of seconds of it, then you're free: grab the key and get out through the silo
+//                door while he's still turning. KesslerChase takes it from there (the tunnel).
+//   too slow     stay for the whole of it (turnTime) and the damned thing lunges out and hunts you through the
+//                rooms (line of sight, else your trail) until you leave. Fists don't put it down.
+//   Leave()      you went through the silo door: the office is done with
 public class KesslerConfrontation : MonoBehaviour
 {
     public GhostNPC ghost;
@@ -29,13 +33,19 @@ public class KesslerConfrontation : MonoBehaviour
     public float attackRange = 1.7f;
     public float attackCooldown = 1.6f;
     public int attackDamage = 10;
-    public int health = 135;                // 9 punches
+    public int health = 99999;              // (it isn't beaten here: you run)
     public float noticeRange = 14f;
+
+    [Header("The turn: you run while it happens")]
+    public Transform keyPickup;             // the silo key (an Interactable), switched off until it falls out of his coat
+    public float watchTime = 2.6f;          // you're held looking at him this long, then you can move
+    public float turnTime = 18f;            // how long the whole change takes: your time to grab the key and go
 
     [Header("Lines ('|' splits)")]
     [TextArea] public string turnLine = "Kessler: Everything I did, I did for you. For you and your brother. To make us RICH.|Kessler: YOU SHOULD BE THANKING ME!";
-    [TextArea] public string afterTurnLine = "He said it... and something TOOK him.";
-    [TextArea] public string defeatedLine = "...it's over. Whatever was left of him.|Behind me, in his wing, the safe clicks open.";
+    [TextArea] public string keyLine = "He said it out loud-- and the city's TAKING him.|Something fell out of his coat. Keys. The SILO key.|Grab it and GO, before he's finished turning!";
+    [TextArea] public string afterTurnLine = "Too slow-- he's TURNED. The silo door. NOW!";
+    [TextArea] public string defeatedLine = "";
     public UnityEvent onDefeated = new UnityEvent();
 
     private bool armed, turned, hunting, done;
@@ -80,10 +90,11 @@ public class KesslerConfrontation : MonoBehaviour
 
         if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(turnLine);
         Play(Sounds.Clip("Office/Kessler turning (whisper)", null) ?? ProceduralAudio.Whisper(3f), 0.8f * Sounds.Volume("Office/Kessler turning (whisper)"));
-        for (float t = 0f; (DialogueBox.Instance != null && DialogueBox.Instance.Busy) || t < 2.5f; t += Time.deltaTime)
+        bool free = false;
+        for (float t = 0f; t < turnTime; t += Time.deltaTime)
         {
             // blue -> blood red, ever more solid, shaking itself apart
-            float k = Mathf.Clamp01(t / 5f);
+            float k = Mathf.Clamp01(t / turnTime);
             Color c = Color.Lerp(blue, new Color(0.8f, 0.03f, 0.02f), k);
             c.a = Mathf.Lerp(0.4f, 0.95f, k) * (Random.value < 0.08f ? 0.2f : 1f);
             foreach (var r in renderers)
@@ -92,14 +103,22 @@ public class KesslerConfrontation : MonoBehaviour
                 block.SetColor("_BaseColor", c);
                 r.SetPropertyBlock(block);
             }
-            body.localPosition = body0 + Random.insideUnitSphere * 0.04f * k;
-            if (glow != null) { glow.color = Color.Lerp(new Color(0.5f, 0.85f, 1f), Color.red, k); glow.intensity = 0.8f + 3f * k; }
+            body.localPosition = body0 + Random.insideUnitSphere * (0.02f + 0.07f * k);
+            if (glow != null) { glow.color = Color.Lerp(new Color(0.5f, 0.85f, 1f), Color.red, k); glow.intensity = 0.8f + 4f * k; }
             if (whisper != null) whisper.pitch = Mathf.Lerp(0.9f, 0.45f, k);
-            Aim(head);
+            if (!free && t >= watchTime)
+            {
+                // you've seen enough: the key drops, and you can move
+                free = true;
+                DropKey();
+                Lock(false);
+                if (DialogueBox.Instance != null) DialogueBox.Instance.Say(keyLine);
+            }
+            if (!free) Aim(head);
             yield return null;
         }
 
-        // the lost becomes the damned
+        // still here: the lost becomes the damned, and it comes for you
         Play(Sounds.Clip("Office/Kessler becomes the damned", null) ?? ProceduralAudio.Thud(), Sounds.Volume("Office/Kessler becomes the damned"));
         if (fader != null) yield return fader.FadeTo(1f, 0.08f);
         turnSpot = ghost.transform.position;
@@ -120,7 +139,30 @@ public class KesslerConfrontation : MonoBehaviour
         hunting = true;
     }
 
-    // ---------------------------------------------------------------- the fight
+    // the silo key, on the floor between him and you, lit so you can't miss it
+    void DropKey()
+    {
+        if (keyPickup == null) return;
+        Vector3 at = ghost.transform.position + Flat(player.position - ghost.transform.position).normalized * 0.9f;
+        if (Physics.Raycast(at + Vector3.up, Vector3.down, out RaycastHit floor, 3f, ~0, QueryTriggerInteraction.Ignore)) at.y = floor.point.y;
+        keyPickup.SetParent(transform, true);   // (out of the safe it used to sit in)
+        keyPickup.position = at + Vector3.up * 0.05f;
+        keyPickup.gameObject.SetActive(true);
+        Play(ProceduralAudio.Click(), 0.8f);
+    }
+
+    // through the silo door (KesslerChase.Arrive): whatever state he was in here, it's over
+    public void Leave()
+    {
+        StopAllCoroutines();
+        Lock(false);
+        hunting = false;
+        done = true;
+        if (ghost != null) ghost.gameObject.SetActive(false);
+        if (damned != null) damned.gameObject.SetActive(false);
+    }
+
+    // ---------------------------------------------------------------- too slow: it hunts you
 
     void Update()
     {
