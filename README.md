@@ -35,12 +35,12 @@ Your choices decide how that judgement goes: who you spare, who you take with yo
 |---|---|
 | ![Prologue](docs/media/prologue.gif) | ![Waking in hell](docs/media/wake.gif) |
 | **Prologue:** the last delivery run | **Waking up** in the red city |
-| ![Silo chase](docs/media/silo-chase.gif) | ![Silo fight](docs/media/silo-fight.gif) |
-| **Silo chase:** he is right behind you | **Silo fight:** a rifle from above |
-| ![Blood flood](docs/media/flood.gif) | ![Van chase](docs/media/van-chase.gif) |
-| **The blood flood:** swim or drown | **Escape:** the van and the horde |
-| ![Kessler](docs/media/boss.gif) | |
-| **Kessler's true form** | |
+| ![Office act](docs/media/office.gif) | ![Silo chase](docs/media/silo-chase.gif) |
+| **Office act:** the dead still talk | **Silo chase:** he is right behind you |
+| ![Silo fight](docs/media/silo-fight.gif) | ![Blood flood](docs/media/flood.gif) |
+| **Silo fight:** a rifle from above | **The blood flood:** swim or drown |
+| ![Van chase](docs/media/van-chase.gif) | ![Kessler](docs/media/boss.gif) |
+| **Escape:** the van and the horde | **Kessler's true form** |
 
 ## Controls
 
