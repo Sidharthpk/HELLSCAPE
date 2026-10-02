@@ -1,5 +1,6 @@
 using System.IO;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 // Editor-only: render a view of one open scene to a JPG (for checking map work without entering Play).
@@ -24,6 +25,78 @@ public static class DevShots
             RenderTexture.active = null;
             File.WriteAllBytes($"{prefix}{++n:00}.jpg", tex.EncodeToJPG(80));
             Object.Destroy(rt); Object.Destroy(tex);
+        };
+        UnityEditor.EditorApplication.update += tick;
+    }
+
+    // Play mode: what the player sees (whichever camera is live, with the overlay UI drawn in), 'fps' frames a real
+    // second, as <dir>/f0001.jpg... for making GIFs. Runs until StopFilm(), 'max' frames or the end of Play.
+    static bool filming;
+    static int filmTake;
+    public static int Filmed;
+    public static void StopFilm() { filming = false; }
+    public static void FilmGame(string dir, float fps = 10f, int w = 640, int h = 360, int max = 3000)
+    {
+        Directory.CreateDirectory(dir);
+        filming = true; Filmed = 0;
+        double next = 0;
+        int take = ++filmTake;   // (a newer FilmGame call ends this one)
+        var rt = new RenderTexture(w, h, 24);
+        var uiRt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32);
+        var tex = new Texture2D(w, h, TextureFormat.RGB24, false);
+        var uiTex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        Camera uiCam = null;
+        UnityEditor.EditorApplication.CallbackFunction tick = null;
+        tick = () =>
+        {
+            if (!UnityEditor.EditorApplication.isPlaying || !filming || take != filmTake || Filmed >= max)
+            {
+                UnityEditor.EditorApplication.update -= tick;
+                if (take == filmTake) filming = false;
+                Object.Destroy(rt); Object.Destroy(uiRt); Object.Destroy(tex); Object.Destroy(uiTex);
+                if (uiCam != null) Object.Destroy(uiCam.gameObject);
+                return;
+            }
+            if (UnityEditor.EditorApplication.timeSinceStartup < next) return;
+            next = UnityEditor.EditorApplication.timeSinceStartup + 1.0 / fps;
+            Camera cam = null;
+            foreach (var c in Camera.allCameras)
+                if (c.targetTexture == null && c.GetUniversalAdditionalCameraData().renderType == CameraRenderType.Base && (cam == null || c.depth > cam.depth)) cam = c;
+            if (cam == null) return;
+            cam.targetTexture = rt; cam.Render(); cam.targetTexture = null;
+            RenderTexture.active = rt;
+            tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+
+            // the overlay UI on its own camera (so the PSX pass doesn't chew it up), laid over the game picture
+            if (uiCam == null)
+            {
+                var go = new GameObject("__filmUI") { hideFlags = HideFlags.HideAndDontSave };
+                uiCam = go.AddComponent<Camera>();
+                uiCam.enabled = false; uiCam.clearFlags = CameraClearFlags.SolidColor; uiCam.backgroundColor = new Color(0f, 0f, 0f, 0f);
+                uiCam.transform.position = new Vector3(0f, -5000f, 0f);
+                uiCam.targetTexture = uiRt;
+            }
+            var overlays = new System.Collections.Generic.List<Canvas>();
+            int mask = 0;
+            foreach (var cv in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+                if (cv.isRootCanvas && cv.enabled && cv.renderMode == RenderMode.ScreenSpaceOverlay)
+                { overlays.Add(cv); mask |= 1 << cv.gameObject.layer; cv.renderMode = RenderMode.ScreenSpaceCamera; cv.worldCamera = uiCam; cv.planeDistance = 1f; }
+            uiCam.cullingMask = mask;
+            try { Canvas.ForceUpdateCanvases(); uiCam.Render(); }
+            finally { foreach (var cv in overlays) { cv.renderMode = RenderMode.ScreenSpaceOverlay; cv.worldCamera = null; } }
+            RenderTexture.active = uiRt;
+            uiTex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+            RenderTexture.active = null;
+            var px = tex.GetPixels32(); var ui = uiTex.GetPixels32();
+            for (int i = 0; i < px.Length; i++)
+            {
+                int keep = 255 - ui[i].a;   // (the UI shaders write premultiplied colour)
+                px[i].r = (byte)Mathf.Min(255, ui[i].r + px[i].r * keep / 255);
+                px[i].g = (byte)Mathf.Min(255, ui[i].g + px[i].g * keep / 255);
+                px[i].b = (byte)Mathf.Min(255, ui[i].b + px[i].b * keep / 255);
+            }
+            tex.SetPixels32(px); tex.Apply();
+            File.WriteAllBytes($"{dir}/f{++Filmed:0000}.jpg", tex.EncodeToJPG(88));
         };
         UnityEditor.EditorApplication.update += tick;
     }
