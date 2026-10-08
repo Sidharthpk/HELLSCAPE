@@ -23,8 +23,8 @@ public class KillerBoss : MonoBehaviour
 
     [Header("Stats")]
     public float maxHealth = 420f;
-    public float walkSpeed = 1.7f;
-    public float enragedSpeed = 3.4f;       // below half health
+    public float walkSpeed = 2.6f;
+    public float enragedSpeed = 5f;      // below half health
     public float attackRange = 2.1f;
     public float attackDamage = 12f;       // you start the fight on half health
     public float attackCooldown = 1.7f;
@@ -44,16 +44,16 @@ public class KillerBoss : MonoBehaviour
     [Range(0f, 1f)] public float chargeAfterDodge = 0.75f;
 
     [Header("The charge")]
-    public float chargeWindup = 0.5f;       // he sets himself: this is when to start moving
-    public float chargeSpeed = 7.5f;
+    public float chargeWindup = 0.3f;      // he sets himself: this is when to start moving
+    public float chargeSpeed = 11f;
     public float chargeDamage = 18f;
     public float chargeHitRadius = 1.15f;
     [Range(0f, 1f)] public float chargeDamageTaken = 1f;     // of your shots' damage while he's running at you (1: all of it)
-    public float stunTime = 3f;             // staggering and down, after the wall (or a knife): about 1.2 s of it is the fall
-    public float getUpTime = 1.6f;
+    public float stunTime = 0.6f;           // staggering and down, after the wall (or a knife)...
+    public float getUpTime = 0.4f;          // ...and up again: the two together are the whole second he's open to fire, then he dodges
 
     [Header("His own moves (a throw or a charge)")]
-    public float moveEvery = 3.2f;          // seconds between them (below half health: x0.65)
+    public float moveEvery = 2.2f;         // seconds between them (below half health: x0.65)
     [Range(0f, 1f)] public float throwOverCharge = 0.6f;
 
     [Header("Knives")]
@@ -357,10 +357,9 @@ public class KillerBoss : MonoBehaviour
         }
         downBody.enabled = false;
         stunned = false;
-        Go("Locomotion", 0.2f);
-        yield return new WaitForSeconds(0.2f);
         moveTimer = 1f;
-        busy = false;
+        // (up, and straight into a dodge: while he's dodging nothing you fire touches him; it often runs into a charge)
+        yield return Dodge(0f);
     }
 
     BoxCollider downBody;

@@ -155,7 +155,7 @@ public class BloodWave : MonoBehaviour
         // shot 3: low behind the car, looking up past it at the orb looming over the street
         Vector3 s3a = SafeCam(c + Vector3.up * 1.5f, c - toOrb * 3.2f + side * 1.4f + Vector3.up * 0.9f);
         Vector3 s3b = SafeCam(c + Vector3.up * 1.5f, c - toOrb * 4.6f + side * 0.6f + Vector3.up * 1.5f);
-        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow("DRIVE!");
+        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow("Go.");
         for (float t = 0f; t < 2.2f; t += Time.deltaTime)
         {
             float k = Mathf.SmoothStep(0f, 1f, t / 2.2f);

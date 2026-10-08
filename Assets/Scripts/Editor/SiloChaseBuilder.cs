@@ -157,7 +157,9 @@ public static class SiloChaseBuilder
         // the spiral comes down one full turn to a landing under the tower door (west side, 58.3)
         Vector3 centre = enc.siloCenter.position;
         float landY = FloorY(scene, centre.x - 4.1f, centre.z, 60.5f, 58.3f);
-        var leap = Trig("LeapTrigger (stairs end)", new Vector3(centre.x - 4.1f, landY + 1.3f, centre.z), new Vector3(2.2f, 2.4f, 2.8f));
+        // at the TOP of the spiral, the first steps in from the tower door, so the shove comes when nobody expects it
+        float topY = FloorY(scene, centre.x - 4.6f, centre.z + 0.6f, 74f, landY + 10f);
+        var leap = Trig("LeapTrigger (stairs end)", new Vector3(centre.x - 4.6f, topY + 1.3f, centre.z + 0.6f), new Vector3(2.2f, 2.4f, 2.8f));
         UnityEventTools.AddVoidPersistentListener(leap.onEnter, enc.Leap);
         var push = c.Find("PushTrigger");
         if (push != null && push.gameObject.activeSelf) { push.gameObject.SetActive(false); sb.AppendLine("old PushTrigger switched off (the push is the opening jump scare now; the fall is your own leap)"); }

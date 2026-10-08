@@ -257,6 +257,8 @@ public class DriveBy : MonoBehaviour
             if (hit.collider.transform.IsChildOf(transform)) continue;
             if (car.playerRoot != null && hit.collider.transform.IsChildOf(car.playerRoot.transform)) continue;
             end = hit.point;
+            var blackHeart = hit.collider.GetComponentInParent<BossHeart>();
+            if (blackHeart != null) { blackHeart.Hit(damage, hit.point, dir); break; }
             var demon = hit.collider.GetComponentInParent<DemonBoss>();
             if (demon != null) { demon.TakeDamage(damage, hit.point, dir, hit.collider); break; }
             var boss = hit.collider.GetComponentInParent<KillerBoss>();

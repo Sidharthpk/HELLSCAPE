@@ -18,6 +18,7 @@ static class SoundManagerMenu
         ("Prologue", "Sting (body, spotted)", "Stinger when you find Derek and when you spot the killer (now: TitleSting)."),
         ("Prologue", "Stabbing on the tape", "The stabbing on the CCTV tape (now: the stabbing sound effect)."),
         ("Prologue", "Street ambience", "The morning street outside the flats (now: New York City Streets Ambience)."),
+        ("Prologue", "Office ambience", "The office background noise under the Friday-night flashback (now: At The Office)."),
         ("Prologue", "TV murmur", "The TV murmuring in the living room (built-in: generated murmur)."),
         ("Prologue", "Wind (roof and fall)", "Wind on the roof and during the fall (built-in: generated wind)."),
         ("Prologue", "Whisper (the fall)", "Whisper as the killer goes over and halfway down the fall (built-in: generated whisper)."),
@@ -84,6 +85,9 @@ static class SoundManagerMenu
         ("Demon Fight", "Boss dragged under", "The drowned dragging it into the water when it dies (built-in: rumble)."),
 
         ("Ending", "Angel choir", "The angel descending (now: AngelChoir)."),
+        ("Ending", "Shadow whispers", "Evil whispers as the shadow people close in; they swell the longer it goes, and stop when the Demon King comes (now: Evil Whisper)."),
+        ("Ending", "Shadow music", "Tense horror bed under the shadow walk: a very long fade in, louder as they gather, gone when the Demon King comes."),
+        ("Ending", "Shadow scream", "Nightmare yelling when a shadow person catches you."),
         ("Ending", "Demon King talking", "The Demon King's voice while he passes sentence, after he rises."),
         ("Ending", "Demon rises", "The demon rising (now: DemonRise)."),
 

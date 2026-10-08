@@ -63,6 +63,14 @@ public class Checkpoint : MonoBehaviour
 
     IEnumerator Respawn()
     {
+        foreach (var visit in FindObjectsByType<EchoVisit>(FindObjectsInactive.Include, FindObjectsSortMode.None)) visit.Cancel();
+        foreach (var office in FindObjectsByType<OfficeHorrorDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None)) office.CancelSwitch();
+        foreach (var encounter in FindObjectsByType<KesslerConfrontation>(FindObjectsInactive.Include, FindObjectsSortMode.None)) encounter.AbortAmbush();
+        foreach (var puzzle in FindObjectsByType<TapLock>(FindObjectsInactive.Include, FindObjectsSortMode.None)) puzzle.Cancel();
+        foreach (var puzzle in FindObjectsByType<LockPick>(FindObjectsInactive.Include, FindObjectsSortMode.None)) puzzle.Cancel();
+        foreach (var ghost in FindObjectsByType<GhostNPC>(FindObjectsInactive.Include, FindObjectsSortMode.None)) ghost.CancelConversation();
+        if (ChoiceDialogue.Instance != null) ChoiceDialogue.Instance.Close();
+        if (DialogueBox.Instance != null) DialogueBox.Instance.Clear();
         if (player == null) { var p = GameObject.FindGameObjectWithTag("Player"); if (p != null) player = p.transform; }
         if (fader == null) fader = FindFirstObjectByType<ScreenFader>(FindObjectsInactive.Include);
         if (fader != null) fader.fade.alpha = 1f;

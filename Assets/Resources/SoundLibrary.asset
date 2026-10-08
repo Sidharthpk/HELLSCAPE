@@ -53,6 +53,11 @@ MonoBehaviour:
       clips:
       - {fileID: 8300000, guid: 39076266763ce9c44a2abfe307cd800e, type: 3}
       volume: 1
+    - name: Office ambience
+      note: 'The office background noise under the Friday-night flashback (now: At The Office).'
+      clips:
+      - {fileID: 8300000, guid: 80115752bd8c44e4785ad6dcd770174d, type: 3}
+      volume: 1
     - name: TV murmur
       note: 'The TV murmuring in the living room (built-in: generated murmur).'
       clips:
@@ -378,6 +383,21 @@ MonoBehaviour:
       note: 'The demon rising (now: DemonRise).'
       clips:
       - {fileID: 8300000, guid: 89d1b1c1695190445b1a1ac08d6cf2de, type: 3}
+      volume: 1
+    - name: Shadow whispers
+      note: 'Evil whispers as the shadow people close in; they swell the longer it goes, and stop when the Demon King comes (now: Evil Whisper).'
+      clips:
+      - {fileID: 8300000, guid: 8c6186ed568ac5d4dbab6f897102b65e, type: 3}
+      volume: 1
+    - name: Shadow music
+      note: 'Tense horror bed under the shadow walk: a very long fade in, louder as they gather, gone when the Demon King comes.'
+      clips:
+      - {fileID: 8300000, guid: 8b1cefc4f4540e44e8ecba7113a49248, type: 3}
+      volume: 1
+    - name: Shadow scream
+      note: 'Nightmare yelling when a shadow person catches you.'
+      clips:
+      - {fileID: 8300000, guid: aeeee505593a30f48ae52ee2e3917f03, type: 3}
       volume: 1
     - name: Demon King talking
       note: The Demon King's voice while he passes sentence, after he rises.

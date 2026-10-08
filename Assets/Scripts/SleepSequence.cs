@@ -28,8 +28,8 @@ public class SleepSequence : MonoBehaviour
 
     [Header("Hell Look")]
     public Material hellSkybox;
-    public Color hellFogColor = new Color(0.35f, 0.075f, 0.068f);
-    public float hellFogDensity = 0.03f;
+    public Color hellFogColor = new Color(0.34f, 0.17f, 0.15f);
+    public float hellFogDensity = 0.022f;
 
     [Header("Sun")]
     public Light sun;
@@ -74,9 +74,17 @@ public class SleepSequence : MonoBehaviour
         Transform at = fallWakePoint != null ? fallWakePoint : wakePoint;
         if (at != null) playerRoot.transform.SetPositionAndRotation(at.position, at.rotation);
         if (FallSpot.HasValue && streetAnchor != null) PlaceAtFallSpot();
+        bool fromPrologue = FallSpot.HasValue;
         FallSpot = null;
         yield return null;
         if (fader != null) fader.fade.alpha = 1f;   // the fader's own Start clears it
+        var ending = fromPrologue ? FindFirstObjectByType<EndingSequence>(FindObjectsInactive.Include) : null;
+        if (ending != null)
+        {
+            yield return ending.DeathVision();   // you died on that street: the King marks your hands first
+            if (fists != null) fists.HoldDown();
+            if (fader != null) fader.fade.alpha = 1f;
+        }
 
         var cam = playerRoot.GetComponentInChildren<Camera>();
         if (wakeSound != null) wakeSound.Play();

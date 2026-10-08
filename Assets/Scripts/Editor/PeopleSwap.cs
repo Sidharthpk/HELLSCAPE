@@ -77,6 +77,31 @@ public static class PeopleSwap
         Debug.Log($"People swapped: {proCount} in the prologue, {i} lost souls in the hell city.");
     }
 
+    // Mrs. Okafor, the prologue's first drop, was just whichever woman the shuffle dealt: she is one of the pack's grey-haired
+    // old ladies now (pink cardigan), a touch shorter, stooped, with a walking stick, and slow on her way back in.
+    [MenuItem("HellScape/People: Mrs Okafor is an old lady")]
+    public static void OldLady()
+    {
+        var pro = SceneManager.GetSceneByName("Prologue");
+        if (!pro.isLoaded) { Debug.LogError("Open the Prologue scene first."); return; }
+        var proRoot = pro.GetRootGameObjects().First(g => g.name == "Prologue").transform;
+        var okafor = proRoot.Find("Deliveries/Mrs Okafor");
+        if (okafor == null) { Debug.LogError("No 'Mrs Okafor' under Prologue/Deliveries."); return; }
+        string path = AssetDatabase.FindAssets("Character_29_Female t:Model", new[] { Pack }).Select(AssetDatabase.GUIDToAssetPath).First(p => p.EndsWith("/Character_29_Female.fbx"));
+        var map = new Dictionary<Object, Object>();
+        Swap(okafor, path, null, map);
+        Remap(pro, map);
+        Bury();
+        var model = okafor.GetComponentInChildren<Animator>(true);
+        model.transform.localScale *= 0.93f;
+        if (model.GetComponent<ElderStoop>() == null) model.gameObject.AddComponent<ElderStoop>();
+        var run = proRoot.GetComponentInChildren<DeliveryRun>(true);
+        if (run != null && run.stops.Length > 0) { run.stops[0].exitSpeed = 0.85f; EditorUtility.SetDirty(run); }
+        EditorSceneManager.MarkSceneDirty(pro);
+        EditorSceneManager.SaveScene(pro);
+        Debug.Log("Mrs. Okafor is an old lady now (" + System.IO.Path.GetFileName(path) + ").");
+    }
+
     // replace the model under root (the child holding the Animator) with the pack model at modelPath
     static void Swap(Transform root, string modelPath, Material overrideMat, Dictionary<Object, Object> map)
     {

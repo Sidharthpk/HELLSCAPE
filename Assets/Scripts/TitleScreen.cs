@@ -26,6 +26,9 @@ public class TitleScreen : MonoBehaviour
     public SleepSequence sleep;             // knows the day/hell worlds, sky, fog and sun
     public Camera cam;                      // the title camera (above every other camera while showing)
     public Shot[] shots;
+    public Animator core;                   // the sci-fi core tunnel: when set, the camera rides down its inside instead of the city shots
+    public float coreRideTime = 30f;
+    public float coreFogDensity = 0.008f;
     public float menuFogDensity = 0.012f;   // the in-game hell fog is too thick for a city vista
     public Behaviour[] lockDuring;          // player movement, fists
     public Canvas[] hideDuring;             // the HUD canvases (only the Canvas is switched off: scripts still find their UI)
@@ -36,6 +39,8 @@ public class TitleScreen : MonoBehaviour
     public RectTransform title;             // jitters now and then
     public CanvasGroup titleGroup;
     public Button startButton, quitButton;
+
+    [Range(0f, 1f)] public float dim = 0.3f;   // the city behind the title, a little darker
 
     [Header("Story")]
     public string prologueScene = "Prologue";   // START plays this first (the flat, Derek, the roof); empty = start here
@@ -48,6 +53,7 @@ public class TitleScreen : MonoBehaviour
     private bool starting;
     private Vector2 titleHome;
     private bool[] hudWasOn;
+    private TMPro.TMP_Text hint;               // "PRESS ANY BUTTON", fading in and out
 
     void Awake()
     {
@@ -63,6 +69,18 @@ public class TitleScreen : MonoBehaviour
         if (startButton != null) startButton.onClick.AddListener(StartGame);
         if (quitButton != null) quitButton.onClick.AddListener(Quit);
         if (title != null) titleHome = title.anchoredPosition;
+        if (ui != null) { var h = ui.transform.Find("Hint"); if (h != null) { hint = h.GetComponent<TMPro.TMP_Text>(); if (hint != null) { hint.text = "PRESS ANY BUTTON"; hint.fontSize = 34f; } } }
+        if (ui != null && dim > 0f)
+        {
+            var go = new GameObject("Dim", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(ui.transform, false);
+            go.transform.SetAsFirstSibling();
+            var rt = (RectTransform)go.transform;
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
+            var img = go.GetComponent<Image>();
+            img.color = new Color(0f, 0f, 0f, dim);
+            img.raycastTarget = false;
+        }
     }
 
     IEnumerator Start()
@@ -76,7 +94,8 @@ public class TitleScreen : MonoBehaviour
         RenderSettings.fogDensity = menuFogDensity;
         if (sleep.sun != null) { sleep.sun.color = sleep.hellSunColor; sleep.sun.intensity = sleep.hellSunIntensity; }
         if (sleep.dayWorld != null) sleep.dayWorld.SetActive(false);
-        city = VisualCopy(sleep.hellWorld);
+        if (core != null) RenderSettings.fogDensity = coreFogDensity;
+        else city = VisualCopy(sleep.hellWorld);
         DynamicGI.UpdateEnvironment();
 
         if (MusicManager.HasMusic("Title")) MusicManager.Area("Title");   // your own title music (Sound Manager)
@@ -88,7 +107,8 @@ public class TitleScreen : MonoBehaviour
             music.Play();
             StartCoroutine(Volume(music, 0.55f, 3f));
         }
-        StartCoroutine(Shots());
+        StartCoroutine(core != null ? CoreRide() : Shots());
+        if (title != null) StartCoroutine(TitleLetters(1.4f, 0.28f, 0.7f));
         yield return new WaitForSeconds(1.2f);
         yield return Fade(ui, 1f, 2f);
         if (ui != null) ui.interactable = true;
@@ -131,6 +151,62 @@ public class TitleScreen : MonoBehaviour
         }
     }
 
+    // inside the tunnel: the clip twists the hex tube while the camera flies down its middle, swaying and rolling a little
+    IEnumerator CoreRide()
+    {
+        if (cam == null) yield break;
+        var lightGo = new GameObject("CoreGlow", typeof(Light));
+        lightGo.transform.SetParent(cam.transform, false);
+        var glow = lightGo.GetComponent<Light>();
+        glow.type = LightType.Point; glow.color = new Color(1f, 0.35f, 0.15f); glow.range = 40f; glow.intensity = 6f;
+
+        var root = core.transform;
+        core.speed = 10.4f / coreRideTime;                           // the clip is ~10.4s: stretch it over the whole ride
+        while (!starting)
+        {
+            core.Play(0, 0, 0f);
+            StartCoroutine(Fade(cut, 0f, 1.2f));
+            for (float t = 0f; t < coreRideTime && !starting; t += Time.deltaTime)
+            {
+                float k = t / coreRideTime;
+                float z = Mathf.Lerp(50f, -105f, k);
+                var local = new Vector3(Mathf.Sin(t * 0.5f) * 0.8f, 3.6f + Mathf.Sin(t * 0.37f) * 0.6f, z);
+                cam.transform.SetPositionAndRotation(root.TransformPoint(local),
+                    root.rotation * Quaternion.Euler(Mathf.Sin(t * 0.3f) * 3f, 180f + Mathf.Sin(t * 0.21f) * 6f, Mathf.Sin(t * 0.17f) * 12f + t * 1.5f));
+                cam.fieldOfView = 68f + Mathf.Sin(t * 0.6f) * 5f;
+                if (t > coreRideTime - 1.2f && cut != null && cut.alpha < 0.01f) StartCoroutine(Fade(cut, 1f, 1.2f));
+                yield return null;
+            }
+        }
+    }
+
+    // the title appears one letter at a time: each fades in `fade` seconds after the one before, `step` apart
+    IEnumerator TitleLetters(float delay, float step, float fade)
+    {
+        var texts = title.GetComponentsInChildren<TMPro.TMP_Text>();
+        for (float t = 0f; !starting; t += Time.deltaTime)
+        {
+            bool done = true;
+            foreach (var tx in texts)
+            {
+                tx.ForceMeshUpdate();   // back to the base colours, then scale each letter's alpha
+                var info = tx.textInfo;
+                for (int i = 0; i < info.characterCount; i++)
+                {
+                    var ch = info.characterInfo[i];
+                    if (!ch.isVisible) continue;
+                    float a = Mathf.Clamp01((t - delay - i * step) / fade);
+                    if (a < 1f) done = false;
+                    var cols = info.meshInfo[ch.materialReferenceIndex].colors32;
+                    for (int v = 0; v < 4; v++) cols[ch.vertexIndex + v].a = (byte)(cols[ch.vertexIndex + v].a * a);
+                }
+                tx.UpdateVertexData(TMPro.TMP_VertexDataUpdateFlags.Colors32);
+            }
+            if (done) yield break;
+            yield return null;
+        }
+    }
+
     void Update()
     {
         if (!Showing) return;
@@ -145,7 +221,10 @@ public class TitleScreen : MonoBehaviour
             titleGroup.alpha = glitch && Random.value < 0.4f ? 0.35f : 1f;
         }
 
-        if (ui != null && ui.interactable && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
+        // the prompt breathes: fades in and out, forever
+        if (hint != null) hint.alpha = Mathf.Lerp(0.12f, 1f, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 2.4f));
+
+        if (ui != null && ui.interactable && Input.anyKeyDown && !Input.GetKeyDown(KeyCode.Escape))
             StartGame();
     }
 
@@ -185,6 +264,7 @@ public class TitleScreen : MonoBehaviour
     {
         Showing = false;
         if (cam != null) cam.enabled = false;
+        if (core != null) core.gameObject.SetActive(false);
         gameObject.SetActive(false);
     }
 

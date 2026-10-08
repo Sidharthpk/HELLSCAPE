@@ -8,6 +8,8 @@ public class SequencePuzzle : MonoBehaviour
 {
     public string[] order = { "Lobby", "Break Room", "Server Room", "Silo" };
     public bool powered;
+    public bool echoOnly;                   // the burnt terminal only works in the Echo
+    [TextArea] public string burntLine = "The terminal is melted. It only survives in the Echo.";
     public TextMeshPro display;
     [TextArea] public string noPowerLine = "The screen is black.";
     [TextArea] public string wrongLine = "Static. The tape rewinds itself.";
@@ -15,18 +17,22 @@ public class SequencePuzzle : MonoBehaviour
     public AudioSource wrongSound;
     public UnityEvent onSolved = new UnityEvent();
 
+    public System.Action<int> onStep;       // the step reached (1..n); -1 on a wrong press
     private int step;
-    private bool solved;
+    private bool solved, echo;
 
     public void SetPowered(bool on)
     {
         powered = on;
-        if (display != null) display.text = on ? "REPLAY 13/04  ??:??" : "";
+        if (display != null) display.text = echoOnly && !echo ? "NO SIGNAL" : solved ? "REPLAY COMPLETE" : on ? "REPLAY 13/04  " + step + "/" + order.Length : "";
     }
+
+    public void ApplyRealm(bool on) { echo = on; SetPowered(powered); }
 
     public void Press(string id)
     {
-        if (solved) return;
+        if (solved || order == null || order.Length == 0) return;
+        if (echoOnly && !echo) { Say(burntLine); return; }
         if (!powered) { Say(noPowerLine); return; }
 
         if (order[step] == id)
@@ -39,6 +45,7 @@ public class SequencePuzzle : MonoBehaviour
                 onSolved.Invoke();
             }
             else Say(string.Format(stepLine, id));
+            onStep?.Invoke(step);
         }
         else
         {
@@ -46,6 +53,7 @@ public class SequencePuzzle : MonoBehaviour
             if (display != null) display.text = "SIGNAL LOST";
             if (wrongSound != null) wrongSound.Play();
             Say(wrongLine);
+            onStep?.Invoke(-1);
         }
     }
 

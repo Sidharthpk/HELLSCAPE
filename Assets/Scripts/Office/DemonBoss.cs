@@ -104,6 +104,19 @@ public class DemonBoss : MonoBehaviour
     public float beamSpin = 40f;             // degrees a second
     public float beamTime = 5f;
 
+    [Header("Last phase: the black hearts")]
+    [Range(0f, 1f)] public float heartsBelow = 0.18f;   // at this health it flies up, sealed, and the hearts come up out of the deck
+    public int blackHearts = 3;
+    public float blackHeartHealth = 210f;    // each (the rifle does 14 a shot)
+    public float blackHeartHeight = 2.8f;
+    public float hoverHeight = 17f;
+    public float shieldRadius = 8f;          // the liquid bubble round it while it's sealed
+    public float crashStun = 7f;            // how long it lies stunned (double damage) after the last heart goes
+    public string sealedName = "KESSLER - SEALED BY THE BLACK HEARTS";
+    [TextArea] public string heartsLines = "KESSLER: You can't kill what doesn't beat in me anymore.|KESSLER: Three hearts. Three sins I buried. Come and dig them up.";
+    [TextArea] public string heartsHint = "It's tied to those black hearts. Nothing touches it until they're gone!";
+    [TextArea] public string crashLines = "KESSLER: No--! My hearts--!";
+
     [Header("The drowned (phase 2+)")]
     public int maxDrowned = 6;
     public float drownedSpeed = 3.6f;
@@ -182,8 +195,8 @@ public class DemonBoss : MonoBehaviour
     public float arenaAmbient = 1.4f;        // ambient multiplier
     public float arenaFog = 0.018f;          // fog density (city: 0.03)
     [Header("Footsteps: a deep stomp every stride")]
-    public float stompStride = 4.5f;         // metres per footfall
-    public float stompVolume = 1f;
+    public float stompSpacing = 7f;           // metres per footfall
+    public float stompLevel = 0.4f;
     [Header("Its death: the drowned drag it into the water")]
     public float waterY = -7.6f;             // the water's surface under the bridge
     public int dragCount = 8;                // how many of the drowned come over the rail for it
@@ -213,6 +226,9 @@ public class DemonBoss : MonoBehaviour
     int phase;
     float health, boltTimer, actTimer, summonTimer, patternTimer;
     bool fighting, busy, stunned, defeated, begun;
+    bool sealedBoss, hovering, heartsDone;
+    readonly List<BossHeart> hearts = new List<BossHeart>();
+    BossShield shield;
     readonly List<GameObject> spawned = new List<GameObject>();
     readonly List<Drowned> drowned = new List<Drowned>();
     GameObject zombieTemplate;
@@ -317,7 +333,13 @@ public class DemonBoss : MonoBehaviour
         standAtDoor.y = Ground(standAtDoor);
         toVan = Flat(van - standAtDoor).normalized;
         side = Vector3.Cross(Vector3.up, toVan);
-        if (damnedCopy != null)
+        var fusion = GetComponent<TomasAmalgamation>();
+        if (fusion != null && fusion.Prepared)
+        {
+            body = fusion.CreateTomas(doorStep, Quaternion.LookRotation(Flat(standAtDoor - doorStep).normalized));
+            fusion.Stage(doorStep, Quaternion.LookRotation(Flat(standAtDoor - doorStep).normalized));
+        }
+        else if (damnedCopy != null)
         {
             body = Instantiate(damnedCopy, doorStep, Quaternion.LookRotation(Flat(standAtDoor - doorStep).normalized));
             body.name = "Kessler (damned, cutscene)";
@@ -346,12 +368,14 @@ public class DemonBoss : MonoBehaviour
                 Vector3 p = Vector3.Lerp(doorStep, standAtDoor, Mathf.Clamp01(walked / dist));
                 p.y = Ground(p);
                 body.transform.SetPositionAndRotation(p, Quaternion.LookRotation(walkDir));
+                if (fusion != null) fusion.Follow(p, walkDir);
                 Vector3 f = p + Vector3.up * headUp;
                 Place(SafeCam(f, f + walkDir * 3.8f + walkSide * 0.9f + Vector3.down * 0.3f) + Random.insideUnitSphere * 0.01f, f);
                 yield return null;
             }
             body.transform.position = standAtDoor;
             if (bodyAnim != null) SetWalking(bodyAnim, false);
+            if (fusion != null) fusion.Tomas(0f);
         }
 
         float headY = body != null ? BoundsOf(body).max.y - 0.2f : standAtDoor.y + 1.8f;
@@ -384,9 +408,11 @@ public class DemonBoss : MonoBehaviour
         rumble.Play();
         Vector3 midCam = standAtDoor + toVan * 7f + side * 2.2f + Vector3.up * 1.6f;
         Vector3 s0 = body != null ? body.transform.localScale : Vector3.one;
-        for (float t = 0f; t < 2.6f; t += Time.deltaTime)
+        float fusionTime = fusion != null ? 5f : 2.6f;
+        for (float t = 0f; t < fusionTime; t += Time.deltaTime)
         {
-            float k = t / 2.6f;
+            float k = t / fusionTime;
+            if (fusion != null) fusion.Absorb(k);
             Place(Vector3.Lerp(closeTo, midCam, Mathf.SmoothStep(0f, 1f, Mathf.Min(1f, k * 2f))) + Random.insideUnitSphere * 0.06f * k, Vector3.Lerp(face, standAtDoor + Vector3.up * 1.4f, k));
             if (body != null)
             {
@@ -407,6 +433,7 @@ public class DemonBoss : MonoBehaviour
         if (img != null) { img.color = new Color(1f, 0.85f, 0.8f); fader.fade.alpha = 0.95f; }
         for (int i = 0; i < 4; i++) BloodFx.Spray(standAtDoor + Vector3.up * 1.4f, Random.onUnitSphere + Vector3.up, 60, 9f);
         if (body != null) Destroy(body);
+        if (fusion != null) fusion.Complete();
         Boom(standAtDoor, 1.5f);
         transform.SetPositionAndRotation(standAtDoor, Quaternion.LookRotation(toVan));
         SetModelVisible(true);
@@ -922,7 +949,7 @@ public class DemonBoss : MonoBehaviour
             }
         }
         MusicManager.Stop(1.5f);
-        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow("The engine-- come on, come ON--|Something's under the bridge.");
+        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow("Come on. Come on.|Something's under the bridge.");
         yield return new WaitForSeconds(1.8f);
 
         if (fader != null) yield return fader.FadeTo(1f, 0.35f);
@@ -1040,6 +1067,7 @@ public class DemonBoss : MonoBehaviour
     {
         if (chasing) { ChaseUpdate(); return; }
         UpdateDrowned();
+        if (hovering) return;   // HeartPhase flies it
         if (!fighting || defeated || player == null) return;
         if (playerHealth != null && playerHealth.IsDead) return;
 
@@ -1314,7 +1342,7 @@ public class DemonBoss : MonoBehaviour
     {
         stunned = true;
         Play(stunState);
-        if (DialogueBox.Instance != null && Random.value < 0.35f) DialogueBox.Instance.Say("Its heart-- SHOOT THE HEART!");
+        if (DialogueBox.Instance != null && Random.value < 0.35f) DialogueBox.Instance.Say("Its heart. Shoot the heart.");
         Transform m = model != null ? model : transform;
         Quaternion r0 = m.localRotation;
         for (float t = 0f; t < time; t += Time.deltaTime)
@@ -1634,6 +1662,7 @@ public class DemonBoss : MonoBehaviour
         if (crit) dmg *= heartMultiplier;
         if (stunned) dmg *= stunMultiplier;
         BloodFx.Spray(point, -dir, crit ? 30 : 12, crit ? 5f : 3f);
+        if (sealedBoss) { if (shield != null) shield.Flash(); return; }   // the black hearts hold it: no damage until they are gone
         if (chasing)
         {
             // shot from the van: it hurts it, it staggers it, but the real fight is on the bridge
@@ -1651,12 +1680,155 @@ public class DemonBoss : MonoBehaviour
             return;
         }
         health -= dmg;
+        if (!heartsDone && phase >= 3 && health < maxHealth * heartsBelow)
+        {
+            health = Mathf.Max(health, 1f);   // it cannot die before the hearts have been dealt with
+            UpdateBar();
+            StopAllCoroutines();   // whatever it was in the middle of (a long blood pattern, a slam) is over
+            ClearTransients();
+            busy = true; sealedBoss = true; hovering = true; stunned = false; heartsDone = true;
+            StartCoroutine(HeartPhase());
+            return;
+        }
         UpdateBar();
         if (heart != null && crit) StartCoroutine(Pulse());
 
         if (health <= 0f) { StopAllCoroutines(); busy = true; StartCoroutine(Die()); return; }
         if (phase == 1 && health < maxHealth * 0.65f) StartCoroutine(NextPhase(2, phase2Lines));
         else if (phase == 2 && health < maxHealth * 0.3f) StartCoroutine(NextPhase(3, phase3Lines));
+    }
+
+    // The last phase: it flies up over the middle of the deck, three black hearts push up out of the bridge tied to
+    // it, and nothing hurts it until they're all shot. Then it crashes down, stunned, and the rest of its health is
+    // yours to take.
+    IEnumerator HeartPhase()
+    {
+        phase = 4;
+        Locomote(0f);
+        Play(roarState);
+        Roar(1f);
+        Boom(transform.position, 0.8f);
+        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(heartsLines + "|" + heartsHint);
+        if (bossName != null) bossName.text = sealedName;
+
+        shield = BossShield.Make(Centre, shieldRadius);
+        Vector3 mid = arena != null ? arena.position : transform.position;
+        Vector3 from = transform.position, top = new Vector3(mid.x, mid.y + hoverHeight, mid.z);
+        for (float t = 0f; t < 2.4f; t += Time.deltaTime)
+        {
+            transform.position = Vector3.Lerp(from, top, Mathf.SmoothStep(0f, 1f, t / 2.4f));
+            FaceToward(Tgt.position, 3f);
+            yield return null;
+        }
+        SpawnHearts();
+
+        float next = 3.5f;
+        while (hearts.Exists(h => h != null && !h.Dead))
+        {
+            transform.position = top + Vector3.up * Mathf.Sin(Time.time * 1.3f) * 0.8f;
+            FaceToward(Tgt.position, 2f);
+            next -= Time.deltaTime;
+            if (next <= 0f) { next = Random.Range(4f, 6f); StartCoroutine(InVan ? LobOrbs(4) : Bolts(3)); }
+            yield return null;
+        }
+
+        // the last one's gone: the bubble bursts and it falls
+        if (shield != null) shield.Pop();
+        Play(stunState);
+        Roar(1.2f);
+        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(crashLines);
+        Vector3 up = transform.position, land = new Vector3(up.x, Ground(new Vector3(up.x, mid.y, up.z)), up.z);
+        for (float t = 0f; t < 0.7f; t += Time.deltaTime)
+        {
+            transform.position = Vector3.Lerp(up, land, (t / 0.7f) * (t / 0.7f));
+            yield return null;
+        }
+        transform.position = land;
+        Boom(land, 2.2f);
+        if (Flat(Tgt.position - land).magnitude < 7f && Grounded()) { Hurt(slamDamage); Knock(Flat(Tgt.position - land).normalized * 8f + Vector3.up * 3f); }
+        foreach (var o in orbs) if (o != null) Destroy(o);
+        sealedBoss = false; hovering = false;
+        if (bossName != null) bossName.text = displayName;
+        DropPickup();
+        StartCoroutine(Stun(crashStun));
+        yield return new WaitForSeconds(crashStun);
+        actTimer = 1.2f;
+        busy = false;
+    }
+
+    void SpawnHearts()
+    {
+        Transform src = heart != null ? heart.Find("Heart model") : null;
+        float reach = arena != null ? arenaHalfLength - 5f : 8f;   // right along the deck: far apart, ~24 m between them
+        for (int i = 0; i < blackHearts; i++)
+        {
+            float z = blackHearts > 1 ? Mathf.Lerp(-1f, 1f, i / (float)(blackHearts - 1)) * reach : 0f;
+            Vector3 p = arena != null ? arena.TransformPoint(new Vector3(i % 2 == 0 ? -4.5f : 4.5f, 0f, z)) : transform.position + new Vector3(i * 6f - 6f, 0f, 6f);
+            p.y = Ground(p);
+            var g = new GameObject("Black heart");
+            g.transform.position = p + Vector3.up * blackHeartHeight * 0.6f;
+            var col = g.AddComponent<SphereCollider>(); col.radius = blackHeartHeight * 0.45f;
+            GameObject m;
+            if (src != null)   // the same anatomical heart as its own, big and black
+            {
+                float k = blackHeartHeight / 1.3f;
+                m = Instantiate(src.gameObject, g.transform);
+                m.SetActive(true);
+                m.transform.localPosition = src.localPosition * heart.lossyScale.y * k;
+                m.transform.localRotation = Quaternion.identity;
+                m.transform.localScale = src.lossyScale * k;
+                foreach (var c in m.GetComponentsInChildren<Collider>(true)) Destroy(c);
+                foreach (var l in m.GetComponentsInChildren<Light>(true)) Destroy(l);
+            }
+            else
+            {
+                m = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                Destroy(m.GetComponent<Collider>());
+                m.transform.SetParent(g.transform, false);
+                m.transform.localScale = Vector3.one * blackHeartHeight;
+            }
+            foreach (var r in m.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = new Material[Mathf.Max(1, r.sharedMaterials.Length)];
+                for (int j = 0; j < mats.Length; j++) mats[j] = BossHeart.BlackMat();
+                r.sharedMaterials = mats;
+                r.enabled = true;
+            }
+            var h = g.AddComponent<BossHeart>();
+            h.boss = this; h.health = blackHeartHealth; h.height = blackHeartHeight; h.tetherMat = boltMat;
+            h.anchor = Centre;
+            hearts.Add(h);
+            BloodFx.Spray(p, Vector3.up, 40, 6f);
+            Boom(p, 0.8f);
+        }
+    }
+
+    // a black heart was shot to pieces
+    public void HeartBroken(BossHeart h)
+    {
+        Boom(h.transform.position, 1.3f);
+        BloodFx.Spray(h.transform.position, Vector3.up, 60, 8f);
+        Roar(0.6f);
+        if (hearts.Exists(x => x != null && x != h && !x.Dead) && DialogueBox.Instance != null) DialogueBox.Instance.SayNow("One down!");
+    }
+
+    // the rings, beams, orbs and bolts of whatever attack was running
+    void ClearTransients()
+    {
+        foreach (var lr in GetComponentsInChildren<LineRenderer>()) Destroy(lr.gameObject);
+        foreach (var mk in marks) if (mk != null) Destroy(mk);
+        marks.Clear();
+        foreach (var o in orbs) if (o != null) Destroy(o);
+        orbs.Clear();
+        foreach (var g in spawned) if (g != null && g.name == "BloodBolt") Destroy(g);
+    }
+
+    void ClearHearts()
+    {
+        foreach (var h in hearts) if (h != null) Destroy(h.gameObject);
+        hearts.Clear();
+        if (shield != null) Destroy(shield.gameObject);
+        sealedBoss = hovering = heartsDone = false;
     }
 
     IEnumerator NextPhase(int to, string lines)
@@ -1681,6 +1853,7 @@ public class DemonBoss : MonoBehaviour
         defeated = true;
         fighting = false;
         stunned = false;
+        ClearHearts();
         foreach (var lr in GetComponentsInChildren<LineRenderer>()) Destroy(lr.gameObject);
         foreach (var mk in marks) if (mk != null) Destroy(mk);
         foreach (var o in orbs) if (o != null) Destroy(o);
@@ -1736,6 +1909,8 @@ public class DemonBoss : MonoBehaviour
         Boom(p0, 1.4f);
 
         // cut: it has crawled, bleeding, most of the way to the rail (the deck is wide: this keeps the next shots close)
+        if (RevisedPlotDirector.Instance != null)
+            yield return RevisedPlotDirector.Instance.AmalgamationAccounts(this);
         if (fader != null) yield return fader.FadeTo(1f, 0.2f);
         p0 = edge - outDir * 9f;
         p0.y = Ground(p0);
@@ -1871,6 +2046,7 @@ public class DemonBoss : MonoBehaviour
     public void ResetFight()
     {
         StopAllCoroutines();
+        ClearHearts();
         foreach (var g in spawned) if (g != null) Destroy(g);
         spawned.Clear();
         drowned.Clear();
@@ -1911,19 +2087,27 @@ public class DemonBoss : MonoBehaviour
     Quaternion modelRot0 = Quaternion.identity;
     Vector3 modelScale0 = Vector3.one;
     [Header("Testing")]
+    public bool testHearts = false;          // same, but straight to the black hearts (health just above heartsBelow, phase 3)
     public bool testHalfHealth = false;      // press Play in MainGameScene: 3 s later you're in the bridge fight, it at 49%
 
     IEnumerator Start()
     {
         if (model != null) { modelRot0 = model.localRotation; modelScale0 = model.localScale; }
-        if (!testHalfHealth) yield break;
+#if UNITY_EDITOR
+        // HellScape > Play > Final Boss sets this for one run (so the scene itself needn't be edited)
+        if (UnityEditor.SessionState.GetBool("HellScape.TestHearts", false)) testHearts = true;
+#endif
+        if (!testHalfHealth && !testHearts) yield break;
         // past the title screen, into the hell world (as if back from the prologue), then the fight
         if (TitleScreen.Showing) { SleepSequence.WakeInHell = true; UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.name); yield break; }
         yield return new WaitForSeconds(3f);
         ResetFight();
-        health = maxHealth * 0.49f;
-        phase = 2;
+        health = maxHealth * (testHearts ? heartsBelow + 0.01f : 0.49f);
+        phase = testHearts ? 3 : 2;
         UpdateBar();
+#if UNITY_EDITOR
+        UnityEditor.SessionState.EraseBool("HellScape.TestHearts");
+#endif
     }
 
     void Hurt(float dmg)
@@ -2010,7 +2194,7 @@ public class DemonBoss : MonoBehaviour
     void Stomps(float speed)
     {
         if (speed < 0.5f || defeated) { stepPhase = 0.6f; return; }
-        stepPhase += speed * Time.deltaTime / Mathf.Max(0.5f, stompStride);
+        stepPhase += speed * Time.deltaTime / Mathf.Max(0.5f, stompSpacing);
         if (stepPhase < 1f) return;
         stepPhase -= 1f;
         if (stompClip == null) stompClip = Sounds.Clip("Demon Fight/Boss footsteps", null) ?? ProceduralAudio.Stomp();
@@ -2025,7 +2209,7 @@ public class DemonBoss : MonoBehaviour
             stompSrc.dopplerLevel = 0f;
         }
         stompSrc.pitch = Random.Range(0.88f, 1.04f);
-        stompSrc.PlayOneShot(stompClip, stompVolume * Sounds.Volume("Demon Fight/Boss footsteps"));
+        stompSrc.PlayOneShot(stompClip, stompLevel * Sounds.Volume("Demon Fight/Boss footsteps"));
     }
 
     void Locomote(float speed)

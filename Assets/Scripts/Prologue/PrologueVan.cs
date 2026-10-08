@@ -61,7 +61,7 @@ public class PrologueVan : MonoBehaviour
         {
             var l = playerCamera.GetComponent<AudioListener>(); if (l != null) l.enabled = !on;
         }
-        if (engine != null) { if (on) engine.Play(); else engine.Stop(); }
+        if (engine != null) { if (on) { engine.volume = 0.25f; engine.Play(); } else engine.Stop(); }
         if (getIn != null) getIn.enabled = !on && !locked;
         if (!on && body != null) { body.linearVelocity = Vector3.Project(body.linearVelocity, Vector3.up); }
     }

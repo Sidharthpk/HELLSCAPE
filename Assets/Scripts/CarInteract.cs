@@ -122,11 +122,15 @@ public class CarInteract : MonoBehaviour
 
         if (carEngineSound != null)
             carEngineSound.Stop();
+        // a disabled controller never stops its looping tyre screech; a wreck makes no noise at all
+        if (carController is PrometeoCarController pc && pc.tireScreechSound != null) pc.tireScreechSound.Stop();
+        if (locked)
+            foreach (var a in carController.GetComponentsInChildren<AudioSource>(true)) a.Stop();
 
         playerRoot.SetActive(true);
         playerRoot.transform.position = driverSeatExit.position;
         playerMovementScript.enabled = true;
-        punchController.enabled = true;
+        punchController.enabled = !GunController.Equipped;   // (rifle in hand: no fists)
         playerCamera.enabled = true;
         playerCamera.GetComponent<AudioListener>().enabled = true;
 

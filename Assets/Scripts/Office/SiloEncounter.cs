@@ -73,6 +73,7 @@ public class SiloEncounter : MonoBehaviour
 
     private KillerCutscenes cuts;
     private Survivor maya;
+    private bool choiceRunning;
 
     // Maya and Sam have been up on the stairs the whole time: from the moment she shouts down, you can see them
     void ShowColleagues()
@@ -89,11 +90,18 @@ public class SiloEncounter : MonoBehaviour
     static IEnumerator Talk(float max)
     {
         yield return null;
-        for (float t = 0f; t < max && DialogueBox.Instance != null && DialogueBox.Instance.Busy; t += Time.deltaTime) yield return null;
+        yield return RevisedPlotDirector.WaitForDialogue();
     }
 
     void Start()
     {
+        // The staircase leap replaces this old shove trigger. The separate floor fallback remains.
+        foreach (var trigger in RevisedPlot.All<StoryTrigger>(gameObject.scene))
+            if (trigger.name == "PushTrigger")
+                for (int i = 0; i < trigger.onEnter.GetPersistentEventCount(); i++)
+                    if (trigger.onEnter.GetPersistentTarget(i) == this && trigger.onEnter.GetPersistentMethodName(i) == "Push")
+                        trigger.gameObject.SetActive(false);
+
         thudClip = Sounds.Clip("Silo Fight/Push and fall thud", thudClip != null ? thudClip : ProceduralAudio.Thud());
         if (gunProp != null) gunProp.gameObject.SetActive(false);
         if (keysPickup != null) keysPickup.SetActive(false);
@@ -108,8 +116,10 @@ public class SiloEncounter : MonoBehaviour
     {
         if (choiceMade) return;   // he was already beaten: nothing to redo
         StopAllCoroutines();
+        choiceRunning = false;
         if (choicePanel != null) choicePanel.SetActive(false);
         Vector3 at = killerLandPoint.position;
+        EndMags(true);
         killer.ResetBoss(at, player.position - at);
         StartCoroutine(RefightSoon());
     }
@@ -357,6 +367,8 @@ public class SiloEncounter : MonoBehaviour
         }
 
         // the rifle comes down from the stairs and lands in front of you
+        yield return RevisedPlotDirector.WaitForDialogue();
+        if (RevisedPlotDirector.Instance != null) RevisedPlotDirector.Instance.RifleThrown();
         ShowColleagues();
         Vector3 start = gunThrowFrom.position;
         Vector3 end = player.position + Flat(player.forward).normalized * 1.6f;
@@ -389,9 +401,101 @@ public class SiloEncounter : MonoBehaviour
     {
         if (gunTaken) return;
         gunTaken = true;
+        normalMag = gun.magSize;
+        gun.magSize = 30;   // (the scene still serialises the old 15)
+        if (killer != null) killer.stunTime = 1.6f;   // + getUpTime 0.4 = a 2 s stun
         gun.Equip();
+        gun.SetLimited(true, () => { if (this != null && gameObject.activeInHierarchy) StartCoroutine(MayaThrowsMag()); });
         Say(gunLine);
         StartCoroutine(StartFightSoon());
+    }
+
+    // ---------------------------------------------------------------- the magazines
+
+    [Header("Magazines (the fight: one at a time, Maya throws the next)")]
+    public int fightMagSize = 30;
+    [TextArea] public string outLine = "I'm out!";
+    public string[] mayaMagLines = { "Maya: Catch! The mag!", "Maya: Here! Don't miss it this time!", "Maya: Another one-- GO GET IT!", "Maya: Incoming! Make it count!" };
+    public float magMinFromPlayer = 2.5f;   // it lands somewhere on the floor, at least this far from you
+    private int normalMag = 30;
+    private Transform magProp;
+
+    IEnumerator MayaThrowsMag()
+    {
+        Say(outLine);
+        yield return new WaitForSeconds(0.9f);
+        ShowColleagues();
+        Say(mayaMagLines[Random.Range(0, mayaMagLines.Length)]);
+        yield return new WaitForSeconds(0.7f);
+
+        // somewhere on the silo floor (random), not at your feet
+        float radius = killer != null ? killer.arenaRadius - 0.8f : 4.5f;
+        Vector3 land = siloCenter.position;
+        for (int i = 0; i < 16; i++)
+        {
+            Vector2 r = Random.insideUnitCircle * radius;
+            land = siloCenter.position + new Vector3(r.x, 0.12f, r.y);
+            if (Flat(land - player.position).magnitude >= magMinFromPlayer) break;
+        }
+        Vector3 from = maya != null ? maya.transform.position + Vector3.up * 1.6f : gunThrowFrom.position;
+
+        magProp = MakeMag();
+        for (float t = 0f, flight = 1.3f; t < flight; t += Time.deltaTime)
+        {
+            float k = t / flight;
+            magProp.position = Vector3.Lerp(from, land, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 3f;
+            magProp.Rotate(720f * Time.deltaTime, 0f, 360f * Time.deltaTime, Space.Self);
+            yield return null;
+        }
+        magProp.SetPositionAndRotation(land, Quaternion.Euler(0f, Random.Range(0f, 360f), 90f));
+        Play(thudClip, 0.3f);
+        var box = magProp.gameObject.AddComponent<BoxCollider>();
+        box.size = new Vector3(0.5f, 0.5f, 0.6f);   // generous: it has to be easy to pick up
+        var take = magProp.gameObject.AddComponent<Interactable>();
+        take.prompt = "Pick up the magazine";
+        take.hideOnUse = true;
+        take.onUse.AddListener(TakeMag);
+
+        // run over it and it's yours (no key press)
+        var mag = magProp;
+        while (mag != null && player != null && Flat(mag.position - player.position).magnitude > 1.1f) yield return null;
+        if (mag != null && mag == magProp) TakeMag();
+    }
+
+    void TakeMag()
+    {
+        if (magProp != null) Destroy(magProp.gameObject);
+        magProp = null;
+        gun.AddMag();
+    }
+
+    // a rifle magazine out of two boxes, with a glint so it can be found on the dark floor
+    Transform MakeMag()
+    {
+        var root = new GameObject("Rifle magazine").transform;
+        var sh = Shader.Find("Universal Render Pipeline/Lit");
+        void Box(string n, Vector3 pos, Vector3 size, Color c)
+        {
+            var b = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            b.name = n; Destroy(b.GetComponent<Collider>());
+            b.transform.SetParent(root, false); b.transform.localPosition = pos; b.transform.localScale = size;
+            var m = new Material(sh); m.SetColor("_BaseColor", c); b.GetComponent<Renderer>().sharedMaterial = m;
+        }
+        Box("Body", Vector3.zero, new Vector3(0.07f, 0.3f, 0.2f), new Color(0.07f, 0.07f, 0.08f));
+        Box("Rounds", new Vector3(0f, 0.17f, 0f), new Vector3(0.05f, 0.05f, 0.17f), new Color(0.75f, 0.55f, 0.2f));
+        var glint = new GameObject("Glint").AddComponent<Light>();
+        glint.transform.SetParent(root, false);
+        glint.color = new Color(1f, 0.8f, 0.4f); glint.range = 3.5f; glint.intensity = 1.6f;
+        return root;
+    }
+
+    // the fight's over (or he got you and you're starting it again): back to the normal rifle / a fresh full mag
+    void EndMags(bool restartFight)
+    {
+        if (magProp != null) { Destroy(magProp.gameObject); magProp = null; }
+        if (gun == null || !gunTaken) return;
+        if (restartFight) gun.SetLimited(true, () => { if (this != null && gameObject.activeInHierarchy) StartCoroutine(MayaThrowsMag()); });
+        else { gun.magSize = normalMag; gun.SetLimited(false); }
     }
 
     IEnumerator StartFightSoon()
@@ -400,13 +504,19 @@ public class SiloEncounter : MonoBehaviour
         killer.Activate();
     }
 
-    public void OnKillerDefeated() => StartCoroutine(Choice());
+    public void OnKillerDefeated()
+    {
+        if (choiceRunning || choiceMade) return;
+        choiceRunning = true;
+        EndMags(false);
+        StartCoroutine(Choice());
+    }
 
     IEnumerator Choice()
     {
         yield return new WaitForSeconds(1.2f);
         Say(defeatedLine);
-        yield return new WaitForSeconds(2.5f);
+        yield return RevisedPlotDirector.WaitForDialogue();
         var cuts = FindFirstObjectByType<KillerCutscenes>();
         while (cuts != null && cuts.Playing) yield return null;   // the orbit round him on his knees
         pendingChoice = -1;                                        // nothing clicked during it counts
@@ -415,6 +525,7 @@ public class SiloEncounter : MonoBehaviour
         bool kill = false;
         while (true)
         {
+            if (PauseMenu.Paused || GameOverScreen.Open) { yield return null; continue; }
             if (Input.GetMouseButtonDown(0) || pendingChoice == 1) { kill = true; break; }   // the rifle fires by itself
             if (Input.GetKeyDown(KeyCode.Q) || pendingChoice == 0) break;
             yield return null;
@@ -432,6 +543,9 @@ public class SiloEncounter : MonoBehaviour
         else
         {
             Judgement.SparedKiller = true;
+            var soul = killer.GetComponent<SoulConviction>();
+            if (soul == null) soul = killer.gameObject.AddComponent<SoulConviction>();
+            soul.Confess();
             Say(spareLine);
             ShowColleagues();
             if (maya != null && cuts != null && flood != null && flood.risenDamned != null)
@@ -442,7 +556,7 @@ public class SiloEncounter : MonoBehaviour
             }
         }
 
-        yield return new WaitForSeconds(4f);
+        yield return RevisedPlotDirector.WaitForDialogue();
         keysPickup.transform.position = killer.transform.position + Flat(player.position - killer.transform.position).normalized * 1f + Vector3.up * 0.1f;
         keysPickup.SetActive(true);
     }
@@ -472,13 +586,25 @@ public class SiloEncounter : MonoBehaviour
     {
         if (keysTaken || !choiceMade) return;
         keysTaken = true;
+        if (!Inventory.Has("CarKeys")) Inventory.Add("CarKeys");
         StartCoroutine(Flood());
     }
 
     IEnumerator Flood()
     {
         Say(keysLine + "|" + confessionLine);
-        yield return new WaitForSeconds(14f);
+        yield return RevisedPlotDirector.WaitForDialogue();
+        // Ending Elias cannot suppress Maya's choice: both routes leave her Damned for Tomas's finale.
+        if (maya != null && !maya.Turned && flood != null && flood.risenDamned != null)
+        {
+            Say(mayaSnapLine);
+            yield return RevisedPlotDirector.WaitForDialogue();
+            Vector3 at = killer.transform.position + killer.transform.right * 3f;
+            if (Physics.Raycast(at + Vector3.up * 2f, Vector3.down, out var hit, 5f, ~0, QueryTriggerInteraction.Ignore)) at.y = hit.point.y;
+            maya.Turn();
+            if (flood.cutscene != null) yield return flood.cutscene.Damned(maya, at, flood.risenDamned, false);
+            else { flood.risenDamned.Appear(at); Say(mayaTurnedLine); }
+        }
         Say(floodLine);   // queued: it must not cut off the confession
         flood.Begin();
     }

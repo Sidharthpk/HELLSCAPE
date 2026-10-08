@@ -811,6 +811,7 @@ public static class OfficeActBuilder
         // real darkness inside: no sun or sky light through the model's one-sided walls and roof
         var dark = o.gameObject.AddComponent<InteriorDarkness>();
         dark.player = player.transform;
+        dark.blackoutUntilPowered = true;   // pitch black until the fuses are in: your palms (PalmLight) are the only light
         var modelRs = officeModel.GetComponentsInChildren<Renderer>();
         var ob = modelRs[0].bounds;
         foreach (var r in modelRs) ob.Encapsulate(r.bounds);

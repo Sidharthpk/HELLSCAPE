@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 // Kessler, turned, coming after you from the office (user, 2026-10-02). The silo door no longer drops you into the
@@ -7,13 +8,13 @@ using UnityEngine;
 //   Arrive()          the office's silo door (Teleporter.onArrive): you're in the tunnel, its door shut behind you
 //   (the door)        a few seconds after you arrive, a cutscene: he's at it already, blows that rock it in its frame
 //                     and shake the picture. You get control back with him still hammering at it behind you
-//   DoorBurst()       once you've walked on for 'walkTime' seconds: the second cutscene. It comes off its hinges, he
+//   DoorBurst()       once you've walked on for 'burstAfterWalk' seconds: the second cutscene. It comes off its hinges, he
 //                     steps through, screams, and comes down the tunnel at the lens at a run
 //   (the chase)       he follows your footsteps, fast: you have to sprint. The hanging bodies swing as you and he
 //                     push through them (HangingBody)
 //   BridgeReached()   a trigger on the footbridge: Tomas's ghost steps into Kessler's way and holds him. It buys
 //                     you a few seconds
-//   OpenSiloDoor()    a trigger at the far end of the bridge: the door into the silo block swings open for you
+//   OpenSiloDoor()    F on the door at the far end of the bridge: the door cutscene plays and you're inside the silo block
 //   EnterSilo()       a trigger just inside: it slams behind you. He's at it straight away: loud blows, the
 //                     screen shaking, until you open the next door on (StopBanging) - which is where Elias takes over
 //   ResetChase()      a checkpoint respawn in the tunnel: all of it again (the cutscene is shortened)
@@ -43,14 +44,15 @@ public class KesslerChase : MonoBehaviour
     public Transform tunnelDoor;            // comes off its hinges
     public Transform doorway;               // on the floor in the opening, +z into the tunnel
     public Light doorLight;                 // what's behind him
-    public float bangDelay = 3.5f;          // after you arrive, before he's at the door (the cutscene)
-    public float walkTime = 5f;             // seconds of walking on, after that, before he's through it
+    public float knockDelay = 1.5f;          // after you arrive, before he's at the door (the cutscene)
+    public float burstAfterWalk = 2.5f;             // seconds of walking on, after that, before he's through it
 
     [Header("The footbridge")]
     public Transform tomas;                 // his ghost, switched off
     public Animator tomasAnim;
     public Transform bridgeMouth;           // where he makes his stand (the tunnel end of the bridge)
-    public float holdTime = 7f;
+    public float tomasStrength = 15f;            // all Tomas has: the door puzzle's clock is what's left of it
+    float holdLeft;
 
     [Header("Into the silo")]
     public GameObject siloDoor;             // the door at the far end of the bridge
@@ -76,6 +78,9 @@ public class KesslerChase : MonoBehaviour
     readonly Queue<Vector3> trail = new Queue<Vector3>();
     Vector3 lastCrumb, doorPos0;
     Quaternion doorRot0;
+    bool inDoorScene, picked;
+    TapLock pick;
+    Teleporter siloTele;
     bool doorKnown, bangsSeen, burstSeen, tomasUsed, tomasWaiting, knocking;
     float stun, walked;
     Vector3 lastPos;
@@ -93,6 +98,7 @@ public class KesslerChase : MonoBehaviour
         if (tunnelDoor != null) { doorPos0 = tunnelDoor.position; doorRot0 = tunnelDoor.rotation; doorKnown = true; }
         if (tomas != null) tomas.gameObject.SetActive(false);
         if (doorLight != null) doorLight.enabled = false;
+        WireSiloDoor();
     }
 
     // ---------------------------------------------------------------- arriving, and starting over
@@ -106,6 +112,7 @@ public class KesslerChase : MonoBehaviour
     public void ResetChase()
     {
         StopAllCoroutines();
+        if (pick != null) pick.Cancel();
         thud = Sounds.Clip("Silo Complex/Lift doors slam on him", ProceduralAudio.Thud());
         phase = Phase.Waiting;
         stun = 0f;
@@ -124,6 +131,7 @@ public class KesslerChase : MonoBehaviour
         trail.Enqueue(lastCrumb);
         walked = 0f;
         knocking = false;
+        inDoorScene = picked = false;
         lastPos = player.position;
         knock = StartCoroutine(DoorBangs());
     }
@@ -135,7 +143,7 @@ public class KesslerChase : MonoBehaviour
     {
         if (!bangsSeen)
         {
-            yield return new WaitForSeconds(bangDelay);
+            yield return new WaitForSeconds(knockDelay);
             bangsSeen = true;
             phase = Phase.Cutscene;
             Vector3 d = doorway.position, into = doorway.forward;
@@ -165,7 +173,7 @@ public class KesslerChase : MonoBehaviour
     // cutscene camera sits); otherwise your head does, harder the nearer the door you still are
     IEnumerator Blow(float power, Vector3? camHome)
     {
-        Play(thud, Mathf.Clamp01(0.45f + 0.5f * power));
+        Play(thud, Mathf.Clamp01(0.45f + 0.5f * power) * (camHome != null ? 1f : Mathf.Lerp(0.1f, 1f, Mathf.Clamp01(1f - Vector3.Distance(player.position, doorPos0) / 60f))));
         if (camHome == null) StartCoroutine(HeadShake(0.4f, 0.02f + 0.07f * power * Mathf.Clamp01(1f - Vector3.Distance(player.position, doorPos0) / 40f)));
         for (float t = 0f; t < 0.5f; t += Time.deltaTime)
         {
@@ -348,10 +356,10 @@ public class KesslerChase : MonoBehaviour
         if (phase == Phase.Waiting && knocking && Time.deltaTime > 0f)
         {
             if (Flat(player.position - lastPos).magnitude / Time.deltaTime > 1.5f) walked += Time.deltaTime;
-            if (walked >= walkTime) DoorBurst();
+            if (walked >= burstAfterWalk) DoorBurst();
         }
         lastPos = player.position;
-        if (phase != Phase.Chasing) return;
+        if (phase != Phase.Chasing || inDoorScene) return;
 
         stun -= Time.deltaTime;
         if (stun > 0f) return;
@@ -398,6 +406,7 @@ public class KesslerChase : MonoBehaviour
         if (phase != Phase.Chasing || tomasUsed || tomas == null) return;
         if (!tomasWaiting) TomasWaits();
         tomasUsed = true;
+        if (tomas.TryGetComponent<SoulConviction>(out var conviction)) conviction.Exert();
         StartCoroutine(TomasHolds());
     }
 
@@ -423,17 +432,18 @@ public class KesslerChase : MonoBehaviour
         if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(tomasHoldLine);
         Vector3 hold = kessler.position;
         float swing = 0f;
-        for (float t = 0f; t < holdTime && phase == Phase.Held; t += Time.deltaTime)
+        for (holdLeft = tomasStrength; holdLeft > 0f && phase == Phase.Held; holdLeft -= Time.deltaTime)
         {
             // straining against each other
             kessler.position = hold + Random.insideUnitSphere * 0.03f;
             kessler.rotation = Quaternion.LookRotation(Flat(stand - hold));
             tomas.rotation = Quaternion.LookRotation(Flat(hold - stand));
-            tomas.position = stand + Random.insideUnitSphere * 0.02f + Flat(stand - hold).normalized * 0.25f * Mathf.Clamp01(t / holdTime);
+            tomas.position = stand + Random.insideUnitSphere * 0.02f + Flat(stand - hold).normalized * 0.25f * Mathf.Clamp01(1f - holdLeft / tomasStrength);
             swing -= Time.deltaTime;
             if (swing <= 0f) { swing = 1.3f; animNow = null; Anim(attackState, 0.05f); }
             yield return null;
         }
+        holdLeft = 0f;
         if (phase != Phase.Held) yield break;   // (you got inside: EnterSilo has taken over)
 
         // and through him
@@ -466,11 +476,64 @@ public class KesslerChase : MonoBehaviour
 
     // ---------------------------------------------------------------- the silo door
 
-    public void OpenSiloDoor()
+    // (the old walk-up trigger still calls this: the door is opened with F now, see WireSiloDoor)
+    public void OpenSiloDoor() { }
+
+    // F on the silo door plays the door cutscene (DoorTransition) and puts you just inside, where EnterSilo takes over
+    void WireSiloDoor()
     {
-        if (siloDoor == null || !siloDoor.activeSelf || phase == Phase.Banging || phase == Phase.Done) return;
-        siloDoor.SetActive(false);
-        Play(ProceduralAudio.Click(), 1f);
+        if (siloDoor == null) return;
+        var src = FindObjectsByType<Teleporter>(FindObjectsInactive.Include, FindObjectsSortMode.None).FirstOrDefault(t => t.transition != null);
+        if (src == null) return;
+        siloTele = siloDoor.GetComponent<Teleporter>() ?? siloDoor.AddComponent<Teleporter>();
+        siloTele.player = src.player; siloTele.fader = src.fader; siloTele.transition = src.transition;
+        if (siloTele.destination == null) { siloTele.destination = new GameObject("Silo door destination").transform; siloTele.destination.SetParent(transform); }
+        var use = siloDoor.GetComponent<Interactable>() ?? siloDoor.AddComponent<Interactable>();
+        use.prompt = "Open door";
+        use.once = false;
+        use.onUse.RemoveListener(OpenSiloDoorNow);
+        use.onUse.AddListener(OpenSiloDoorNow);
+    }
+
+    void OpenSiloDoorNow()
+    {
+        if (phase == Phase.Banging || phase == Phase.Done || inDoorScene || siloTele == null) return;
+        var r = siloDoor.GetComponent<Renderer>();
+        // (past the shut door2 in the little room behind it, where you'd be stuck: you come out in the next room on)
+        var next = GameObject.Find("ComplexArrival");
+        if (next != null)
+        {
+            siloTele.destination.SetPositionAndRotation(next.transform.position, next.transform.rotation);
+            var enter = transform.Find("SiloEnter (it slams, he beats on it)");
+            if (enter != null) enter.position = new Vector3(next.transform.position.x, enter.position.y, next.transform.position.z);   // (its slam trigger comes with you)
+        }
+        else
+        {
+            Vector3 c = r != null ? r.bounds.center : siloDoor.transform.position;
+            siloTele.destination.SetPositionAndRotation(new Vector3(c.x, player.position.y, c.z - 2f), Quaternion.LookRotation(Vector3.back));
+        }
+        if (picked) { StartCoroutine(DoorScene()); return; }
+        // the wheel first: tap A-D against the clock, which is what Tomas has left in him (a retry gets a short one)
+        inDoorScene = true;
+        if (pick == null) pick = gameObject.AddComponent<TapLock>();
+        pick.beat = () => { Play(thud, 1f); StartCoroutine(HeadShake(0.3f, 0.05f)); };
+        pick.Begin(siloTele.transition.lockDuring, holdLeft > 0f ? holdLeft : 8f, () => { picked = true; StartCoroutine(DoorScene()); }, snapped =>
+        {
+            inDoorScene = false;
+            if (!snapped) return;
+            if (health != null) health.TakeDamage(hitDamage);
+            if (DialogueBox.Instance != null) DialogueBox.Instance.Say("He's through the door. Again. Quick.");
+        });
+    }
+
+    IEnumerator DoorScene()
+    {
+        inDoorScene = true;
+        siloTele.Go();
+        yield return new WaitForSeconds(0.2f);
+        while (siloTele.transition.Busy) yield return null;
+        yield return new WaitForSeconds(1f);   // (the fade back in)
+        inDoorScene = false;
     }
 
     public void EnterSilo()
@@ -504,8 +567,8 @@ public class KesslerChase : MonoBehaviour
         {
             animNow = null; Anim(attackState, 0.05f);
             yield return new WaitForSeconds(0.35f);
-            Play(thud, 1f);
             float near = Mathf.Clamp01(1f - Vector3.Distance(player.position, door) / 22f);
+            Play(thud, Mathf.Lerp(0.08f, 1f, near));   // (2D sound: fade it with distance, or it follows you round the silo)
             StartCoroutine(HeadShake(0.4f, 0.02f + 0.07f * near));
             for (float s = 0f; s < 0.5f; s += Time.deltaTime)
             {

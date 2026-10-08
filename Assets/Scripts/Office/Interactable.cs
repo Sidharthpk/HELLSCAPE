@@ -22,6 +22,7 @@ public class Interactable : MonoBehaviour
     public void Use()
     {
         if (!Available) return;
+        if (TryGetComponent(out RealmInteraction gate) && !gate.Allow()) return;   // burnt mechanism: nothing spent, nothing fired
 
         if (!string.IsNullOrEmpty(requiredItem))
         {

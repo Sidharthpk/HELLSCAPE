@@ -9,6 +9,7 @@ public class GhostChoice
     [TextArea] public string reply;         // the ghost's answer, said through the DialogueBox
     public int next = -1;                   // node to continue with, -1 ends the conversation
     public int karma;                       // +1 kind, -1 cruel: weighs on the bridge judgement
+    public int fate;                        // how they answer you: 1 denies it (Lost), 2 justifies it (Damned), 3 owns it (Confessed)
 }
 
 [System.Serializable]
@@ -24,6 +25,9 @@ public class GhostNode
 // through a wall, and stand still and turn to you when you come close, so they're easy to talk to.
 public class GhostNPC : MonoBehaviour
 {
+    public enum Fate { Undecided, Lost, Damned, Confessed, Gone }
+    public Fate fate;                       // set by the answers you draw out; Gone if the memory fades unanswered
+    public float answerSeconds;             // > 0: the question times out and the memory is gone
     public string ghostName = "Priya";
     public GhostNode[] nodes;
     [TextArea] public string afterLine = "...";   // talked to again once the conversation is done
@@ -42,6 +46,28 @@ public class GhostNPC : MonoBehaviour
     public Vector2 alphaRange = new Vector2(0.18f, 0.45f);
     public float whisperRange = 12f;
 
+    public bool working;                    // at their desk, bent over it, until the story lets them go
+    private Vector3 workLook;
+    private Transform spine;
+
+    // stand them at a desk: they stay put and face it until `working` is cleared
+    public void WorkAt(Vector3 spot, Vector3 facing)
+    {
+        transform.SetPositionAndRotation(spot, Quaternion.LookRotation(facing));
+        home = spot; workLook = facing; working = true;
+    }
+
+    void LateUpdate()
+    {
+        if (!working || mine || animator == null) return;
+        if (spine == null) spine = animator.isHuman ? animator.GetBoneTransform(HumanBodyBones.Spine) : null;
+        if (spine == null || spine.localRotation == leaned) return;   // (a culled animator hasn't reposed it: leaning again would stack)
+        spine.rotation = Quaternion.AngleAxis(leanAngle, transform.right) * spine.rotation;   // after the idle clip, so it holds
+        leaned = spine.localRotation;
+    }
+    public float leanAngle = 24f;
+    private Quaternion leaned;
+
     private Transform player;
     private Renderer[] renderers;
     private MaterialPropertyBlock block;
@@ -55,14 +81,28 @@ public class GhostNPC : MonoBehaviour
     // its way. PlayerInteractor shows no "F Talk to ..." (and takes no F) until it's over.
     public static bool Conversing { get; private set; }
     private bool mine, nextComing;
+    public bool IsTalking => mine;
+    public void ExpireEcho()
+    {
+        CancelConversation();
+        if (!finished && fate == Fate.Undecided) Fade();
+    }
+    private int choiceRevision = -1;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatic() => Conversing = false;
 
-    void OnDisable()
+    public void CancelConversation()
     {
+        StopAllCoroutines();
+        if (mine && ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Revision == choiceRevision) ChoiceDialogue.Instance.Close();
+        choiceRevision = -1;
+        nextComing = false;
         if (mine) { mine = false; Conversing = false; }
     }
+
+    void OnDisable() => CancelConversation();
+    void OnDestroy() => CancelConversation();
 
     void Start()
     {
@@ -96,7 +136,8 @@ public class GhostNPC : MonoBehaviour
         if (mine && !talking && !nextComing && (DialogueBox.Instance == null || !DialogueBox.Instance.Busy)) { mine = false; Conversing = false; }
         Vector3 look = toPlayer;
         bool moving = false;
-        if (!talking && toPlayer.magnitude > holdRange && driftRadius > 0f)
+        if (working && !mine) look = workLook;
+        if (!working && !talking && toPlayer.magnitude > holdRange && driftRadius > 0f)
         {
             // a slow wandering loop around home
             driftTime += Time.deltaTime * driftSpeed / Mathf.Max(driftRadius, 0.1f);
@@ -136,9 +177,11 @@ public class GhostNPC : MonoBehaviour
 
     public void Talk()
     {
-        if (ChoiceDialogue.Instance == null || ChoiceDialogue.Instance.Open) return;
+        if (ChoiceDialogue.Instance == null || ChoiceDialogue.Instance.Open || Conversing || nextComing || mine) return;
         mine = true;
         Conversing = true;
+        if (TryGetComponent<OfficeWitness>(out var witness) && witness.RedTalk()) return;
+        if (fate == Fate.Gone) { Say("There is no answer. The memory is gone."); return; }
         if (finished) { Say(afterLine); return; }
         ShowNode(0);
     }
@@ -160,6 +203,8 @@ public class GhostNPC : MonoBehaviour
         {
             var choice = node.choices[pick];
             if (judged.Add(i)) Judgement.Karma += choice.karma;
+            choiceRevision = -1;
+            ApplyFate(choice.fate);
             Say(choice.reply);
             if (choice.next >= 0) StartCoroutine(Continue(choice.next));
             else
@@ -168,6 +213,37 @@ public class GhostNPC : MonoBehaviour
                 if (whisper != null) whisper.volume = 0.15f;
             }
         }, transform);
+        choiceRevision = ChoiceDialogue.Instance.Revision;
+        if (answerSeconds > 0f)
+        {
+            float seconds = answerSeconds;
+            var plot = RevisedPlotDirector.Instance;
+            var visit = plot != null ? plot.GetComponent<EchoVisit>() : null;
+            if (visit != null && plot.Echo && ghostName != "Vane") seconds = Mathf.Min(seconds, Mathf.Max(.01f, visit.Remaining));
+            ChoiceDialogue.Instance.SetDeadline(seconds, Fade);
+        }
+    }
+
+    void Fade()
+    {
+        choiceRevision = -1;
+        fate = Fate.Gone;
+        GetComponent<WitnessLook>()?.Set(WitnessLook.Mode.Lost);
+        Say("The memory fades before you answer.");
+        // A timeout is not a confession and must never invoke a story completion event.
+        finished = true;
+        if (TryGetComponent<OfficeWitness>(out var witness)) witness.Resolved(fate);
+    }
+
+    void ApplyFate(int f)
+    {
+        if (f == 0 || fate == Fate.Gone || fate == Fate.Confessed) return;   // (once they have owned it, nothing undoes it)
+        fate = f == 1 ? Fate.Lost : f == 2 ? Fate.Damned : Fate.Confessed;
+        var look = GetComponent<WitnessLook>();
+        if (TryGetComponent<OfficeWitness>(out var witness)) witness.Resolved(fate);
+        if (look == null) return;
+        look.Set(fate == Fate.Lost ? WitnessLook.Mode.Lost : fate == Fate.Damned ? WitnessLook.Mode.Damned : WitnessLook.Mode.Confessed);
+        if (fate == Fate.Damned) look.Flash();
     }
 
     void Finish()
@@ -188,6 +264,7 @@ public class GhostNPC : MonoBehaviour
     {
         nextComing = true;
         yield return new WaitForSeconds(0.6f);
+        while (DialogueBox.Instance != null && DialogueBox.Instance.Busy) yield return null;
         nextComing = false;
         ShowNode(next);
     }

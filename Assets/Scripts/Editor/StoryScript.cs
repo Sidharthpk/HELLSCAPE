@@ -39,7 +39,7 @@ public static class StoryScript
         ("Prologue", "Prologue/Deliveries", "DeliveryRun", "depotObjective",
             "Park the van in the Kessler & Vane garage"),
         ("Prologue", "Prologue/Deliveries", "DeliveryRun", "depotLines",
-            "Van's back in the garage.|Office lights are off. Door's locked. At this hour? Kessler's never late.|Keys through the mail slot. They land in the tray on my desk, like every Saturday."),
+            "Van's back in the garage.|Office lights are off. Door's locked. At this hour? Vane's never late.|Keys through the mail slot. They land in the tray on my desk, like every Saturday."),
         ("Prologue", "Prologue/PrologueDirector", "PrologueDirector", "arriveLines",
             "Van's in. Keys are in. Clocked out.|Twelve hours on the road... I'll walk home.|Derek promised breakfast. First time in weeks he's sounded like himself."),
         ("Prologue", "Prologue/PrologueDirector", "PrologueDirector", "doorOpenLines",
@@ -67,7 +67,7 @@ public static class StoryScript
 
         // ================================================================ THE CITY: waking up dead
         ("MainGameScene", "Hell Wake (after the fall)", "SleepSequence", "fallWakeLine",
-            "...I fell four floors. I should be dead.|The sky's red. The street's empty. Everything smells like rust.|He fell with me. Where did he go?|'Ask your boss about Tomas.'|Kessler. The office is just down the street. He's going to give me answers."),
+            "...I fell four floors. I should be dead.|The sky's red. The street's empty. Everything smells like rust.|He fell with me. Where did he go?|'Ask your boss about Tomas.'|Vane. The office is just down the street. He's going to give me answers."),
         ("MainGameScene", "Prometheus", "CarInteract", "noKeysLine",
             "Locked. My keys are still in my desk.|The office. Kessler & Vane, right next door."),
 
@@ -75,7 +75,7 @@ public static class StoryScript
         ("MainGameScene", "OfficeAct/OfficeEntrance (City)/OfficeDoor", "Teleporter", "arriveLine",
             "The office. Pitch black.|...hello?|Voices, in the dark. Whispering my name.|These are the people I work with. Worked with."),
         ("MainGameScene", "OfficeAct/Office/SiloDoor", "Interactable", "lockedLine",
-            "SILO 2 - AUTHORISED STAFF ONLY.|Locked. Kessler keeps the only key on him."),
+            "SILO 2 - AUTHORISED STAFF ONLY.|Locked. Vane keeps the only key on him."),
         ("MainGameScene", "OfficeAct/Office/FuseBox (breaker)/BreakerUse", "Interactable", "lockedLine",
             "The fuse box. Three slots, all empty.|Someone pulled them out on purpose."),
 
@@ -105,11 +105,11 @@ public static class StoryScript
         ("MainGameScene", "OfficeAct/Office/Ghost - Ben", "GhostNPC", "nodes.Array.data[0].choices.Array.data[1].reply",
             "Ben: No. You never looked up from your screen. None of us did."),
         ("MainGameScene", "OfficeAct/Office/Ghost - Ben", "GhostNPC", "nodes.Array.data[1].line",
-            "Tomas's last night is still circled on the calendar. Kessler used that date for everything after. Doors. Passwords. Like he was proud of it."),
+            "Tomas's last night is still circled on the calendar. Vane used that date for everything after. Doors. Passwords. Like he was proud of it."),
         ("MainGameScene", "OfficeAct/Office/Ghost - Ben", "GhostNPC", "nodes.Array.data[1].choices.Array.data[0].reply",
             "Ben: The day Tomas died. Day first, then the month. Look at the calendar."),
         ("MainGameScene", "OfficeAct/Office/Ghost - Ben", "GhostNPC", "nodes.Array.data[1].choices.Array.data[1].reply",
-            "Ben: ...yeah. We should have.|Ben: Kessler's door code is that day. Day first, then the month."),
+            "Ben: ...yeah. We should have.|Ben: Vane's door code is that day. Day first, then the month."),
 
         // ---- Nadia: what happened this morning
         ("MainGameScene", "OfficeAct/Office/Ghost - Nadia", "GhostNPC", "nodes.Array.data[0].choices.Array.data[0].reply",
@@ -125,13 +125,13 @@ public static class StoryScript
 
         // ---- Omar: the trucks, and the tape
         ("MainGameScene", "OfficeAct/Office/Ghost - Omar", "GhostNPC", "nodes.Array.data[0].choices.Array.data[2].reply",
-            "Omar: The security terminal in Kessler's wing still has the replay. Four cameras."),
+            "Omar: The security terminal in Vane's wing still has the replay. Four cameras."),
         ("MainGameScene", "OfficeAct/Office/Ghost - Omar", "GhostNPC", "nodes.Array.data[1].choices.Array.data[0].reply",
             "Omar: It's on the cleaning rota in reception. Put his times in order, earliest first."),
 
         // ---- Kessler's ghost: before the tape
         ("MainGameScene", "OfficeAct/Office/Ghost - Kessler", "GhostNPC", "nodes.Array.data[0].choices.Array.data[3].reply",
-            "Kessler: The truth? HERE? Say the wrong thing out loud in this city and it eats you alive.|Kessler: ...no. My mouth stays shut."),
+            "Vane: The truth? HERE? Say the wrong thing out loud in this city and it eats you alive.|Vane: ...no. My mouth stays shut."),
         ("MainGameScene", "OfficeAct/Office/Ghost - Kessler", "GhostNPC", "nodes.Array.data[1].line",
             "Elias is down in Silo 2. He wants everyone whose name is on that report."),
 
@@ -141,7 +141,7 @@ public static class StoryScript
         ("MainGameScene", "OfficeAct/Office/Ghost - Tomas", "GhostNPC", "nodes.Array.data[0].choices.Array.data[0].reply",
             "Tomas: ...I believe you. My brother Elias won't."),
         ("MainGameScene", "OfficeAct/Office/Ghost - Tomas", "GhostNPC", "nodes.Array.data[0].choices.Array.data[2].reply",
-            "Tomas: Your brother held the knife. Kessler held your brother.|Tomas: I only opened a truck. I saw what was inside. That's all I ever did."),
+            "Tomas: Your brother held the knife. Vane held your brother.|Tomas: I only opened a truck. I saw what was inside. That's all I ever did."),
         ("MainGameScene", "OfficeAct/Office/Ghost - Tomas", "GhostNPC", "nodes.Array.data[1].line",
             "Elias came down with you. He won't stop until everyone who signed is in the silo."),
         ("MainGameScene", "OfficeAct/Office/Ghost - Tomas", "GhostNPC", "nodes.Array.data[1].choices.Array.data[0].reply",
@@ -153,7 +153,7 @@ public static class StoryScript
 
         // ---- the tape, and Kessler's confession
         ("MainGameScene", "OfficeAct/Flashback (CCTV)/Cutscene - Derek kills Tomas", "StabCutscene", "afterLine",
-            "The screen cuts to red.|...Derek. My brother. My little brother did that.|The tape keeps rolling. Kessler walks into frame and points at the silo.|They drag Tomas to the edge... and throw him in.|Kessler didn't just cover it up. He gave the order.|His ghost is still by his door. I want to hear him say it."),
+            "The screen cuts to red.|...Derek. My brother. My little brother did that.|The tape keeps rolling. Vane walks into frame and points at the silo.|They drag Tomas to the edge... and throw him in.|Vane didn't just cover it up. He gave the order.|His ghost is still by his door. I want to hear him say it."),
         // (no fight in the office any more: he drops the silo key as he turns and you run. KesslerChase has the rest)
         ("MainGameScene", "OfficeAct/Office/KesslerConfrontation", "KesslerConfrontation", "keyLine",
             "He said it out loud... and the city's TAKING him.|That's what the Damned are. People whose sins came out.|Something fell out of his coat. Keys. The SILO key.|Grab it and GO, before he's finished turning!"),
@@ -176,18 +176,18 @@ public static class StoryScript
         ("MainGameScene", "OfficeAct/Silo", "SiloEncounter", "leapLine",
             "The stairs just... stop.|No. No no no-- JUMP!"),
         ("MainGameScene", "OfficeAct/Silo", "SiloEncounter", "derekDeathLine",
-            "Elias: You pushed me off a roof. We fell together. Did you think that would stop me?|Elias: Kessler gave the order. Your brother held the knife. I took Derek. Kessler's already paid.|Elias: Your name's the last one on the report. Now YOU."),
+            "Elias: You pushed me off a roof. We fell together. Did you think that would stop me?|Elias: Vane gave the order. Your brother held the knife. I took Derek. Vane's already paid.|Elias: Your name's the last one on the report. Now YOU."),
         ("MainGameScene", "OfficeAct/Silo", "SiloEncounter", "throwLine",
             "Maya: HEY! Down there! Security's rifle-- CATCH!"),
         ("MainGameScene", "OfficeAct/Silo", "SiloEncounter", "defeatedLine",
-            "He drops to his knees, blood running down his face.|Elias: Go on. Finish it. You people are good at that."),
+            "*He drops to his knees, blood running down his face.*|Elias: Go on. Finish it. You people are good at that."),
         ("MainGameScene", "OfficeAct/Silo", "SiloEncounter", "killLine",
             "...|There's a visitor badge in his coat. ELIAS ROURKE.|Clipped to it, a photo of the night cleaner. TOMAS ROURKE. 'My little brother.'|...he was doing what I'd have done for Derek."),
         // ---- mercy: Elias starts to say who Tomas told, and Maya can't stand it
         ("MainGameScene", "OfficeAct/Silo", "SiloEncounter", "spareLine",
-            "Elias: ...you'd let me live? After everything?|Elias: My brother Tomas cleaned your floors for six years. Nobody knew his name.|Elias: One night he opened one of the trucks Kessler ran through Silo 2. That's all. He looked.|Elias: He was scared out of his mind. So he told one person. Someone he trusted."),
+            "Elias: ...you'd let me live? After everything?|Elias: My brother Tomas cleaned your floors for six years. Nobody knew his name.|Elias: One night he opened one of the trucks Vane ran through Silo 2. That's all. He looked.|Elias: He was scared out of his mind. So he told one person. Someone he trusted."),
         ("MainGameScene", "OfficeAct/Silo", "SiloEncounter", "mayaSnapLine",
-            "Maya: What are you DOING?! SHOOT him!|Maya: I threw you that rifle so you'd FINISH it. Not so you'd LISTEN to him!|Maya: He KNOWS. Don't you get it? Tomas came to ME that night!|Maya: He was shaking. He told me what was in that truck. And I picked up the phone and I called Kessler.|Maya: I told him his cleaner had seen everything. I told him to DEAL with it. I KNEW what that meant!"),
+            "Maya: What are you DOING?! SHOOT him!|Maya: I threw you that rifle so you'd FINISH it. Not so you'd LISTEN to him!|Maya: He KNOWS. Don't you get it? Tomas came to ME that night!|Maya: He was shaking. He told me what was in that truck. And I picked up the phone and I called Vane.|Maya: I told him his cleaner had seen everything. I told him to DEAL with it. I KNEW what that meant!"),
         ("MainGameScene", "OfficeAct/Silo", "SiloEncounter", "mayaRealiseLine",
             "Maya: ...no. No, no-- I didn't mean to say it out LOUD--"),
         ("MainGameScene", "OfficeAct/Silo", "SiloEncounter", "mayaTurnedLine",
@@ -200,7 +200,7 @@ public static class StoryScript
             "The grates-- that's BLOOD. It's coming up fast!"),
         // ---- you killed him: her secret is safe, and she only owns up to the small sin
         ("MainGameScene", "OfficeAct/Silo", "SiloEncounter", "confessionLine",
-            "Maya: It's done. Good. He can't tell anyone anything now.|Maya: The morgue trucks, what Kessler sold... we all took the bonuses. We all signed his report.|Maya: I'm sorry about Derek. He hated himself for it, every day after.|...I signed it without even reading it.|That's why he came for us. For Derek. For me."),
+            "Maya: It's done. Good. He can't tell anyone anything now.|Maya: The morgue trucks, what Vane sold... we all took the bonuses. We all signed his report.|Maya: I'm sorry about Derek. He hated himself for it, every day after.|...I signed it without even reading it.|That's why he came for us. For Derek. For me."),
         ("MainGameScene", "OfficeAct/Silo", "BloodFlood", "clingLineSam",
             "Sam: It's coming up the stairs-- I can't swim in this! Don't let me go under!"),
         ("MainGameScene", "OfficeAct/Silo", "BloodFlood", "damnedLine",
@@ -216,34 +216,34 @@ public static class StoryScript
         ("MainGameScene", "OfficeAct/Horde (escape)", "HordeChase", "stopLine",
             "The damned stopped dead. They won't set foot on the bridge.|But HE's still coming."),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "burstLines",
-            "Kessler: DRIVER!|Kessler: You read my ledger. You watched my tape.|Kessler: You think you can just DRIVE AWAY from me?!"),
+            "Vane: DRIVER!|Vane: You read my ledger. You watched my tape.|Vane: You think you can just DRIVE AWAY from me?!"),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "transformLine",
-            "Kessler: Then LOOK at what I really am--"),
+            "Vane: Then LOOK at what I really am--"),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "tunnelInLine",
             "It stopped at the tunnel... it's too big to follow me in.|...something's running across the roof."),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "tunnelOutLine",
             "It came off the tunnel roof-- it's RIGHT BEHIND ME!"),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "arriveLines",
-            "The bridge just... ends. There's nowhere left to drive.|Kessler: End of the road, driver."),
+            "The bridge just... ends. There's nowhere left to drive.|Vane: End of the road, driver."),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "nowhereLine",
-            "Kessler: NOWHERE LEFT TO RUN, DRIVER!"),
+            "Vane: NOWHERE LEFT TO RUN, DRIVER!"),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "displayName",
             "THE THING THAT WORE KESSLER"),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "riseLines",
-            "Kessler: Did you think that was ME in the office? That was only the coat I wore.|Kessler: Forty years I fed this city the dead. It fed me back.|Kessler: The damned won't follow you here. They know what I am.|Kessler: Nobody leaves my city. Not the Lost. Not the Damned. Not YOU."),
+            "Vane: Did you think that was ME in the office? That was only the coat I wore.|Vane: Forty years I fed this city the dead. It fed me back.|Vane: The damned won't follow you here. They know what I am.|Vane: Nobody leaves my city. Not the Lost. Not the Damned. Not YOU."),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "phase2Lines",
-            "Kessler: Every body I sold, I kept a little piece. Come up, all of you. Say hello."),
+            "Vane: Every body I sold, I kept a little piece. Come up, all of you. Say hello."),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "phase3Lines",
-            "Kessler: Derek BEGGED me for that money!|Kessler: I made you both. I can unmake you."),
+            "Vane: Derek BEGGED me for that money!|Vane: I made you both. I can unmake you."),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "deathLines",
-            "Kessler: No... the river... it's pulling me DOWN--|Kessler: They'll judge you too, driver. Your name's on that report. You SIGNED--"),
+            "Vane: No... the river... it's pulling me DOWN--|Vane: They'll judge you too, driver. Your name's on that report. You SIGNED--"),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)", "DemonBoss", "afterLines",
             "It's over.|Now there's only the end of the bridge... and whatever's waiting there to judge me."),
         // ---- the Demon King (his verdict itself is built from what you did: EndingSequence.VerdictLines)
         ("MainGameScene", "GameManager", "EndingSequence", "arriveLine",
-            "The bridge just... ends. Red fog, black water, and nothing past it.|The sea's moving. Something's coming UP out of it. Something bigger than Kessler."),
+            "The bridge just... ends. Red fog, black water, and nothing past it.|The sea's moving. Something's coming UP out of it. Something bigger than Vane."),
         ("MainGameScene", "GameManager", "EndingSequence", "brandLine",
-            "My hand-- it's BURNING. There's a mark in it. His mark."),
+            "My hands... they're burning again. His mark is opening something.|The real world. I can cross into it now, not just this city."),
         ("MainGameScene", "GameManager", "EndingSequence", "boundLine",
             "He's gone. The fog at the end of the bridge never moved.|Behind me the city's still red. Still full of them, hiding what they did.|...fine. Who's next?"),
         ("MainGameScene", "BridgeEnding/Kessler Demon (bridge boss)/Health pickup (template)", "HealthPickup", "line",
@@ -278,6 +278,7 @@ public static class StoryScript
                 so.ApplyModifiedProperties();
                 done++;
             }
+            RevisedPlot.ApplyText(scene);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             if (opened) EditorSceneManager.CloseScene(scene, true);

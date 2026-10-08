@@ -29,6 +29,13 @@ public class GunController : MonoBehaviour
     public Light muzzleLight;
     public TextMeshProUGUI ammoText;
 
+    // the Elias fight (SiloEncounter): one magazine at a time. Empty, you say so, Maya throws you the next one and you
+    // have to find it. Off everywhere else: the reloads are free.
+    [HideInInspector] public bool limited;
+    private int spare;
+    private bool emptyCalled;
+    private System.Action onEmpty;
+
     private int ammo;
     private float nextShot;
     private bool reloading;
@@ -56,6 +63,12 @@ public class GunController : MonoBehaviour
         if (ammoText != null) ammoText.gameObject.SetActive(Equipped);
     }
 
+    // getting into the van switches the player off mid-reload and kills the coroutine: don't stay "reloading" forever
+    void OnDisable()
+    {
+        if (reloading) { reloading = false; if (ammo <= 0 && (!limited || spare > 0)) { ammo = magSize; if (limited) spare--; } UpdateAmmo(); }
+    }
+
     public void Equip()
     {
         Equipped = true;
@@ -77,19 +90,51 @@ public class GunController : MonoBehaviour
             viewModel.SetActive(show);
             if (show && animator != null) animator.Play("Draw", 0, 0f);   // brought back up
         }
-        if (ammoText != null && ammoText.gameObject.activeSelf != show) ammoText.gameObject.SetActive(show);
+        // the van's own aim readout (DriveBy) takes over while you aim from the car: never two ammo counters at once
+        bool showAmmo = show && !DriveBy.Aiming;
+        if (ammoText != null && ammoText.gameObject.activeSelf != showAmmo) ammoText.gameObject.SetActive(showAmmo);
         if (!show) return;
 
         if (viewModel != null)
             viewModel.transform.localPosition = Vector3.Lerp(viewModel.transform.localPosition, restPos, 12f * Time.deltaTime);
 
         if (reloading) return;
-        if (Input.GetKeyDown(KeyCode.R) && ammo < magSize) { StartCoroutine(Reload()); return; }
+        if (Input.GetKeyDown(KeyCode.R) && ammo < magSize && (!limited || spare > 0)) { StartCoroutine(Reload()); return; }
         if (Input.GetMouseButton(0) && Time.time >= nextShot)
         {
-            if (ammo <= 0) StartCoroutine(Reload());
-            else Fire();
+            if (ammo > 0) Fire();
+            else if (!limited || spare > 0) StartCoroutine(Reload());
+            else { nextShot = Time.time + 0.35f; Empty(); }   // click: no magazine
         }
+    }
+
+    // limited magazines on (the Elias fight) or off again; either way a full magazine in the gun
+    public void SetLimited(bool on, System.Action whenEmpty = null)
+    {
+        limited = on;
+        onEmpty = whenEmpty;
+        spare = 0;
+        emptyCalled = false;
+        StopAllCoroutines();
+        reloading = false;
+        ammo = magSize;
+        UpdateAmmo();
+    }
+
+    // you picked up the magazine: straight in if the gun's empty
+    public void AddMag()
+    {
+        spare++;
+        emptyCalled = false;
+        UpdateAmmo();
+        if (ammo <= 0 && !reloading) StartCoroutine(Reload());
+    }
+
+    void Empty()
+    {
+        if (!limited || emptyCalled || onEmpty == null) return;
+        emptyCalled = true;
+        onEmpty();
     }
 
     void Fire()
@@ -97,6 +142,7 @@ public class GunController : MonoBehaviour
         nextShot = Time.time + 1f / fireRate;
         ammo--;
         UpdateAmmo();
+        if (ammo <= 0 && limited && spare <= 0) Empty();   // that was the last round
 
         if (animator != null) animator.Play("Shoot", 0, 0f);
         if (source != null) { source.pitch = Random.Range(0.92f, 1.08f); source.PlayOneShot(shotClip, Sounds.Volume("Silo Fight/Rifle shot")); }
@@ -115,6 +161,9 @@ public class GunController : MonoBehaviour
         var boss = hit.collider.GetComponentInParent<KillerBoss>();
         if (boss != null) { boss.TakeDamage(damage, hit.point, dir); return; }
 
+        var blackHeart = hit.collider.GetComponentInParent<BossHeart>();
+        if (blackHeart != null) { blackHeart.Hit(damage, hit.point, dir); return; }
+
         var demon = hit.collider.GetComponentInParent<DemonBoss>();
         if (demon != null) { demon.TakeDamage(damage, hit.point, dir, hit.collider); return; }
 
@@ -129,6 +178,7 @@ public class GunController : MonoBehaviour
         if (source != null && reloadClip != null) source.PlayOneShot(reloadClip);
         yield return new WaitForSeconds(reloadTime);
         if (source != null && reloadClip != null) source.PlayOneShot(reloadClip);
+        if (limited) spare = Mathf.Max(0, spare - 1);
         ammo = magSize;
         UpdateAmmo();
         reloading = false;
@@ -143,6 +193,6 @@ public class GunController : MonoBehaviour
 
     void UpdateAmmo()
     {
-        if (ammoText != null) ammoText.text = ammo + " / ∞";
+        if (ammoText != null) ammoText.text = ammo + " / " + (limited ? "MAG x" + spare : "∞");
     }
 }

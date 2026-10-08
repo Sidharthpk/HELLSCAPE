@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0adb26837e58442488d27e8638637ea5, type: 3}
+  m_Name: EchoOfficeSettings
+  m_EditorClassIdentifier: 
+  materials:
+  - burnt: {fileID: 2100000, guid: 7de78849d763f714996a06664aebfeef, type: 2}
+    before: {fileID: 2100000, guid: 9ffc47c9df969bf419b04af30684401e, type: 2}
+  - burnt: {fileID: 2100000, guid: 8638293a0d59636479152eb33467aa03, type: 2}
+    before: {fileID: 2100000, guid: 9ffc47c9df969bf419b04af30684401e, type: 2}
+  - burnt: {fileID: 2100000, guid: c68341e2376a8214a9131af5f53b5292, type: 2}
+    before: {fileID: 2100000, guid: 5eb3a0ebb6b443145a6a3c52c6f5b0fe, type: 2}
+  - burnt: {fileID: 2100000, guid: ed094160380638146a507d85aa1c6ed8, type: 2}
+    before: {fileID: 2100000, guid: 5eb3a0ebb6b443145a6a3c52c6f5b0fe, type: 2}
+  - burnt: {fileID: 2100000, guid: 98e855ea22202834b91b6edc653961db, type: 2}
+    before: {fileID: 2100000, guid: 2cfdd42d0cb9fc24d8287db96531056d, type: 2}
+  - burnt: {fileID: 2100000, guid: 4dbd4943d59e74447811eef49262d256, type: 2}
+    before: {fileID: 2100000, guid: 2cfdd42d0cb9fc24d8287db96531056d, type: 2}
+  - burnt: {fileID: 2100000, guid: c08e5d5571ee43f4c963857691b74333, type: 2}
+    before: {fileID: 2100000, guid: 12f8d487ac977494caa86df35068354b, type: 2}
+  - burnt: {fileID: 2100000, guid: 66ed533f191826a4bbda99724391acc2, type: 2}
+    before: {fileID: 2100000, guid: 12f8d487ac977494caa86df35068354b, type: 2}
+  - burnt: {fileID: 2100000, guid: c209139704cb5894088331b3db086681, type: 2}
+    before: {fileID: 2100000, guid: d1a9a2fe3bc7392408383cb2c13d5f92, type: 2}
+  - burnt: {fileID: 2100000, guid: 3e5b98a13e47e9248a2231231329cb41, type: 2}
+    before: {fileID: 2100000, guid: 6c9e6a3b40830014ebddc3aa606f2bb8, type: 2}
+  transitionSeconds: 0.85
+  exposure: 0.85
+  tint: {r: 0.68, g: 0.83, b: 1, a: 1}

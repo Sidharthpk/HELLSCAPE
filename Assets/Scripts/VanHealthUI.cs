@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 // The van's state while you drive, as a small picture of the van where your heart sits on foot: no bar, no number.
 // It goes through the same stages as the van's own paint (VanDamageLook): as new, scuffed, rusted and cracked,
@@ -17,12 +18,30 @@ public class VanHealthUI : MonoBehaviour
     private Vector2 home;
     private bool homed;
 
+    TextMeshProUGUI percent;   // a small "87%" to the right of the van, made on first use
+
     void OnEnable()
     {
         if (icon != null && !homed) { home = icon.anchoredPosition; homed = true; }
         if (health != null) lastHealth = health.currentHealth;
         jolt = 0f;
+        if (icon == null) return;
+        if (percent == null)
+        {
+            var rt = new GameObject("Van health %", typeof(RectTransform)).GetComponent<RectTransform>();
+            rt.SetParent(icon.parent, false);
+            rt.anchorMin = icon.anchorMin; rt.anchorMax = icon.anchorMax; rt.pivot = new Vector2(0f, 0.5f);
+            rt.sizeDelta = new Vector2(120f, 36f);
+            rt.anchoredPosition = home + new Vector2(icon.rect.width * (1f - icon.pivot.x) + 8f, 0f);
+            percent = rt.gameObject.AddComponent<TextMeshProUGUI>();
+            var font = Resources.Load<TMP_FontAsset>("NotePixelFont");
+            if (font != null) percent.font = font;
+            percent.fontSize = 24f; percent.alignment = TextAlignmentOptions.MidlineLeft; percent.raycastTarget = false; percent.enableWordWrapping = false;
+        }
+        percent.gameObject.SetActive(true);
     }
+
+    void OnDisable() { if (percent != null) percent.gameObject.SetActive(false); }
 
     void Update()
     {
@@ -42,6 +61,8 @@ public class VanHealthUI : MonoBehaviour
         if (k < below[below.Length - 1] && !wrecked) shake += Random.insideUnitCircle * 1.4f;   // rattling apart
         icon.anchoredPosition = home + shake;
         icon.localScale = Vector3.one * (1f + 0.14f * jolt);
+        percent.text = Mathf.CeilToInt(k * 100f) + "%";
+        percent.color = k < below[below.Length - 1] ? new Color(1f, 0.35f, 0.3f) : Color.white;
         face.color = wrecked ? new Color(0.5f, 0.5f, 0.5f) : Color.Lerp(Color.white, new Color(1f, 0.45f, 0.45f), jolt);
     }
 }
