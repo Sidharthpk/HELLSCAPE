@@ -11,6 +11,7 @@ public static class EndingPreview
 
     [MenuItem("HellScape/Debug/Play Bound Ending (to be continued)")] static void Bound() => Begin("bound");
     [MenuItem("HellScape/Debug/Play Demon Ending")] static void Demon() => Begin("demon");
+    [MenuItem("HellScape/Debug/Play Death Vision (wake after the fall)")] static void Vision() => Begin("vision");
 
     static void Begin(string which)
     {
@@ -37,6 +38,7 @@ public static class EndingPreview
     static void Load()
     {
         SleepSequence.WakeInHell = true;
+        if (SessionState.GetString(Key, "") == "vision") { SleepSequence.FallSpot = Vector3.zero; SleepSequence.FallFacing = Vector3.forward; }
         SceneManager.sceneLoaded += OnLoaded;
         SceneManager.LoadScene("MainGameScene");
     }
@@ -44,9 +46,39 @@ public static class EndingPreview
     static void OnLoaded(Scene s, LoadSceneMode m)
     {
         SceneManager.sceneLoaded -= OnLoaded;
+        if (SessionState.GetString(Key, "") == "vision")
+        {
+            SessionState.EraseString(Key);
+            var ending = Object.FindFirstObjectByType<EndingSequence>(FindObjectsInactive.Include);
+            if (ending != null) ending.StartCoroutine(ShootVision(ending));
+            return;
+        }
         var e = Object.FindFirstObjectByType<EndingSequence>();
         if (e != null) e.StartCoroutine(Run(e, SessionState.GetString(Key, "bound") == "demon"));
         SessionState.EraseString(Key);
+    }
+
+    // robot: frames of the death vision (Logs/vision/), the dialogue auto-advancing; a frame every 0.5 s while it runs
+    static IEnumerator ShootVision(EndingSequence e)
+    {
+        string dir = System.IO.Path.Combine(Application.dataPath, "../Logs/vision");
+        System.IO.Directory.CreateDirectory(dir);
+        var auto = typeof(DialogueBox).GetField("AutoAdvanceAfter");
+        for (int i = 0, shots = 0; i < 400 && shots < 60; i++)
+        {
+            if (auto != null) auto.SetValue(null, 1.2f);
+            yield return new WaitForSeconds(0.5f);
+            var cam = e.playerCamera;
+            if (cam == null || cam.transform.position.y > -2500f) { if (shots > 0) break; continue; }
+            var rt = new RenderTexture(640, 360, 24);
+            var old = cam.targetTexture; cam.targetTexture = rt; cam.Render(); cam.targetTexture = old;
+            RenderTexture.active = rt;
+            var tex = new Texture2D(640, 360); tex.ReadPixels(new Rect(0, 0, 640, 360), 0, 0); tex.Apply();
+            RenderTexture.active = null;
+            System.IO.File.WriteAllBytes(System.IO.Path.Combine(dir, "f" + shots.ToString("00") + ".png"), tex.EncodeToPNG());
+            shots++;
+        }
+        Debug.Log("[robot] vision frames written to Logs/vision");
     }
 
     static IEnumerator Run(EndingSequence e, bool damned)

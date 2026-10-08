@@ -20,10 +20,26 @@ public class InteriorDarkness : MonoBehaviour
     [Range(0.3f, 1.5f)] public float dim = 0.85f;        // the zone's ambient light, scaled (lower = darker)
     [Range(0.3f, 1.5f)] public float lightDim = 0.85f;   // every lamp inside the zone, scaled once at the start
 
+    [Header("Blackout (the office, until the fuses are in)")]
+    public bool blackoutUntilPowered;       // real dark: every lamp in the zone is off and the ambient is nearly nothing; your hands are the only light (PalmLight)
+    public Color blackAmbient = new Color(0.012f, 0.01f, 0.014f);
+    public Color blackFog = new Color(0.01f, 0.008f, 0.01f);
+
     private bool inside, powered;
+    private bool blackNow;                  // this zone is blacked out and you're in it
+    private readonly System.Collections.Generic.List<Light> switchedOff = new System.Collections.Generic.List<Light>();
+
+    // true while you stand in a blacked-out zone: PalmLight is allowed then
+    public static bool Blackout { get; private set; }
+    private static int blackZones;
 
     void Start()
     {
+        if (blackoutUntilPowered)
+        {
+            if (player != null && player.GetComponentInChildren<PunchController>(true) is PunchController pc && pc.GetComponent<PalmLight>() == null) pc.gameObject.AddComponent<PalmLight>();
+            Lamps(false);
+        }
         if (Mathf.Approximately(lightDim, 1f)) return;
         foreach (var l in FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
@@ -31,6 +47,20 @@ public class InteriorDarkness : MonoBehaviour
             if (player != null && l.transform.IsChildOf(player)) continue;   // not a light carried with the player
             if (l.TryGetComponent(out LightFlicker f)) f.ScaleBase(lightDim);
             else l.intensity *= lightDim;
+        }
+    }
+
+    // every lamp in the zone off (or back on, the ones this switched off)
+    void Lamps(bool on)
+    {
+        if (on) { foreach (var l in switchedOff) if (l != null) l.enabled = true; switchedOff.Clear(); return; }
+        foreach (var l in FindObjectsByType<Light>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+        {
+            if (l.type == LightType.Directional || !l.enabled || !zone.Contains(l.transform.position)) continue;
+            if (player != null && l.transform.IsChildOf(player)) continue;   // your own light
+            if (l.GetComponentInParent<WitnessLook>() != null) continue;     // the burnt dead glow: the only thing to see by
+            l.enabled = false;
+            switchedOff.Add(l);
         }
     }
     private float k;                        // 0 outside .. 1 fully inside
@@ -42,9 +72,13 @@ public class InteriorDarkness : MonoBehaviour
     private static Color ambient, fog;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatic() => activeZones = 0;
+    static void ResetStatic() { activeZones = 0; blackZones = 0; Blackout = false; }
 
-    public void SetPowered(bool on) => powered = on;
+    public void SetPowered(bool on)
+    {
+        powered = on;
+        if (blackoutUntilPowered && on) Lamps(true);   // the fuses are in: the lights come back
+    }
 
     void Update()
     {
@@ -56,6 +90,8 @@ public class InteriorDarkness : MonoBehaviour
             activeZones++;
         }
         inside = now;
+        bool black = blackoutUntilPowered && inside && !powered;
+        if (black != blackNow) { blackNow = black; blackZones += black ? 1 : -1; Blackout = blackZones > 0; }
 
         float target = inside ? 1f : 0f;
         if (Mathf.Approximately(k, target) && !inside) return;
@@ -81,8 +117,9 @@ public class InteriorDarkness : MonoBehaviour
     {
         if (sun != null) sun.intensity = Mathf.Lerp(sunIntensity, 0f, k);
         RenderSettings.ambientMode = k > 0f ? AmbientMode.Flat : ambientMode;
-        RenderSettings.ambientLight = Color.Lerp(ambient, (powered ? poweredAmbient : darkAmbient) * dim, k);
-        RenderSettings.fogColor = Color.Lerp(fog, darkFog, k);
+        bool blackedOut = blackoutUntilPowered && !powered;
+        RenderSettings.ambientLight = Color.Lerp(ambient, blackedOut ? blackAmbient : (powered ? poweredAmbient : darkAmbient) * dim, k);
+        RenderSettings.fogColor = Color.Lerp(fog, blackedOut ? blackFog : darkFog, k);
         if (fogDensity >= 0f) RenderSettings.fogDensity = Mathf.Lerp(density, fogDensity, k);
         RenderSettings.reflectionIntensity = Mathf.Lerp(reflection, 0.05f, k);
     }

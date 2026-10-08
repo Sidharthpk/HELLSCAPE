@@ -15,7 +15,7 @@ public static class EliasFightBuilder
     const string ControllerPath = "Assets/Materials/OfficeAct/Anim/Killer.controller";
     const string KnifeFbx = Dir + "household-knife-low-poly/source/knife_LP.fbx";
     const string KnifeMat = Dir + "household-knife-low-poly/textures/knife.mat";
-    const float FightHealth = 1300f;
+    const float FightHealth = 900f;   // was 1300: too hard to get through
 
     // state on the controller, the clip's file, does it loop, how fast it plays (KillerBoss times its moves to these)
     public static readonly (string state, string file, bool loop, float speed)[] Moves =
@@ -47,7 +47,7 @@ public static class EliasFightBuilder
         boss.knifeMaterial = AssetDatabase.LoadAssetAtPath<Material>(KnifeMat);
         // most shots miss now, and a stun is a whole magazine's worth of free hits (30 x 14 = his old 420 health):
         // enough health for three or four stuns
-        if (boss.maxHealth < FightHealth) boss.maxHealth = FightHealth;
+        boss.maxHealth = FightHealth;
         // walking, he always dodges (to the side away from the shot); running at you, stunned or throwing, he can be shot
         boss.dodgeChance = 1f;
         boss.dodgeCooldown = 0f;

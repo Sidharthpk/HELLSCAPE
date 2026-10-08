@@ -3,7 +3,27 @@ guid: b0d3f1b75b6603a459ac5a3490f80290
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Door__Door_C_jpg
+    second: {fileID: 2100000, guid: d1a9a2fe3bc7392408383cb2c13d5f92, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glossy__Door_C_jpg
+    second: {fileID: 2100000, guid: ef24edfe22021a64580fe0d0ebefe46a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glossy__Reflexion_jpg
+    second: {fileID: 2100000, guid: 1c9ac8fe84de0bc4983ed1a93cfe66ca, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: unnamed
+    second: {fileID: 2100000, guid: 48556a09e69ea5849851940b1ea126d0, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

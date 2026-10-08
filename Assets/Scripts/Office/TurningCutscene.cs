@@ -55,7 +55,7 @@ public class TurningCutscene : MonoBehaviour
         var ghost = spawnGhost();
         Transform head = ghost != null ? ghost.transform : glow.transform;
         if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(lostSpeech);
-        for (float t = 0f; t < 5.5f || (DialogueBox.Instance != null && DialogueBox.Instance.Busy && t < 12f); t += Time.deltaTime)
+        for (float t = 0f; t < 5.5f || (DialogueBox.Instance != null && DialogueBox.Instance.Busy); t += Time.deltaTime)
         {
             AimSmooth(head.position + Vector3.up * 1.3f, 3f);
             playerCam.fieldOfView = Mathf.Lerp(fov0, fov0 * 0.72f, Mathf.SmoothStep(0f, 1f, t / 4f));
@@ -67,10 +67,10 @@ public class TurningCutscene : MonoBehaviour
 
     // ---------------------------------------------------------------- Maya -> the Damned
 
-    public IEnumerator Damned(Survivor sv, Vector3 step, RisenDamned risen)
+    public IEnumerator Damned(Survivor sv, Vector3 step, RisenDamned risen, bool riseFromBlood = true)
     {
         Begin();
-        Vector3 under = new Vector3(step.x, flood.SurfaceY - 0.4f, step.z);
+        Vector3 under = riseFromBlood ? new Vector3(step.x, flood.SurfaceY - 0.4f, step.z) : step + Vector3.up;
         yield return LookAt(under, 1.0f);
 
         // something red under the blood, then her, standing up out of it
@@ -83,7 +83,7 @@ public class TurningCutscene : MonoBehaviour
         var block = new MaterialPropertyBlock();
         Color soaked = new Color(0.55f, 0.1f, 0.08f);
         Tint(renderers, block, soaked);
-        Vector3 from = step - Vector3.up * 1.9f;
+        Vector3 from = riseFromBlood ? step - Vector3.up * 1.9f : step;
         Vector3 face = Flat(player.position - step);
         if (standIn != null) standIn.transform.SetPositionAndRotation(from, Quaternion.LookRotation(face));
         for (float t = 0f; t < 2.6f; t += Time.deltaTime)
@@ -98,7 +98,7 @@ public class TurningCutscene : MonoBehaviour
         if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(damnedSpeech);
         Play("Silo Fight/Colleague turns into the Damned", null, 1f);
         Vector3 body0 = step;
-        for (float t = 0f; t < 4f || (DialogueBox.Instance != null && DialogueBox.Instance.Busy && t < 12f); t += Time.deltaTime)
+        for (float t = 0f; t < 4f || (DialogueBox.Instance != null && DialogueBox.Instance.Busy); t += Time.deltaTime)
         {
             float k = Mathf.Clamp01(t / 5f);
             Color c = Color.Lerp(soaked, new Color(1f, 0.05f, 0.02f), k) * (Random.value < 0.06f * k ? 0.3f : 1f);
@@ -204,6 +204,7 @@ public class TurningCutscene : MonoBehaviour
     {
         if (sv.animator == null) return null;
         var body = Instantiate(sv.animator.gameObject);
+        body.SetActive(true);
         body.name = sv.displayName + " (turning)";
         foreach (var c in body.GetComponentsInChildren<Collider>(true)) Destroy(c);
         body.transform.localScale = sv.animator.transform.lossyScale;

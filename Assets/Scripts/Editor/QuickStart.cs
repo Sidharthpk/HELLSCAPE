@@ -24,6 +24,15 @@ public static class QuickStart
     [MenuItem("HellScape/Play/Kessler Chase (tunnel)")]
     public static void KesslerChase() => Begin("tunnel");
 
+    // HellScape > Play > Final Boss: the bridge fight, Kessler one hit from the black hearts (the last phase)
+    [MenuItem("HellScape/Play/Final Boss (black hearts phase)")]
+    public static void FinalBoss()
+    {
+        if (EditorApplication.isPlaying) { Debug.LogWarning("Stop Play first."); return; }
+        SessionState.SetBool("HellScape.TestHearts", true);
+        EditorApplication.isPlaying = true;
+    }
+
     static void Begin(string what)
     {
         if (EditorApplication.isPlaying) { Debug.LogWarning("Stop Play first."); return; }

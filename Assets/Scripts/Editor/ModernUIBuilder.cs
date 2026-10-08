@@ -146,30 +146,6 @@ public static class ModernUIBuilder
     static void Dialogue(DialogueBox d, RectTransform canvas)
     {
         var box = (RectTransform)d.transform;
-        Place(box, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 92f), new Vector2(1180f, 178f));
-        foreach (var child in box.Cast<Transform>().ToArray())
-            if (child != d.text.transform) Object.DestroyImmediate(child.gameObject);
-
-        var panel = Node("Panel", box); Stretch(panel); Rounded(panel, Panel);
-        var accent = Node("Accent", box, typeof(Image));
-        Place(accent, new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(20f, 0f), new Vector2(5f, -44f));
-        accent.GetComponent<Image>().color = Amber; accent.GetComponent<Image>().raycastTarget = false;
-        var name = Node("Name", box);
-        Place(name, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(42f, -18f), new Vector2(800f, 34f));
-        var nameText = Text(name, "YOU", head, 25f, Amber, TextAlignmentOptions.TopLeft, 5f);
-        var hint = Node("Hint", box);
-        Place(hint, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-30f, 14f), new Vector2(300f, 28f));
-        var hintText = Text(hint, H + "<color=#" + ColorUtility.ToHtmlStringRGB(Amber) + ">E</color>   continue", body, 24f, Muted, TextAlignmentOptions.BottomRight);
-
-        var textRt = (RectTransform)d.text.transform;
-        textRt.SetAsLastSibling();
-        Stretch(textRt, 42f, 30f, 44f, 56f);
-        Text(textRt, "", body, 31f, Color.white, TextAlignmentOptions.TopLeft);
-        d.text.textWrappingMode = TextWrappingModes.Normal;
-        d.text.lineSpacing = 6f;
-        d.text.margin = Vector4.zero;
-        hint.SetAsLastSibling();
-
         // the letterbox, behind the box
         RectTransform Bar(string n, bool top)
         {
@@ -183,7 +159,7 @@ public static class ModernUIBuilder
         }
         d.barTop = Bar("DialogueBarTop", true);
         d.barBottom = Bar("DialogueBarBottom", false);
-        d.nameText = nameText; d.accent = accent.GetComponent<Image>(); d.hintText = hintText;
+        DialoguePresentation.Subtitle(d);
         d.border = new Graphic[0];
         d.charDelay = 0.03f;
         d.group.alpha = 0f;
@@ -226,14 +202,7 @@ public static class ModernUIBuilder
 
     static void Choice(ChoiceDialogue c)
     {
-        var panel = (RectTransform)c.panel.transform;
-        Place(panel, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 30f), new Vector2(1040f, 400f));
-        Rounded(panel, Panel);
-        var t = (RectTransform)c.text.transform;
-        Stretch(t, 44f, 30f, 44f, 30f);
-        Text(t, "", body, 29f, Color.white, TextAlignmentOptions.TopLeft);
-        c.text.lineSpacing = 10f;
-        c.text.textWrappingMode = TextWrappingModes.Normal;
+        DialoguePresentation.Choices(c);
         c.answerColor = Amber;
         EditorUtility.SetDirty(c);
     }
@@ -247,6 +216,7 @@ public static class ModernUIBuilder
         var leave = KeepOwnLook.Concat(new[] { "AirBar", "PushPrompt" }).ToArray();
         foreach (var t in canvas.GetComponentsInChildren<TextMeshProUGUI>(true))
         {
+            if (t.GetComponentInParent<DialoguePresentation>(true) != null) continue;
             if (t.font == null || t.font == body || t.GetComponentsInParent<Transform>(true).Any(p => leave.Contains(p.name))) continue;
             if (t.font.name != "LiberationSans SDF" && t.font.name != "Oswald Bold SDF") continue;
             t.font = body;

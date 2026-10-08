@@ -19,6 +19,8 @@ public class DeliveryRun : MonoBehaviour
         public Animator customerAnimator;      // turns to face you, waves (optional)
         [TextArea] public string arriveLine = "";
         [TextArea] public string handOverLines = "";
+        public float exitSpeed = 1.3f;         // how fast they walk back to their door afterwards (an old lady: slower)
+        [System.NonSerialized] public StopDoor door;   // a door in the building behind them, built when the run starts
     }
 
     public PrologueVan van;
@@ -42,7 +44,13 @@ public class DeliveryRun : MonoBehaviour
     public bool Done { get; private set; }
 
     // before the opening fade: you're already behind the wheel when the picture comes up
-    public void Prepare() => van.Enter();
+    public void Prepare()
+    {
+        van.Enter();
+        // each customer's own door, in the wall behind them (see Leave)
+        foreach (var s in stops)
+            if (s.customer != null && s.door == null) s.door = StopDoor.Build(s.customer.transform, s.bay.position);
+    }
 
     public IEnumerator Run()
     {
@@ -142,11 +150,13 @@ public class DeliveryRun : MonoBehaviour
         Say(s.handOverLines);
         yield return WaitForLines();
         yield return new WaitForSeconds(0.4f);
+        yield return Leave(s, ct, cam, npc);   // they walk back to their door and go in
 
+        Vector3 camNow = ct.position; Quaternion rotNow = ct.rotation; float fovNow = cam.fieldOfView;
         yield return Blend(1f, k =>
         {
-            ct.SetPositionAndRotation(Vector3.Lerp(camPos, pos0, k), Quaternion.Slerp(camRot, rot0, k));
-            cam.fieldOfView = Mathf.Lerp(38f, fov0, k);
+            ct.SetPositionAndRotation(Vector3.Lerp(camNow, pos0, k), Quaternion.Slerp(rotNow, rot0, k));
+            cam.fieldOfView = Mathf.Lerp(fovNow, fov0, k);
             Bars(dir, 1f - k);
         });
         ct.SetPositionAndRotation(pos0, rot0);
@@ -154,6 +164,62 @@ public class DeliveryRun : MonoBehaviour
         Bars(dir, 0f);
         if (fpc != null) { fpc.playerCanMove = true; fpc.cameraCanMove = true; }
     }
+
+    // the customer walks off to the door in the building behind them (the camera drifts after them), waits at its
+    // side while it opens, goes through into the black, and it shuts behind them
+    IEnumerator Leave(Stop s, Transform ct, Camera cam, Transform npc)
+    {
+        var door = s.door;
+        if (door == null) { npc.gameObject.SetActive(false); yield break; }   // no wall to put one on: they just go
+        var col = npc.GetComponent<Collider>(); if (col != null) col.enabled = false;
+        var an = s.customerAnimator;
+        Vector3 cam0 = ct.position, npc0 = npc.position;
+        float fov0 = cam.fieldOfView;
+
+        IEnumerator Walk(Vector3 to, float speed)
+        {
+            to.y = npc.position.y;
+            while (Flat(to - npc.position).magnitude > 0.08f)
+            {
+                Vector3 step = Flat(to - npc.position);
+                npc.position += step.normalized * Mathf.Min(speed * Time.deltaTime, step.magnitude);
+                if (Physics.Raycast(npc.position + Vector3.up * 2f, Vector3.down, out var gh, 4f, ~0, QueryTriggerInteraction.Ignore) && gh.point.y < npc.position.y + 0.6f)
+                    npc.position = new Vector3(npc.position.x, gh.point.y, npc.position.z);
+                npc.rotation = Quaternion.Slerp(npc.rotation, Quaternion.LookRotation(step), 6f * Time.deltaTime);
+                if (an != null) { an.SetFloat("Speed", 1.3f); an.speed = speed / 1.3f; }
+                Follow();
+                yield return null;
+            }
+            if (an != null) { an.SetFloat("Speed", 0f); an.speed = 1f; }
+        }
+        void Follow()
+        {
+            Vector3 want = cam0 + Flat(npc.position - npc0) * 0.7f;
+            ct.position = Vector3.Lerp(ct.position, want, 2f * Time.deltaTime);
+            Vector3 head = npc.position + Vector3.up * 1.4f;
+            ct.rotation = Quaternion.Slerp(ct.rotation, Quaternion.LookRotation(head - ct.position), 3.5f * Time.deltaTime);
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 50f, 1.5f * Time.deltaTime);
+        }
+
+        float v = Mathf.Max(0.5f, s.exitSpeed);
+        yield return Walk(door.Stand, v);
+        // turn to the door, a beat, then it opens
+        for (float t = 0f; t < 0.4f; t += Time.deltaTime)
+        {
+            npc.rotation = Quaternion.Slerp(npc.rotation, Quaternion.LookRotation(Flat(door.Doorway - npc.position)), 7f * Time.deltaTime);
+            Follow();
+            yield return null;
+        }
+        yield return door.Open();
+        yield return Walk(door.Doorway, v * 0.8f);
+        yield return Walk(door.Inside, v * 0.7f);
+        npc.gameObject.SetActive(false);
+        for (float t = 0f; t < 0.4f; t += Time.deltaTime) { Follow(); yield return null; }
+        yield return door.Close();
+        yield return new WaitForSeconds(0.5f);
+    }
+
+    static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
 
     static IEnumerator Blend(float time, System.Action<float> apply)
     {
@@ -190,6 +256,7 @@ public class DeliveryRun : MonoBehaviour
     void Objective(string text)
     {
         if (objective == null) return;
+        PrologueDirector.ObjectiveBar(objective, !string.IsNullOrEmpty(text));
         objective.gameObject.SetActive(!string.IsNullOrEmpty(text));
         objective.text = "> " + text;   // (as the director writes them)
     }

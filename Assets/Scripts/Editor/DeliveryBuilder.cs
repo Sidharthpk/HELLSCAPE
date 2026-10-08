@@ -64,7 +64,7 @@ public static class DeliveryBuilder
         {
             var s = new GameObject(name).AddComponent<AudioSource>();
             s.transform.SetParent(van.transform, false);
-            s.clip = clip; s.loop = true; s.playOnAwake = false; s.spatialBlend = 0f; s.volume = 0.6f;
+            s.clip = clip; s.loop = true; s.playOnAwake = false; s.spatialBlend = 0f; s.volume = name == "Engine" ? 0.25f : 0.6f;
             return s;
         }
         ctl.carEngineSound = Src("Engine", mainCtl.carEngineSound != null ? mainCtl.carEngineSound.clip : null);
@@ -190,7 +190,7 @@ public static class DeliveryBuilder
                 objective = "Deliver the cool box - Harlow Clinic, back entrance",
                 bay = stop2, bayRadius = 13f, customer = clinic, customerAnimator = clinicAnim,
                 arriveLine = "The cool box. 'KEEP COLD - DO NOT OPEN.' Kessler's handwriting. Same back door every Saturday.",
-                handOverLines = "Man at the door: You're late. Kessler said half six.|Man at the door: No paperwork. No names. Same as always.|...What's actually in these boxes?|Man at the door: Spare parts. You drive, you get your bonus, you don't ask. That's the deal.|He takes it and shuts the door in my face.|...Spare parts.",
+                handOverLines = "Man at the door: You're late. Kessler said half six.|Man at the door: No paperwork. No names. Same as always.|...What's actually in these boxes?|Man at the door: Spare parts. You drive, you get your bonus, you don't ask. That's the deal.|...Spare parts.",   // (he walks back in through his door: DeliveryRun.Leave)
             },
         };
         run.depotBay = depot; run.depotRadius = 12f;

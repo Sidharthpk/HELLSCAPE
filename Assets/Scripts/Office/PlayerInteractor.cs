@@ -24,7 +24,7 @@ public class PlayerInteractor : MonoBehaviour
     {
         current = null;
         // a note is up (F puts it down, it doesn't pick the next thing up), or you're in the middle of talking to someone
-        if (NoteViewer.Blocking || PauseMenu.Paused || GhostNPC.Conversing)
+        if (NoteViewer.Blocking || PauseMenu.Paused || GameOverScreen.Open || TapLock.Active || LockPick.Active || GhostNPC.Conversing)
         {
             if (Root != null) Root.SetActive(false);
             return;

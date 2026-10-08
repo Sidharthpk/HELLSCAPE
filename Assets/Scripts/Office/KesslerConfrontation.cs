@@ -2,8 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using TMPro;
 
-// After the tape: back to Kessler's ghost. The lost turn into the damned when they're caught and own up to it.
+// After the tape: Vane defends his crimes. Justification, not admission alone, turns him Damned.
 //   Arm()        the CCTV flashback is over: his talk becomes the confrontation (confrontNodes)
 //   (talk ends)  he admits it -> "YOU SHOULD BE THANKING ME" -> the blue ghost starts to burn red, shaking itself
 //                apart, and the silo key falls out of his coat (user, 2026-10-02: there is no fight here any more).
@@ -48,10 +49,67 @@ public class KesslerConfrontation : MonoBehaviour
     [TextArea] public string defeatedLine = "";
     public UnityEvent onDefeated = new UnityEvent();
 
+    [Header("Vane's ambush: right after the tape, not waiting in the hall")]
+    public bool ambush = true;
+    public float creepSpeed = 1.15f;        // m/s, closing in from behind you
+    public float creepStart = 9f;           // how far behind you he starts
+    public float scareDistance = 2.3f;      // this close and he goes for you
+    public float creepTimeout = 40f;        // he does not wait for ever
+    [TextArea] public string scareLine = "Vane: That tape was WIPED! Nobody was supposed to see that!";
+    public string scareShout = "WHAT ARE YOU DOING?!";
+    public bool Ambushing { get; private set; }
+    public bool PreparingAmbush { get; private set; }
+
     private bool armed, turned, hunting, done;
+    readonly List<Behaviour> heldControls = new List<Behaviour>();
+    Vector3 originalBodyScale, originalGhostPosition, originalCameraPosition;
+    Quaternion originalGhostRotation;
+    float originalGlowIntensity;
+    Color originalGlowColor, originalFaderColor;
+    bool ambushSnapshot;
+    readonly Dictionary<Renderer, Material[]> ambushMaterials = new Dictionary<Renderer, Material[]>();
+    GameObject shoutCanvas;
+    public bool ScareVisible { get; private set; }
+
+    public void AbortAmbush()
+    {
+        if (!Ambushing && !PreparingAmbush) return;
+        StopAllCoroutines();
+        RestoreAmbush();
+        Ambushing = PreparingAmbush = false;
+        if (ghost != null) { ghost.transform.SetPositionAndRotation(originalGhostPosition, originalGhostRotation); ghost.gameObject.SetActive(true); }
+    }
+    void RestoreAmbush()
+    {
+        ScareVisible = false;
+        if (shoutCanvas != null) Destroy(shoutCanvas);
+        if (ambushSnapshot && ghost != null)
+        {
+            var body = ghost.body != null ? ghost.body : ghost.transform;
+            body.localScale = originalBodyScale;
+            foreach (var r in body.GetComponentsInChildren<Renderer>(true)) r.SetPropertyBlock(null);
+            var light = ghost.GetComponentInChildren<Light>();
+            if (light != null) { light.intensity = originalGlowIntensity; light.color = originalGlowColor; }
+            if (playerCam != null) playerCam.transform.localPosition = originalCameraPosition;
+            if (fader != null && fader.fade != null) { fader.fade.alpha = 0f; var img = fader.GetComponent<UnityEngine.UI.Image>(); if (img != null) img.color = originalFaderColor; }
+            ghost.enabled = true;
+            foreach (var it in ghost.GetComponents<Interactable>()) it.enabled = true;
+            foreach (var c in ghost.GetComponents<Collider>()) c.enabled = true;
+        }
+        foreach (var pair in ambushMaterials) if (pair.Key != null) pair.Key.sharedMaterials = pair.Value;
+        ambushMaterials.Clear();
+        ambushSnapshot = false;
+        Lock(false);
+    }
+    void OnDisable() { AbortAmbush(); Lock(false); }
+
+    public bool Armed => armed;
+    public bool Done => done;
     private Vector3 turnSpot;
     private Quaternion turnRot;
     private float attackTimer, trailTimer;
+    AudioClip stepClip;
+    void OnDestroy() { if (stepClip != null) Destroy(stepClip); }
     private readonly List<Vector3> trail = new List<Vector3>();
 
     void Start()
@@ -61,10 +119,216 @@ public class KesslerConfrontation : MonoBehaviour
 
     public void Arm()
     {
-        if (armed) return;
+        if (armed || done || ghost == null) return;
         armed = true;
+        EvidenceJournal.Collect(EvidenceJournal.Tape);
         ghost.Replace(confrontNodes);
         ghost.onFinished.AddListener(() => { if (!turned) StartCoroutine(Turn()); });
+        if (ambush && ghost != null && playerCam != null)
+        { originalGhostPosition = ghost.transform.position; originalGhostRotation = ghost.transform.rotation; ghost.gameObject.SetActive(false); StartCoroutine(Ambush()); }
+    }
+
+    // ---------------------------------------------------------------- the ambush
+
+    // The flashback ends; the office is quiet. He is not in the hall any more: he is somewhere behind you, coming
+    // closer while you are not looking (he stops dead when you turn). Then the jump, and he talks.
+    IEnumerator Ambush()
+    {
+        PreparingAmbush = true;
+        while (DialogueBox.Instance != null && DialogueBox.Instance.Busy) yield return null;
+        while (fpc != null && (!fpc.enabled || PauseMenu.Paused || (ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open))) yield return null;
+        // Let the player step away from the terminal before Vane closes in.
+        Vector3 terminal = player.position;
+        for (float wait = 0f; wait < 6f && Vector3.Distance(player.position, terminal) < 2.5f;)
+        { if (!PauseMenu.Paused && fpc.enabled) wait += Time.deltaTime; yield return null; }
+        yield return new WaitForSeconds(1.5f);
+
+        PreparingAmbush = false; Ambushing = true;
+        ghost.CancelConversation();
+        ghost.enabled = false;   // his own wandering would fight this
+        foreach (var it in ghost.GetComponents<Interactable>()) it.enabled = false;
+        foreach (var c in ghost.GetComponents<Collider>()) c.enabled = false;
+        Transform body = ghost.body != null ? ghost.body : ghost.transform;
+        Vector3 scale0 = body.localScale;
+        originalBodyScale = scale0; originalGhostPosition = ghost.transform.position; originalGhostRotation = ghost.transform.rotation;
+        originalCameraPosition = playerCam.transform.localPosition;
+        ambushSnapshot = true;
+        ghost.gameObject.SetActive(true);
+        var rends = body.GetComponentsInChildren<Renderer>(true);
+        var intact = WitnessLook.Load("IntactMale");
+        if (intact != null) foreach (var r in rends) if (r is SkinnedMeshRenderer)
+        { ambushMaterials[r] = r.sharedMaterials; var mats = r.sharedMaterials; for (int i = 0; i < mats.Length; i++) mats[i] = intact; r.sharedMaterials = mats; }
+        var block = new MaterialPropertyBlock();
+        var glow = ghost.GetComponentInChildren<Light>();
+        float glow0 = glow != null ? glow.intensity : 0f;
+        originalGlowIntensity = glow0; originalGlowColor = glow != null ? glow.color : Color.white;
+        var originalImage = fader != null ? fader.GetComponent<UnityEngine.UI.Image>() : null;
+        originalFaderColor = originalImage != null ? originalImage.color : Color.black;
+        PlaceBehind(creepStart);
+
+        float t = 0f, watched = 0f, stepTimer = 0f;
+        while (t < creepTimeout)
+        {
+            if (!fpc.enabled || PauseMenu.Paused || (DialogueBox.Instance != null && DialogueBox.Instance.Busy)) { yield return null; continue; }   // not while you are in something else
+            t += Time.deltaTime;
+            Vector3 pos = ghost.transform.position;
+            Vector3 to = Flat(player.position - pos);
+            float dist = to.magnitude;
+            Vector3 chest = pos + Vector3.up * 1.2f;
+            bool seen = Vector3.Angle(playerCam.transform.forward, chest - playerCam.transform.position) < 42f && ClearTo(playerCam.transform.position, chest);
+            Tint(rends, block, new Color(.06f, .0f, .0f, seen ? .95f : .8f), 0f);
+            ghost.transform.rotation = Quaternion.LookRotation(to);
+            if (seen)
+            {
+                // frozen the moment you look; look for long and he is somewhere behind you again, no nearer than before
+                watched += Time.deltaTime;
+                if (ghost.animator != null) ghost.animator.SetFloat("Speed", 0f, .1f, Time.deltaTime);
+                if (watched > 2.4f) { watched = 0f; PlaceBehind(Mathf.Max(dist, 6f)); }
+            }
+            else
+            {
+                watched = 0f;
+                Vector3 dir = to / Mathf.Max(dist, .01f);
+                if (FreeFor(chest, dir)) ghost.transform.position += dir * creepSpeed * Time.deltaTime;
+                if (ghost.animator != null) { ghost.animator.SetFloat("Speed", ghost.walkClipSpeed, .2f, Time.deltaTime); ghost.animator.speed = Mathf.Clamp(creepSpeed / ghost.walkClipSpeed, .3f, 1f); }
+                stepTimer -= Time.deltaTime;
+                if (stepTimer <= 0f) { stepTimer = .75f; Play(stepClip != null ? stepClip : stepClip = ProceduralAudio.Stomp(), Mathf.Lerp(.15f, .6f, 1f - Mathf.Clamp01(dist / creepStart))); }
+            }
+            if (dist <= scareDistance) break;
+            yield return null;
+        }
+
+        // the jump
+        Lock(true);
+        // he is suddenly right there: on the free side of you nearest to where he was creeping (a wall can't have him)
+        if (!JumpSpot(Flat(ghost.transform.position - player.position).normalized, out Vector3 spot))
+        {
+            RestoreAmbush(); Ambushing = false;
+            ghost.transform.SetPositionAndRotation(originalGhostPosition, originalGhostRotation);
+            DialogueBox.Instance?.Say("Vane: I know you watched it. Come and ask me yourself.");
+            yield break;
+        }
+        ScareVisible = true;
+        ghost.transform.SetPositionAndRotation(spot, Quaternion.LookRotation(Flat(player.position - spot)));
+        yield return LookAt(spot + Vector3.up * 1.5f, .1f);
+        body.localScale = scale0 * 1.18f;
+        Tint(rends, block, new Color(1f, .05f, .03f, 1f), 3f);
+        if (glow != null) { glow.color = Color.red; glow.intensity = glow0 + 6f; }
+        Aim(ghost.transform.position + Vector3.up * 1.6f);
+        var img = fader != null ? fader.GetComponent<UnityEngine.UI.Image>() : null;
+        Color black = img != null ? img.color : Color.black;
+        if (img != null && fader.fade != null) { img.color = new Color(.35f, .015f, .01f, black.a); fader.fade.alpha = .32f; }
+        Play(ProceduralAudio.Thud(), .85f);
+        Play(ProceduralAudio.Rumble(1.6f), 1f);
+        Play(Sounds.Clip("Office/Vane jumpscare", null) ?? ProceduralAudio.Whisper(1.4f), 1f);
+        StartCoroutine(Shake(.6f, .035f));
+        StartCoroutine(Shout(scareShout, 1.3f));
+        for (float f = .32f; f > 0f; f -= Time.deltaTime * 1.6f) { if (fader != null && fader.fade != null) fader.fade.alpha = f; Aim(ghost.transform.position + Vector3.up * 1.6f); yield return null; }
+        if (fader != null && fader.fade != null) fader.fade.alpha = 0f;
+        if (img != null) img.color = black;
+        yield return new WaitForSeconds(.5f);
+
+        // he stays up in your face, and talks
+        if (DialogueBox.Instance != null && !string.IsNullOrEmpty(scareLine)) DialogueBox.Instance.SayNow(scareLine);
+        yield return null;
+        while (DialogueBox.Instance != null && DialogueBox.Instance.Busy) { Aim(ghost.transform.position + Vector3.up * 1.6f); yield return null; }
+
+        // back to normal for the talk: the answers are yours to pick
+        RestoreAmbush();
+        Tint(rends, block, default, -1f);
+        body.localScale = scale0;
+        if (glow != null) { glow.intensity = glow0; glow.color = new Color(.5f, .85f, 1f); }
+        ghost.enabled = true;
+        foreach (var it in ghost.GetComponents<Interactable>()) it.enabled = true;
+        foreach (var c in ghost.GetComponents<Collider>()) c.enabled = true;
+        Ambushing = false;
+        Lock(false);
+        ghost.Talk();
+    }
+
+    // the three lines the jump needs: a spot out of sight behind you, who can see what, and the shout on screen
+    void PlaceBehind(float dist)
+    {
+        for (int i = 0; i < 40; i++)
+        {
+            float yaw = playerCam.transform.eulerAngles.y + 180f + Random.Range(-45f, 45f);
+            float d = i < 20 ? dist : dist * .6f;
+            Vector3 p = player.position + Quaternion.Euler(0f, yaw, 0f) * Vector3.forward * d;
+            if (!Physics.Raycast(new Vector3(p.x, player.position.y + .3f, p.z), Vector3.down, out RaycastHit h, 3.5f, ~0, QueryTriggerInteraction.Ignore) || h.normal.y < .9f) continue;
+            if (Mathf.Abs(h.point.y - (player.position.y - 1f)) > 1.2f) continue;
+            p = h.point;
+            if (Physics.CheckCapsule(p + Vector3.up * .45f, p + Vector3.up * 1.7f, .32f, ~0, QueryTriggerInteraction.Ignore)) continue;
+            if (Vector3.Angle(playerCam.transform.forward, p + Vector3.up * 1.2f - playerCam.transform.position) < 60f) continue;   // never in view
+            ghost.transform.position = p;
+            return;
+        }
+        // Retain the last valid position if no free floor can be found. Never spawn inside a wall.
+    }
+
+    bool JumpSpot(Vector3 prefer, out Vector3 spot)
+    {
+        foreach (float d in new[] { 1.15f, .85f })
+            for (int i = 0; i < 12; i++)
+            {
+                float a = (i % 2 == 0 ? 1 : -1) * (i / 2) * 30f;
+                Vector3 p = player.position + Quaternion.Euler(0f, a, 0f) * prefer * d;
+                if (!Physics.Raycast(new Vector3(p.x, player.position.y + .3f, p.z), Vector3.down, out RaycastHit h, 3.5f, ~0, QueryTriggerInteraction.Ignore) || h.normal.y < .9f) continue;
+                if (Mathf.Abs(h.point.y - (player.position.y - 1f)) > 1.2f) continue;
+                p = h.point;
+                if (Physics.CheckCapsule(p + Vector3.up * .45f, p + Vector3.up * 1.7f, .3f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                if (!ClearTo(playerCam.transform.position, p + Vector3.up * 1.2f)) continue;
+                spot = p; return true;
+            }
+        spot = default; return false;
+    }
+
+    bool ClearTo(Vector3 from, Vector3 to)
+    {
+        foreach (var h in Physics.RaycastAll(from, to - from, Vector3.Distance(from, to), ~0, QueryTriggerInteraction.Ignore))
+            if (!h.collider.transform.IsChildOf(ghost.transform) && !h.collider.transform.IsChildOf(player.root)) return false;
+        return true;
+    }
+
+    bool FreeFor(Vector3 from, Vector3 dir)
+    {
+        foreach (var h in Physics.RaycastAll(from, dir, .5f, ~0, QueryTriggerInteraction.Ignore))
+            if (!h.collider.transform.IsChildOf(ghost.transform) && !h.collider.transform.IsChildOf(player.root)) return false;
+        return true;
+    }
+
+    // paint the body (strength < 0: put it back)
+    static void Tint(Renderer[] rends, MaterialPropertyBlock block, Color c, float emission)
+    {
+        foreach (var r in rends)
+        {
+            if (r == null) continue;
+            if (emission < 0f) { r.SetPropertyBlock(null); continue; }
+            r.GetPropertyBlock(block);
+            block.SetColor("_BaseColor", c);
+            block.SetColor("_EmissionColor", new Color(c.r, c.g * .2f, c.b * .2f) * emission);
+            r.SetPropertyBlock(block);
+        }
+    }
+
+    // big pixel-font text in the middle of the screen
+    IEnumerator Shout(string text, float seconds)
+    {
+        var canvas = new GameObject("Vane shout").AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 450;
+        shoutCanvas = canvas.gameObject;
+        var t = new GameObject("text").AddComponent<TextMeshProUGUI>();
+        t.transform.SetParent(canvas.transform, false);
+        t.font = Resources.Load<TMP_FontAsset>("NotePixelFont") ?? t.font;
+        t.raycastTarget = false; t.text = text; t.fontSize = 64f; t.alignment = TextAlignmentOptions.Center; t.color = new Color(.95f, .05f, .03f);
+        t.enableAutoSizing = true; t.fontSizeMax = 110f; t.fontSizeMin = 40f;
+        var rt = t.rectTransform; rt.anchorMin = new Vector2(.08f, .12f); rt.anchorMax = new Vector2(.92f, .29f); rt.offsetMin = rt.offsetMax = Vector2.zero;
+        for (float s = 0f; s < seconds && rt != null && t != null; s += Time.deltaTime)
+        {
+            rt.anchoredPosition = Random.insideUnitCircle * 14f * (1f - s / seconds);
+            t.alpha = s > seconds - .3f ? (seconds - s) / .3f : 1f;
+            yield return null;
+        }
+        if (canvas != null) Destroy(canvas.gameObject);
     }
 
     // ---------------------------------------------------------------- the turn
@@ -72,7 +336,9 @@ public class KesslerConfrontation : MonoBehaviour
     IEnumerator Turn()
     {
         turned = true;
+        turnSpot = ghost.transform.position; turnRot = ghost.transform.rotation;
         while (DialogueBox.Instance != null && DialogueBox.Instance.Busy) yield return null;   // let his last answer land
+        if (RevisedPlotDirector.Instance != null) RevisedPlotDirector.Instance.ReleaseVane();
         Lock(true);
         ghost.enabled = false;   // its own flicker would fight ours
         foreach (var it in ghost.GetComponents<Interactable>()) it.enabled = false;
@@ -142,7 +408,7 @@ public class KesslerConfrontation : MonoBehaviour
     // the silo key, on the floor between him and you, lit so you can't miss it
     void DropKey()
     {
-        if (keyPickup == null) return;
+        if (keyPickup == null || Inventory.Has("SiloKey")) return;
         Vector3 at = ghost.transform.position + Flat(player.position - ghost.transform.position).normalized * 0.9f;
         if (Physics.Raycast(at + Vector3.up, Vector3.down, out RaycastHit floor, 3f, ~0, QueryTriggerInteraction.Ignore)) at.y = floor.point.y;
         keyPickup.SetParent(transform, true);   // (out of the safe it used to sit in)
@@ -154,6 +420,7 @@ public class KesslerConfrontation : MonoBehaviour
     // through the silo door (KesslerChase.Arrive): whatever state he was in here, it's over
     public void Leave()
     {
+        AbortAmbush();
         StopAllCoroutines();
         Lock(false);
         hunting = false;
@@ -166,7 +433,7 @@ public class KesslerConfrontation : MonoBehaviour
 
     void Update()
     {
-        if (!hunting || done || damned == null) return;
+        if (!hunting || done || damned == null || player == null || PauseMenu.Paused || GameOverScreen.Open || (fpc != null && !fpc.enabled)) return;
         if (damned.IsDead) { StartCoroutine(Defeated()); return; }
 
         Transform z = damned.transform;
@@ -227,8 +494,8 @@ public class KesslerConfrontation : MonoBehaviour
     IEnumerator HitSoon()
     {
         yield return new WaitForSeconds(0.4f);
-        if (damned == null || damned.IsDead) yield break;
-        if (Flat(player.position - damned.transform.position).magnitude > attackRange + 0.4f) yield break;   // you stepped back in time
+        if (damned == null || damned.IsDead || done || !hunting || PauseMenu.Paused || GameOverScreen.Open) yield break;
+        if (Flat(player.position - damned.transform.position).magnitude > attackRange + 0.4f || !Clear(damned.transform.position + Vector3.up, player.position)) yield break;   // you stepped back in time
         var ph = player.GetComponentInParent<PlayerHealth>();
         if (ph != null) ph.TakeDamage(attackDamage);
     }
@@ -246,12 +513,15 @@ public class KesslerConfrontation : MonoBehaviour
     // a checkpoint respawn mid-fight: it's back where it turned, whole again, waiting
     public void ResetFight()
     {
+        AbortAmbush();
         if (!turned || done || damned == null) return;
         StopAllCoroutines();
         Lock(false);
         trail.Clear();
         damned.transform.SetPositionAndRotation(turnSpot, turnRot);
         damned.health = health;
+        damned.gameObject.SetActive(true); if (ghost != null) ghost.gameObject.SetActive(false);
+        DropKey();
         Speed(0f);
         hunting = true;
     }
@@ -260,7 +530,12 @@ public class KesslerConfrontation : MonoBehaviour
 
     void Lock(bool on)
     {
-        foreach (var b in lockDuring) if (b != null) b.enabled = !on;
+        if (on)
+        {
+            foreach (var b in lockDuring ?? new Behaviour[0])
+                if (b != null && b.enabled) { heldControls.Add(b); b.enabled = false; }
+        }
+        else { foreach (var b in heldControls) if (b != null) b.enabled = true; heldControls.Clear(); }
         if (on && player.TryGetComponent(out Rigidbody rb) && !rb.isKinematic) rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
     }
 

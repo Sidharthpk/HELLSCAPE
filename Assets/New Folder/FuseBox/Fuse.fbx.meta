@@ -3,7 +3,42 @@ guid: 36cd1c4be8051be4ab057a092c7b987e
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Cabel
+    second: {fileID: 2100000, guid: 7bea9892097d6094f8a52d0fec6836a2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Fuse
+    second: {fileID: 2100000, guid: da9386029e126404783c5f8e0118849a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Fuse.001
+    second: {fileID: 2100000, guid: da07c21fa8f3c0740a773fc370e5ea10, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glass
+    second: {fileID: 2100000, guid: 6ccd7dcbd1507d543955e96fbd730fa1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Iron
+    second: {fileID: 2100000, guid: 37ade409695fc1342bad997e62479810, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: PowerBox
+    second: {fileID: 2100000, guid: 8dc73c2d7a66e3649bb23103ea7f1360, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Screw
+    second: {fileID: 2100000, guid: 4cef8eb1b13977f499919013da2073cc, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

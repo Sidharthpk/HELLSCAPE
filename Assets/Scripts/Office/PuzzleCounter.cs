@@ -9,10 +9,13 @@ public class PuzzleCounter : MonoBehaviour
     public UnityEvent onSolved = new UnityEvent();
 
     private int count;
+    public System.Action<int> onProgress;   // every item, including the last
 
     public void Add()
     {
+        if (count >= required) return;
         count++;
+        onProgress?.Invoke(count);
         if (count >= required) onSolved.Invoke();
         else if (DialogueBox.Instance != null) DialogueBox.Instance.Say(string.Format(progressLine, count, required));
     }

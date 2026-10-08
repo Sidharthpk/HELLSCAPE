@@ -60,6 +60,7 @@ public class BloodFlood : MonoBehaviour
     private float t, air = 1f, emptyFor, kickTimer, lowFor, outFor;
     private GameObject risenLost;
     private bool holding;
+    private GameObject siloExit;
 
     // a cutscene is playing: no drain, no sinking, no drowning, no bar
     public void Hold(bool on)
@@ -76,6 +77,9 @@ public class BloodFlood : MonoBehaviour
     void Start()
     {
         if (surface != null) surface.gameObject.SetActive(false);
+        // no "Get out of the silo" prompt until the blood has come
+        foreach (var tp in FindObjectsByType<Teleporter>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (tp.name == "SiloExit" && tp.gameObject.scene == gameObject.scene) { siloExit = tp.gameObject; siloExit.SetActive(false); }
         if (inBloodOverlay != null) inBloodOverlay.SetActive(false);
         if (airBar != null) airBar.SetActive(false);
         if (underTint != null) underTint.alpha = 0f;
@@ -87,7 +91,7 @@ public class BloodFlood : MonoBehaviour
     {
         if (running) return;
         running = true;
-        MusicManager.Area("Escape");
+        if (siloExit != null) siloExit.SetActive(true);
         surface.position = new Vector3(surface.position.x, startY, surface.position.z);
         surface.gameObject.SetActive(true);
         if (rumble != null)

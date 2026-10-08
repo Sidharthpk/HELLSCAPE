@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using UnityEngine;
 using TMPro;
+using UnityEngine.EventSystems;
+using System.Collections.Generic;
 
 // A conversation: the speaker's line (their name on a plate in their colour, the words in white) and up to 4
 // answers of yours (amber, like everything you say), picked with the number keys. While it's open you can't walk
@@ -22,36 +24,52 @@ public class ChoiceDialogue : MonoBehaviour
     public bool Open { get; private set; }
 
     private Action<int> onPick;
+    public int Revision { get; private set; }
+    public float SecondsLeft { get; private set; }
+    Action onTimeout;
+    public void SetDeadline(float seconds, Action expired) { SecondsLeft = Mathf.Max(0f, seconds); onTimeout = expired; }
+
     private int count;
     private float openedAt;
     private Coroutine turning;
+    private DialoguePresentation presentation;
+    private readonly List<Behaviour> stopped = new List<Behaviour>();
+    private CursorLockMode previousLock;
+    private bool previousCursor;
 
     void Awake()
     {
         Instance = this;
+        presentation = DialoguePresentation.Choices(this);
         panel.SetActive(false);
     }
 
     public void Show(string speaker, string line, string[] options, Action<int> pick, Transform lookAt = null)
     {
+        Revision++;
+        onTimeout = null; SecondsLeft = 0f;
         onPick = pick;
+        if (DialogueBox.Instance != null) DialogueBox.Instance.Raise();   // the cutscene letterbox must not cover the answers
         count = Mathf.Min(options.Length, 4);
 
         Color plate = DialogueBox.Instance != null ? DialogueBox.Instance.Plate(speaker) : speakerColor;
-        string amber = ColorUtility.ToHtmlStringRGB(answerColor);
-        var sb = new System.Text.StringBuilder();
-        sb.Append(DialogueBox.HeadFont).Append("<size=82%><cspace=0.06em><color=#").Append(ColorUtility.ToHtmlStringRGB(plate)).Append(">")
-          .Append(speaker.ToUpper()).Append("</color></cspace></size>\n");
-        sb.Append(line).Append("\n<size=45%>\n</size>");
-        for (int i = 0; i < count; i++)
-            sb.Append("\n").Append(DialogueBox.HeadFont).Append("<color=#").Append(amber).Append(">").Append(i + 1).Append("</color>   <color=#")
-              .Append(amber).Append(">").Append(options[i]).Append("</color>");
-        text.text = sb.ToString();
-
+        if (!Open)
+        {
+            previousLock = Cursor.lockState;
+            previousCursor = Cursor.visible;
+            stopped.Clear();
+            if (lockDuring != null)
+                foreach (var b in lockDuring)
+                    if (b != null && b.enabled) { stopped.Add(b); b.enabled = false; }
+        }
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        if (EventSystem.current == null)
+            new GameObject("Dialogue EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
         panel.SetActive(true);
         Open = true;
         openedAt = Time.unscaledTime;
-        foreach (var b in lockDuring) if (b != null) b.enabled = false;
+        presentation.ShowChoices(speaker, line, options, plate, Select);
         if (blip != null) blip.Play();
         if (lookAt != null)
         {
@@ -64,7 +82,7 @@ public class ChoiceDialogue : MonoBehaviour
     IEnumerator TurnTo(Transform who)
     {
         FirstPersonController fpc = null;
-        foreach (var b in lockDuring) if (b is FirstPersonController f) fpc = f;
+        foreach (var b in lockDuring ?? new Behaviour[0]) if (b is FirstPersonController f) fpc = f;
         if (fpc == null) yield break;
         var cam = fpc.GetComponentInChildren<Camera>();
         if (cam == null) yield break;
@@ -87,21 +105,41 @@ public class ChoiceDialogue : MonoBehaviour
     void Update()
     {
         if (!Open || PauseMenu.Paused || Time.unscaledTime - openedAt < 0.25f) return;   // don't eat the key that opened it
+        if (onTimeout != null)
+        {
+            SecondsLeft = Mathf.Max(0f, SecondsLeft - Time.deltaTime);
+            presentation.SetCountdown(SecondsLeft);
+            if (SecondsLeft <= 0f) { var expired = onTimeout; Close(); expired(); return; }
+        }
+        presentation.RestoreFocus();
         for (int i = 0; i < count; i++)
             if (Input.GetKeyDown(KeyCode.Alpha1 + i) || Input.GetKeyDown(KeyCode.Keypad1 + i))
             {
-                Close();
-                var pick = onPick;
-                onPick = null;
-                pick?.Invoke(i);
+                Select(i);
                 return;
             }
     }
 
+    void Select(int index)
+    {
+        if (!Open || PauseMenu.Paused || Time.unscaledTime - openedAt < 0.25f || index < 0 || index >= count) return;
+        var pick = onPick;
+        onPick = null;
+        Close();
+        pick?.Invoke(index);
+    }
+
     public void Close()
     {
+        if (!Open) return;
+        Revision++; onTimeout = null; SecondsLeft = 0f;
+        onPick = null;
+        if (turning != null) { StopCoroutine(turning); turning = null; }
         panel.SetActive(false);
         Open = false;
-        foreach (var b in lockDuring) if (b != null) b.enabled = true;
+        foreach (var b in stopped) if (b != null) b.enabled = true;
+        stopped.Clear();
+        Cursor.lockState = previousLock;
+        Cursor.visible = previousCursor;
     }
 }

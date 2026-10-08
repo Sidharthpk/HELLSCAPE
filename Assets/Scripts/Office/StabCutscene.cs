@@ -3,6 +3,9 @@ using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+using UnityEngine.UI;
 
 // Plays one of the two-person stab animations (a single FBX holding both characters) as a story beat.
 //  cam set   -> a flashback: cut to that camera (e.g. the CCTV replay), then back to the player
@@ -33,6 +36,11 @@ public class StabCutscene : MonoBehaviour
     [TextArea] public string afterLine;
     public UnityEvent onFinished = new UnityEvent();
 
+    Volume look;            // the tape: grey, grainy, bent (same grade as Derek's tape in the prologue)
+    GameObject scanlines;
+    string stamp;
+    Quaternion camRest;
+
     public bool Playing { get; private set; }
     public Vector3 HiddenSpot { get; private set; }   // where the hideAfter parts stood when they were hidden
 
@@ -46,6 +54,53 @@ public class StabCutscene : MonoBehaviour
     }
 
     private AudioSource audioSrc;
+
+    void TapeOn(bool on)
+    {
+        if (cam == null) return;
+        if (on && look == null)
+        {
+            var p = ScriptableObject.CreateInstance<VolumeProfile>();
+            var ca = p.Add<ColorAdjustments>(); ca.saturation.Override(-100f); ca.contrast.Override(25f); ca.postExposure.Override(0.4f);
+            var fg = p.Add<FilmGrain>(); fg.type.Override(FilmGrainLookup.Large02); fg.intensity.Override(1f);
+            var vg = p.Add<Vignette>(); vg.intensity.Override(0.5f);
+            var ab = p.Add<ChromaticAberration>(); ab.intensity.Override(0.45f);
+            var ld = p.Add<LensDistortion>(); ld.intensity.Override(-0.25f);
+            look = new GameObject("Tape look").AddComponent<Volume>();
+            look.transform.SetParent(transform, false);
+            look.isGlobal = true; look.priority = 20; look.profile = p;
+        }
+        if (look != null) look.weight = on ? 1f : 0f;
+        if (on && scanlines == null && overlay != null && overlay.transform.parent != null)
+        {
+            var tex = new Texture2D(1, 4) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Point };
+            for (int y = 0; y < 4; y++) tex.SetPixel(0, y, new Color(0f, 0f, 0f, y == 0 ? 0.35f : 0f));
+            tex.Apply();
+            scanlines = new GameObject("Tape scanlines", typeof(RectTransform));
+            scanlines.transform.SetParent(overlay.transform.parent, false);
+            var rt = (RectTransform)scanlines.transform; rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
+            rt.SetSiblingIndex(overlay.transform.GetSiblingIndex());
+            var img = scanlines.AddComponent<RawImage>(); img.texture = tex; img.uvRect = new Rect(0f, 0f, 1f, 270f); img.raycastTarget = false;
+        }
+        if (scanlines != null) scanlines.SetActive(on);
+    }
+
+    // ticking clock, PLAY mark and the odd tracking glitch
+    IEnumerator Tape()
+    {
+        var text = overlay != null ? overlay.GetComponent<TMPro.TMP_Text>() : null;
+        if (text != null && stamp == null) stamp = text.text;
+        camRest = cam.transform.localRotation;
+        for (float s = 0f; Playing && cam.enabled; s += Time.deltaTime)
+        {
+            if (text != null) text.text = stamp + $":{(int)s % 60:00}   <color=#e0e0e0>PLAY ></color>";
+            bool glitch = UnityEngine.Random.value < 0.05f;
+            cam.transform.localRotation = camRest * Quaternion.Euler(glitch ? UnityEngine.Random.Range(-0.6f, 0.6f) : 0f, glitch ? UnityEngine.Random.Range(-0.6f, 0.6f) : 0f, 0f);
+            if (scanlines != null) scanlines.transform.localPosition = new Vector3(0f, glitch ? UnityEngine.Random.Range(-18f, 18f) : 0f, 0f);
+            yield return null;
+        }
+        cam.transform.localRotation = camRest;
+    }
 
     void StartSound()
     {
@@ -92,6 +147,8 @@ public class StabCutscene : MonoBehaviour
         {
             cam.enabled = true;
             if (overlay != null) overlay.SetActive(true);
+            TapeOn(true);
+            StartCoroutine(Tape());
             yield return Fade(0f, 0.6f);
         }
         else if (player != null)
@@ -117,6 +174,7 @@ public class StabCutscene : MonoBehaviour
         if (hideActorsAfter) actors.SetActive(false);
         if (cam != null) cam.enabled = false;
         if (overlay != null) overlay.SetActive(false);
+        TapeOn(false);
         atBlack?.Invoke();
         yield return Fade(0f, cam != null ? 0.8f : 0.3f);
 

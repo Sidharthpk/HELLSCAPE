@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections;
 using TMPro;
 using UnityEngine;
@@ -103,6 +104,23 @@ public class PrologueDirector : MonoBehaviour
     public string findDerek = "Find Derek";
     public string checkTape = "Check the camera footage - the PC in the living room";
     public string chase = "Chase him";
+    public string sitObjective = "Sit down on the sofa";
+    public string tvObjective = "Put the news on";
+    public string letterObjective = "Take the letter from Derek's hand";
+    public string runObjective = "RUN - the roof!";
+
+    [Header("The flat: the news, the letter, the knife (there is no tape)")]
+    [TextArea] public string settleLines = "Nothing. He must be in the shower.|I'll sit down and put the news on. Breakfast can wait.";
+    [TextArea] public string newsLines = "News: ...and in local news, a body was found at the Kessler & Vane depot overnight.|News: He has been named as Tomas Rourke, a night cleaner there for six years.|News: Police say there are no suspicious circumstances. The company has declined to comment.";
+    [TextArea] public string suspicionLines = "Tomas. The cleaner. He said goodnight to me on Friday.|...Wait.|Derek said he'd make breakfast. It's gone eight.|The kitchen's empty. No pan. No plates. Not even a mug.|Derek? ...DEREK?";
+    public string letterPrompt = "Take the letter";
+    [TextArea] public string letterBefore = "There's something in his hand. Paper, curled up tight. Like he wouldn't let it go.";
+    [TextArea] public string letterBody = "To whoever finds this,\n\nThe Harlow boxes are not\nspare parts. They are\n<color=#6a0000>######## ## #####</color>.\n\nTomas saw it. Now he is\n<color=#6a0000>#######</color>. The ledger,\npages 41 to <color=#6a0000>##</color>, has\nit all. Take it to\n<color=#6a0000>######## ## ####</color>.\n\nTell my brother I'm s";
+    [TextArea] public string letterAfter = "Most of it is soaked through. Blood.|Kessler and Vane... the Harlow collection... a ledger.|Tomas saw something. And so did Derek. That's why--|...";
+    [TextArea] public string stabLine = "WHY?!";
+    [TextArea] public string woundedLines = "I'm bleeding... I can't stop it.|The stairs. The roof. RUN!";
+    public string adrenalinePrompt = "ADRENALINE  -  [F]  PULL HIM IN";
+    [TextArea] public string roofLines = "I can't feel my legs. He's in no hurry.|I'm not getting down those stairs. I know that.|...Come on, then. Closer.";
 
     [Header("Lines ('|' splits, \"quotes\" = someone else talking)")]
     public string timeCard = "SATURDAY  -  7:12 AM";
@@ -117,10 +135,12 @@ public class PrologueDirector : MonoBehaviour
     [TextArea] public string footstepLines = "...footsteps.|Right behind me.";
     [TextArea] public string spottedLine = "YOU!";
     [TextArea] public string escapedLines = "The front door--!|Someone just ran out!";
-    [TextArea] public string upLines = "He's going up!|Get back here!";
-    [TextArea] public string topLines = "The roof... there's nothing up there.|He's trapped.";
-    [TextArea] public string confrontLines = "Nowhere left to run.|Why him? WHY DEREK?!|\"...ask your boss about Tomas.\"|Tomas...? What the hell does that--|No. I don't care.|You're going to pay for this.";
-    [TextArea] public string grabLines = "He grabs my wrist--|NO--!";
+    [TextArea] public string upLines = "Up. Keep going. UP.|Don't stop--";
+    [TextArea] public string topLines = "The roof door--! GO!";
+    [TextArea] public string confrontLines = "I can't feel my legs. He's still coming.|I'm not getting down those stairs. I know that.|...Neither are you.";
+    [TextArea] public string grabLines = "GOT YOU--!|If I'm going, you're coming with me!";
+
+    public bool playFlashback = true;       // the office the night before, ahead of the morning
 
     private bool cutscene, found, tapeDone, pushNow;
 
@@ -134,15 +154,15 @@ public class PrologueDirector : MonoBehaviour
         if (killer.route == null || killer.route.Length == 0) return;
         Vector3 edge = killer.route[killer.route.Length - 1];
         Vector3 prev = killer.route[killer.route.Length - 2];
-        killer.gameObject.SetActive(true);
-        killer.transform.position = edge;
-        killer.Stop();
         Vector3 back = Flat(prev - edge).normalized;
         var rb = fpc.GetComponent<Rigidbody>();
-        Player.SetPositionAndRotation(edge + back * 2.6f + Vector3.up * 0.9f, Quaternion.LookRotation(-back));
+        Player.SetPositionAndRotation(edge + back * 3.4f + Vector3.up * 0.9f, Quaternion.LookRotation(-back));
         if (rb != null) rb.linearVelocity = Vector3.zero;
         Physics.SyncTransforms();
-        StartCoroutine(Confront());
+        pursuer = killer.GetComponent<Pursuer>() ?? killer.gameObject.AddComponent<Pursuer>();
+        pursuer.flee = killer; pursuer.animator = killer.animator; pursuer.target = Player;
+        pursuer.Place(edge + back * 6.4f, -back);   // three metres behind you
+        StartCoroutine(Confront(edge));
     }
     private float nextLineY = 9f;
 
@@ -150,6 +170,8 @@ public class PrologueDirector : MonoBehaviour
 
     void Start()
     {
+        // slimmer and a bit shorter, so the stairwell's low ceilings/undersides don't snag you
+        if (fpc != null && fpc.TryGetComponent<CapsuleCollider>(out var bodyCap)) { bodyCap.radius = 0.38f; fpc.transform.localScale = Vector3.one * 0.78f; }
         if (derekRig != null) { derekRig.Play(stabState, 0, 1f); derekRig.Update(0f); }   // he's already down when you get home
         foreach (var g in killerInRig) if (g != null) g.SetActive(false);
         if (killer != null) killer.gameObject.SetActive(false);
@@ -166,7 +188,7 @@ public class PrologueDirector : MonoBehaviour
         if (hellLook != null) hellLook.weight = 0f;
         if (rage != null) rage.alpha = 0f;
         if (pushPrompt != null) pushPrompt.gameObject.SetActive(false);
-        if (pc != null) { pc.enabled = false; pc.onUse.AddListener(() => StartCoroutine(WatchTape())); }
+        if (pc != null) pc.enabled = false;   // the camera's tape is gone: the letter is the evidence now
         // the Sound Library (HellScape > Sound Manager) can swap any of these
         heartbeat = Sounds.Clip("Prologue/Heartbeat", heartbeat);
         sting = Sounds.Clip("Prologue/Sting (body, spotted)", sting);
@@ -177,7 +199,7 @@ public class PrologueDirector : MonoBehaviour
         if (tv != null) tv.clip = Sounds.Clip("Prologue/TV murmur", tv.clip);
         MusicManager.Area("Prologue");
         if (wind != null && wind.clip == null) { wind.clip = ProceduralAudio.Wind(); wind.loop = true; }
-        if (tv != null) { if (tv.clip == null) tv.clip = ProceduralAudio.TvMurmur(); tv.loop = true; tv.Play(); }
+        if (tv != null) { if (tv.clip == null) tv.clip = ProceduralAudio.TvMurmur(); tv.loop = true; }   // (off until you put the news on)
         SetBars(0f);
         Objective(null);
         StartCoroutine(Story());
@@ -188,12 +210,15 @@ public class PrologueDirector : MonoBehaviour
     IEnumerator Story()
     {
         // over black: the time, the street
-        if (deliveries != null) deliveries.Prepare();   // in the van before the picture comes up
         Lock(true);
         fader.fade.alpha = 1f;
         yield return null;
         fader.fade.alpha = 1f;   // the fader's own Start clears it
         if (ambience != null) { ambience.volume = 0f; ambience.Play(); StartCoroutine(Volume(ambience, 0.5f * Sounds.Volume("Prologue/Street ambience"), 4f)); }
+        // the night before: the office, then the van leaving the garage (OfficeFlashback), and only then this morning
+        if (playFlashback) yield return (GetComponent<OfficeFlashback>() ?? gameObject.AddComponent<OfficeFlashback>()).Run(this);
+        if (deliveries != null) deliveries.Prepare();   // in the van before the picture comes up
+        fader.fade.alpha = 1f;
         if (titleCard != null)
         {
             titleCard.text = timeCard;
@@ -209,36 +234,52 @@ public class PrologueDirector : MonoBehaviour
         yield return ShowHome();
         Objective(goHome);
 
-        // the second floor: the flat door stands open
-        yield return new WaitUntil(() => hallway.Contains(Player.position));
-        Say(doorOpenLines);
-        if (music != null && heartbeat != null) { music.clip = heartbeat; music.loop = true; music.volume = Hb(0.25f); music.Play(); }
+        yield return FlatStory();
+    }
 
-        // inside
+    // testing: straight to the front door of the flat, as if you'd just walked home
+    [ContextMenu("Skip To Flat")]
+    public void SkipToFlat()
+    {
+        StopAllCoroutines();
+        Lock(false);
+        if (fader != null) fader.fade.alpha = 0f;
+        var rb = fpc.GetComponent<Rigidbody>();
+        Player.SetPositionAndRotation(hallway.center + Vector3.up * 0.5f, Quaternion.LookRotation(Vector3.forward));
+        if (rb != null) rb.linearVelocity = Vector3.zero;
+        Physics.SyncTransforms();
+        StartCoroutine(FlatStory());
+    }
+
+    IEnumerator FlatStory()
+    {
+        // the second floor: the flat door is shut, the block is quiet. An ordinary Saturday, nothing wrong at all.
+        // inside, nobody answers: Derek must be in the shower. You put the news on.
         yield return new WaitUntil(() => flat.Contains(Player.position));
         DialogueBox.Instance.SayNow(callOut);
-        Objective(findDerek);
-        if (ambience != null) StartCoroutine(Volume(ambience, 0.15f * Sounds.Volume("Prologue/Street ambience"), 3f));
-        StartCoroutine(NoAnswer());
+        if (ambience != null)
+        {
+            // indoors: the street is a dull, quiet rumble through the walls
+            var muffle = ambience.GetComponent<AudioLowPassFilter>() ?? ambience.gameObject.AddComponent<AudioLowPassFilter>();
+            muffle.cutoffFrequency = 700f;
+            StartCoroutine(Volume(ambience, 0.1f * Sounds.Volume("Prologue/Street ambience"), 3f));
+        }
+        yield return RevisedPlotDirector.WaitForDialogue();
+        yield return SitAndWatchTheNews();
 
+        // breakfast never came: find him
+        Objective(findDerek);
         yield return new WaitUntil(() => Sees(body.position, 32f, 8f, body));
         yield return FindBody();
 
-        yield return new WaitUntil(() => tapeDone);
-        yield return TheKillerIsStillHere();
+        // the letter in his hand, then the footsteps behind you
+        yield return new WaitUntil(() => letterRead);
+        yield return null; yield return null;
+        yield return new WaitUntil(() => !NoteViewer.Blocking && (DialogueBox.Instance == null || !DialogueBox.Instance.Busy));
+        yield return StalkedAndStabbed();
 
-        // the chase: up and up
-        while (!(killer.Cornered && Vector3.Distance(Player.position, killer.transform.position) < confrontDistance))
-        {
-            if (Player.position.y > nextLineY)
-            {
-                Say(nextLineY < 15f ? upLines : topLines);
-                nextLineY = nextLineY < 15f ? 16.8f : float.MaxValue;   // 16.8: standing on the top landing (roof 16.1)
-                if (nextLineY == float.MaxValue && wind != null) { wind.volume = 0f; wind.Play(); StartCoroutine(Volume(wind, 0.45f * Sounds.Volume("Prologue/Wind (roof and fall)"), 2f)); }
-            }
-            yield return null;
-        }
-        yield return Confront();
+        // the run: out of the flat, up the stairs and onto the roof, bleeding
+        yield return RunToTheRoof();
     }
 
     // clocked out: the camera lifts off your shoulders and flies down the street to the flats while you talk
@@ -326,197 +367,456 @@ public class PrologueDirector : MonoBehaviour
         playerCam.transform.localPosition = cam0;
         if (music != null) { music.volume = Hb(0.3f); music.pitch = 1f; }
 
-        Say(cameraIdea);
-        Objective(checkTape);
-        if (pc != null) pc.enabled = true;
+        MakeLetter();
+        Objective(letterObjective);
         Lock(false);
     }
 
-    // ---------------------------------------------------------------- the tape
+    // ---------------------------------------------------------------- the news
 
-    IEnumerator WatchTape()
+    bool letterRead, silenced;
+    Pursuer pursuer;
+    Coroutine bleeding;
+    Vector3 checkpointPos; Quaternion checkpointRot;
+    readonly List<AudioSource> muted = new List<AudioSource>();
+
+    static Bounds BoundsOf(GameObject g)
     {
-        cutscene = true;
-        Lock(true);
+        var rs = g.GetComponentsInChildren<Renderer>();
+        var b = rs[0].bounds;
+        foreach (var r in rs) b.Encapsulate(r.bounds);
+        return b;
+    }
+
+    // a normal Saturday: sit on the sofa, pick up the remote, put the news on... and then the penny drops
+    IEnumerator SitAndWatchTheNews()
+    {
+        var sofa = GameObject.Find("Sofa_Apt_02");
+        var tvObj = GameObject.Find("TV_Apt_01");
+        if (sofa == null || tvObj == null) yield break;   // (a flat without them: straight to looking for him)
+
+        Say(settleLines);
+        Objective(sitObjective);
+        var box = new GameObject("Sofa (sit down)").AddComponent<BoxCollider>();
+        box.isTrigger = true;
+        box.transform.position = sofa.transform.position + Vector3.up * .6f;
+        box.size = new Vector3(1.4f, 1.2f, 2.8f);
+        bool sat = false;
+        var sit = box.gameObject.AddComponent<Interactable>();
+        sit.prompt = "Sit down"; sit.once = true; sit.onUse.AddListener(() => sat = true);
+        yield return new WaitUntil(() => sat);
+        Destroy(box.gameObject);
+
+        // down onto the cushion, facing the TV
+        var rb = Player.GetComponent<Rigidbody>();
+        fpc.playerCanMove = false;
+        if (rb != null) { rb.linearVelocity = Vector3.zero; rb.isKinematic = true; }
+        Vector3 from = Player.position, seat = new Vector3(sofa.transform.position.x - .1f, from.y - .1f, sofa.transform.position.z);
+        Vector3 cam0 = playerCam.transform.localPosition;
+        Vector3 tvAt = BoundsOf(tvObj).center;
+        yield return Tween(1.3f, k => { Player.position = Vector3.Lerp(from, seat, k); playerCam.transform.localPosition = cam0 + Vector3.down * .35f * k; Aim(tvAt); });
+
+        // the TV: a prompt on screen, any of E / F / click (no aiming at a remote you can't see from the sofa)
+        Objective(tvObjective);
+        Color promptColor = pushPrompt.color; float promptSize = pushPrompt.fontSize;   // (the roof's red adrenaline text: put back after)
+        pushPrompt.text = "[E]  Turn on the TV";
+        pushPrompt.color = new Color(.92f, .9f, .85f);
+        pushPrompt.fontSize = promptSize * .55f;
+        pushPrompt.gameObject.SetActive(true);
+        pushNow = false;
+        while (!Input.GetKeyDown(KeyCode.E) && !Input.GetKeyDown(KeyCode.F) && !Input.GetMouseButtonDown(0) && !pushNow)
+        {
+            pushPrompt.alpha = .55f + .45f * Mathf.Sin(Time.time * 4f) * .5f + .225f;
+            Aim(tvAt);
+            yield return null;
+        }
+        pushPrompt.gameObject.SetActive(false);
+        pushPrompt.color = promptColor; pushPrompt.fontSize = promptSize;
+
+        TvOn(tvObj);
         Objective(null);
-        Say(tapeStart);
-        yield return fader.FadeTo(1f, 0.6f);
+        Say(newsLines);
+        yield return RevisedPlotDirector.WaitForDialogue();
+        yield return new WaitForSeconds(.6f);
+        Say(suspicionLines);
+        yield return RevisedPlotDirector.WaitForDialogue();
 
-        foreach (var g in killerInRig) if (g != null) g.SetActive(true);
-        if (bloodPool != null) bloodPool.SetActive(false);
-        derekRig.Play(stabState, 0, 0f);
-        cctvCam.enabled = true;
-        cctvOverlay.SetActive(true);
-        if (cctvLook != null) cctvLook.weight = 1f;
-        if (music != null) music.volume = Hb(0.1f);
-        if (stabs != null) StartCoroutine(PlayLater(stabs, 1.6f, 0.6f * Sounds.Volume("Prologue/Stabbing on the tape")));
-        StartCoroutine(fader.FadeTo(0f, 0.5f));
-
-        var overlayRt = (RectTransform)cctvOverlay.transform;
-        Vector2 home = overlayRt.anchoredPosition;
-        for (float t = 0f; t < tapeLength; t += Time.deltaTime)
-        {
-            int s = tapeStartSeconds + Mathf.FloorToInt(t);
-            cctvClock.text = $"<color=#ff2a2a>● REC</color>   CAM 01 - LIVING ROOM   {s / 3600 % 24:00}:{s / 60 % 60:00}:{s % 60:00}";
-            bool glitch = Random.value < 0.04f;   // tracking noise
-            overlayRt.anchoredPosition = home + (glitch ? new Vector2(Random.Range(-10f, 10f), 0f) : Vector2.zero);
-            cctvCam.transform.localRotation = Quaternion.Euler(glitch ? Random.Range(-0.4f, 0.4f) : 0f, 0f, 0f) * Quaternion.identity;
-            yield return null;
-        }
-        overlayRt.anchoredPosition = home;
-
-        yield return fader.FadeTo(1f, 0.4f);
-        foreach (var g in killerInRig) if (g != null) g.SetActive(false);
-        if (bloodPool != null) bloodPool.SetActive(true);
-        cctvCam.enabled = false;
-        cctvOverlay.SetActive(false);
-        if (cctvLook != null) cctvLook.weight = 0f;
-        yield return fader.FadeTo(0f, 0.8f);
-        Lock(false);
-        cutscene = false;
-        tapeDone = true;
+        // up off the sofa
+        Vector3 here = Player.position;
+        yield return Tween(1f, k => { Player.position = Vector3.Lerp(here, from, k); playerCam.transform.localPosition = cam0 + Vector3.down * .35f * (1f - k); });
+        playerCam.transform.localPosition = cam0;
+        if (rb != null) rb.isKinematic = false;
+        fpc.playerCanMove = true;
     }
 
-    // ---------------------------------------------------------------- he never left
-
-    IEnumerator TheKillerIsStillHere()
+    // the TV comes on: a lit screen, a cold glow over the room, the murmur of a news reader
+    void TvOn(GameObject tvObj)
     {
-        Say(afterTape);
-        if (music != null) music.volume = Hb(0.5f);
-        while (DialogueBox.Instance.Busy) yield return null;
-        yield return new WaitForSeconds(1.8f);
+        var b = BoundsOf(tvObj);
+        var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        q.name = "TV screen (news)";
+        Destroy(q.GetComponent<Collider>());
+        q.transform.SetPositionAndRotation(new Vector3(b.max.x + .02f, b.center.y, b.center.z), Quaternion.Euler(0f, -90f, 0f));   // (the face towards the sofa)
+        q.transform.localScale = new Vector3(b.size.z * .86f, b.size.y * .72f, 1f);
+        var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+        q.GetComponent<Renderer>().sharedMaterial = m;
+        var l = new GameObject("TV glow").AddComponent<Light>();
+        l.type = LightType.Point; l.color = new Color(.55f, .7f, 1f); l.range = 8f; l.intensity = 1.6f; l.shadows = LightShadows.None;
+        l.transform.position = q.transform.position + Vector3.right * 1f;
+        StartCoroutine(TvFlicker(m, l));
+        if (tv != null) { tv.volume = .5f * Sounds.Volume("Prologue/TV murmur"); tv.Play(); }
+    }
 
-        // the closet behind you creaks open; soft steps across the floor
-        if (music != null) music.volume = Hb(0f);
-        if (closet != null) closet.Open();
-        yield return new WaitForSeconds(1.2f);
-        killer.Sneak();
-        yield return new WaitForSeconds(1.4f);
-        Say(footstepLines);
-
-        bool spotted = false;
-        for (float t = 0f; t < sneakTimeout && !killer.AtFlatDoor && !spotted; t += Time.deltaTime)
+    IEnumerator TvFlicker(Material m, Light l)
+    {
+        while (m != null && l != null)
         {
-            spotted = Sees(killer.Chest, spotAngle, 14f, killer.transform);
+            float n = Mathf.PerlinNoise(Time.time * 3f, 1.3f);
+            m.SetColor("_BaseColor", Color.Lerp(new Color(.32f, .42f, .66f), new Color(.82f, .9f, 1f), n));
+            l.intensity = silenced ? 0f : 1.1f + n;
+            yield return null;
+        }
+    }
+
+    // ---------------------------------------------------------------- the letter
+
+    // a sheet of paper curled in his hand, most of it soaked in blood: the company's wrong-doings, almost unreadable
+    void MakeLetter()
+    {
+        Vector3 across = Vector3.Cross(Vector3.up, Flat(body.position - Player.position)).normalized;
+        Vector3 at = body.position + across * .42f;
+        at.y = body.position.y + .03f;
+        var paper = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        paper.name = "Derek's letter";
+        paper.transform.SetPositionAndRotation(at, Quaternion.Euler(0f, 35f, 6f));
+        paper.transform.localScale = new Vector3(.2f, .05f, .27f);
+        paper.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(.5f, .42f, .3f) };   // yellowed, soaked
+        var stain = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        stain.name = "blood";
+        Destroy(stain.GetComponent<Collider>());
+        stain.transform.SetParent(paper.transform, false);
+        stain.transform.localPosition = new Vector3(.02f, .52f, .04f);
+        stain.transform.localScale = new Vector3(.95f, .1f, .9f);   // nearly all of it
+        stain.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(.3f, .02f, .02f) };
+        var it = paper.AddComponent<Interactable>();
+        it.prompt = letterPrompt; it.once = true; it.hideOnUse = true;
+        var note = paper.AddComponent<ReadableNote>();
+        note.style = ReadableNote.Style.Paper;
+        note.body = letterBody; note.footer = "- D.";
+        note.beforeLine = letterBefore; note.afterLine = letterAfter;
+        it.onUse.AddListener(() =>
+        {
+            letterRead = true;
+            EvidenceJournal.Record("Derek's letter", "Derek's last letter, curled in his dead hand, most of it soaked in blood. The Saturday collection from Harlow is not spare parts. Tomas Rourke saw something in truck four and told someone. Kessler and Vane have been hiding it in the ledger. Pages 41 on. The rest is blood.");
+        });
+    }
+
+    // ---------------------------------------------------------------- footsteps, and the knife
+
+    // all the sound in the world goes but his steps and your heart; you turn round and he is there
+    IEnumerator StalkedAndStabbed()
+    {
+        Objective(null);
+        Silence();
+        if (music != null && heartbeat != null) { music.clip = heartbeat; music.loop = true; music.pitch = 1f; music.volume = Hb(.4f); if (!music.isPlaying) music.Play(); }
+        yield return new WaitForSeconds(2.2f);
+
+        pursuer = killer.GetComponent<Pursuer>() ?? killer.gameObject.AddComponent<Pursuer>();
+        pursuer.flee = killer; pursuer.animator = killer.animator;
+        Vector3 back = -Flat(playerCam.transform.forward).normalized;
+        Vector3 spawn = BehindSpot(back);
+        pursuer.Place(spawn, Player.position - spawn);
+        pursuer.approachSpeed = 1.7f;
+        pursuer.Approach(Player);
+
+        // he walks up behind you, slowly. Turn round, or don't: he is coming either way
+        bool turned = false;
+        for (float t = 0f; t < 24f; t += Time.deltaTime)
+        {
+            float near = 1f - Mathf.Clamp01(pursuer.Distance / 9f);
+            if (music != null) { music.volume = Hb(Mathf.Lerp(.4f, 1f, near)); music.pitch = Mathf.Lerp(1f, 1.35f, near); }
+            if (pursuer.Distance < 2.6f) break;
+            if (pursuer.Distance < 6.5f && Sees(pursuer.Chest, 38f, 12f, killer.transform)) { turned = true; break; }
             yield return null;
         }
 
-        if (spotted)
-        {
-            // eye contact: the world stops for a moment
-            killer.Stop();
-            killer.transform.rotation = Quaternion.LookRotation(Flat(Player.position - killer.transform.position));
-            if (sting != null) sfx.PlayOneShot(sting, 1f * Sounds.Volume("Prologue/Sting (body, spotted)"));
-            if (music != null) { music.volume = Hb(0.9f); music.pitch = 1.3f; }
-            Time.timeScale = 0.3f;
-            yield return new WaitForSecondsRealtime(0.9f);
-            Time.timeScale = 1f;
-            DialogueBox.Instance.SayNow(spottedLine);
-            yield return new WaitForSeconds(0.35f);
-        }
-        else
-        {
-            DialogueBox.Instance.SayNow(escapedLines);
-            if (music != null) { music.volume = Hb(0.9f); music.pitch = 1.3f; }
-        }
+        // the jump scare
+        Lock(true);
+        if (turned) { pursuer.approachSpeed = 9f; for (float t = 0f; t < 1.2f && pursuer.Distance > 1.5f; t += Time.deltaTime) yield return null; }
+        yield return LookAt(pursuer.Chest, turned ? .12f : .3f);
+        pursuer.Hold();
+        pursuer.transform.rotation = Quaternion.LookRotation(Flat(Player.position - pursuer.transform.position));
+        pursuer.StabAnim();
+        var scare = gameObject.AddComponent<AudioSource>();   // (made after the silence: the one sound allowed through)
+        scare.spatialBlend = 0f;
+        if (sting != null) scare.PlayOneShot(sting, 1f);
+        yield return new WaitForSeconds(.3f);
+        if (stabs != null) scare.PlayOneShot(stabs, 1f);
+        rage.alpha = 1f;                                    // the red closes in from the edges of the screen
+        StartCoroutine(Shake(playerCam.transform, .4f, .09f));
+        if (music != null) { music.volume = Hb(1f); music.pitch = 1.4f; }
+        DialogueBox.Instance.SayNow(stabLine);
+        yield return new WaitForSeconds(1.1f);
+        yield return RevisedPlotDirector.WaitForDialogue();
+        Say(woundedLines);
 
-        killer.Flee();
-        MusicManager.Area("Prologue Chase");
-        Objective(chase);
-        fpc.unlimitedSprint = true;
+        // bleeding, and running
+        fpc.walkSpeed = 3.6f; fpc.sprintSpeed = 5.3f; fpc.unlimitedSprint = true; fpc.enableJump = false;
+        bleeding = StartCoroutine(Bleed());
+        checkpointPos = Player.position; checkpointRot = Player.rotation;
+        Lock(false);
+        Objective(runObjective);
         foreach (var l in stairLights) if (l != null) l.enabled = true;
+        yield return new WaitForSeconds(.9f);
+        pursuer.Locomotion();
+        pursuer.Chase(Player);
+    }
+
+    // the red at the edges of the screen, pulsing with the wound
+    IEnumerator Bleed()
+    {
+        while (true)
+        {
+            if (rage != null) rage.alpha = .55f + .2f * Mathf.Sin(Time.time * 5f);
+            yield return null;
+        }
+    }
+
+    // out of the flat, down the hall, up the stairwell and onto the roof, with him on your heels
+    IEnumerator RunToTheRoof()
+    {
+        Vector3 edge = killer.route[killer.route.Length - 1];
+        float roofTime = 0f;
+        while (true)
+        {
+            if (Player.position.y > nextLineY)
+            {
+                Say(nextLineY < 15f ? upLines : topLines);
+                nextLineY = nextLineY < 15f ? 16.8f : float.MaxValue;   // 16.8: standing on the top landing (roof 16.1)
+            }
+            foreach (var d in killer.doors)   // you burst through the doors in your way
+                if (d != null && !d.IsOpen && Vector3.Distance(d.transform.position, Player.position + Vector3.up) < 1.8f) d.Burst();
+            if (pursuer != null && pursuer.Caught) yield return Retry();
+            if (Player.position.y > 15.2f)
+            {
+                roofTime += Time.deltaTime;
+                if (Flat(edge - Player.position).magnitude < 4.5f || roofTime > 9f) break;
+            }
+            yield return null;
+        }
+        yield return Confront(edge);
+    }
+
+    // he caught you: back to where he stabbed you, him a few steps behind again
+    IEnumerator Retry()
+    {
+        Lock(true);
+        pursuer.Hold(); pursuer.StabAnim();
+        yield return fader.FadeTo(1f, .5f);
+        var rb = Player.GetComponent<Rigidbody>();
+        if (rb != null) rb.linearVelocity = Vector3.zero;
+        Player.SetPositionAndRotation(checkpointPos, checkpointRot);
+        Physics.SyncTransforms();
+        Vector3 behind = checkpointPos - Flat(Player.forward).normalized * 2.8f;
+        pursuer.Place(FloorBelow(behind), Player.position - behind);
+        pursuer.Locomotion();
+        yield return fader.FadeTo(0f, .6f);
+        Lock(false);
+        pursuer.Chase(Player);
+    }
+
+    Vector3 FloorBelow(Vector3 p)
+    {
+        return Physics.Raycast(p + Vector3.up * .5f, Vector3.down, out var h, 3f, ~0, QueryTriggerInteraction.Ignore) && !h.collider.transform.IsChildOf(Player) ? h.point : p - Vector3.up * .9f;
+    }
+
+    // free floor 4-8 m behind you with a clear line to you
+    Vector3 BehindSpot(Vector3 back)
+    {
+        float floorY = FloorBelow(Player.position).y;
+        foreach (float dist in new[] { 8f, 7f, 6f, 5f, 4f })
+            foreach (float turn in new[] { 0f, 20f, -20f, 40f, -40f, 60f, -60f })
+            {
+                Vector3 p = Player.position + Quaternion.Euler(0f, turn, 0f) * back * dist;
+                if (!Physics.Raycast(p + Vector3.up * 2f, Vector3.down, out var h, 4f, ~0, QueryTriggerInteraction.Ignore) || Mathf.Abs(h.point.y - floorY) > .25f) continue;
+                Vector3 feet = h.point;
+                if (Physics.CheckCapsule(feet + Vector3.up * .4f, feet + Vector3.up * 1.5f, .3f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                Vector3 eye = playerCam.transform.position, chest = feet + Vector3.up * 1.2f;
+                bool blocked = false;
+                foreach (var hh in Physics.RaycastAll(eye, chest - eye, (chest - eye).magnitude, ~0, QueryTriggerInteraction.Ignore))
+                    if (!hh.collider.transform.IsChildOf(Player)) { blocked = true; break; }
+                if (!blocked) return feet;
+            }
+        return new Vector3(Player.position.x, floorY, Player.position.z) + back * 3f;
+    }
+
+    // every sound off but his footsteps and the heartbeat
+    void Silence()
+    {
+        silenced = true;
+        MusicManager.Stop(0f);
+        var keep = new HashSet<AudioSource>();
+        if (music != null) keep.Add(music);
+        if (killer != null && killer.steps != null) keep.Add(killer.steps);
+        foreach (var a in FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (!keep.Contains(a) && !a.mute) { a.mute = true; muted.Add(a); }
+    }
+
+    void Unmute()
+    {
+        foreach (var a in muted) if (a != null) a.mute = false;
+        muted.Clear();
+        silenced = false;
     }
 
     // ---------------------------------------------------------------- the roof
 
-    IEnumerator Confront()
+    // You run out of roof and stop at the edge, your back to the drop. He comes for you, slowly, as if there were no
+    // hurry. The adrenaline spikes: you let him come, take hold of him... and pull. You both go over.
+    IEnumerator Confront(Vector3 edge)
     {
         cutscene = true;
         Lock(true);
         Objective(null);
-        killer.Stop();
-        Vector3 k = killer.transform.position;
-        Vector3 face = k + Vector3.up * 1.65f;
+        if (bleeding != null) StopCoroutine(bleeding);
+        pursuer.Hold();
+        Unmute();   // the roof has its wind back
+        if (wind != null) { wind.volume = 0f; wind.Play(); StartCoroutine(Volume(wind, .45f * Sounds.Volume("Prologue/Wind (roof and fall)"), 2f)); }
+        rage.alpha = .6f;
 
-        // hand over to the cutscene camera from exactly where you're looking
+        Vector3 out0 = Flat(edge - Player.position);
+        if (out0.sqrMagnitude < .25f) out0 = Flat(Player.forward);
+        out0.Normalize();
+
+        // he's on the roof with you, a few metres back (he took the last flight while you ran for the edge)
+        Vector3 behind = FloorBelow(Player.position - out0 * 3.4f);
+        if (Mathf.Abs(killer.transform.position.y - behind.y) > 1.2f || Flat(killer.transform.position - Player.position).magnitude > 6f)
+        {
+            killer.transform.position = behind;
+            killer.transform.rotation = Quaternion.LookRotation(Flat(Player.position - behind));
+        }
+
+        // hand over to the cutscene camera from exactly where you're looking, then step to the very edge and turn round
         cine.transform.SetPositionAndRotation(playerCam.transform.position, playerCam.transform.rotation);
         cine.fieldOfView = playerCam.fieldOfView;
         cine.enabled = true;
         if (cineLight != null) cineLight.enabled = true;
         StartCoroutine(Bars(1f));
-        Vector3 out0 = Flat(k - Player.position).normalized;           // off the roof, past him
-        killer.transform.rotation = Quaternion.LookRotation(-out0);
-        Vector3 standAt = k - out0 * 2.4f;
-        standAt.y = playerCam.transform.position.y;
+        if (music != null) { music.volume = Hb(1f); music.pitch = 1.2f; }
         Vector3 c0 = cine.transform.position;
         Quaternion r0 = cine.transform.rotation;
-        yield return Tween(1.2f, t =>
+        Vector3 standAt = edge - out0 * .9f;
+        standAt.y = c0.y;
+        yield return Tween(1f, t =>
         {
             cine.transform.position = Vector3.Lerp(c0, standAt, t);
-            cine.transform.rotation = Quaternion.Slerp(r0, Quaternion.LookRotation(face - cine.transform.position), t);
+            cine.transform.rotation = Quaternion.Slerp(r0, Quaternion.LookRotation(killer.transform.position + Vector3.up * 1.6f - cine.transform.position), t);
         });
 
-        if (music != null) { music.volume = Hb(1f); music.pitch = 1.2f; }
-        Say(confrontLines);
-        while (DialogueBox.Instance.Busy)
+        // he walks up to you, slowly, knife low; you can't go anywhere
+        Say(roofLines);
+        Transform kt = killer.transform;
+        for (float wait = 0f; ; wait += Time.deltaTime)
         {
-            Breathe(face);
+            Vector3 toCam = Flat(standAt - kt.position);
+            bool close = toCam.magnitude <= 1.6f;
+            if (!close)
+            {
+                kt.position += toCam.normalized * 1.15f * Time.deltaTime;
+                if (Physics.Raycast(kt.position + Vector3.up * 1.2f, Vector3.down, out var gh, 2.6f, ~0, QueryTriggerInteraction.Ignore) && !gh.collider.transform.IsChildOf(Player))
+                    kt.position = new Vector3(kt.position.x, gh.point.y, kt.position.z);
+            }
+            kt.rotation = Quaternion.Slerp(kt.rotation, Quaternion.LookRotation(toCam.sqrMagnitude > .01f ? toCam : -out0), 6f * Time.deltaTime);
+            if (killer.animator != null) killer.animator.SetFloat("Speed", close ? 0f : 1.3f);
+            Breathe(kt.position + Vector3.up * 1.6f);
+            if (close && !DialogueBox.Instance.Busy) break;
+            if (wait > 40f) break;
             yield return null;
         }
+        Vector3 face = kt.position + Vector3.up * 1.6f;
 
-        // rage
+        // adrenaline
+        pushPrompt.text = adrenalinePrompt;
         pushPrompt.gameObject.SetActive(true);
         pushNow = false;
         while (!Input.GetKeyDown(KeyCode.F) && !Input.GetMouseButtonDown(0) && !pushNow)
         {
-            float p = 0.5f + 0.5f * Mathf.Sin(Time.time * 7f);
-            rage.alpha = 0.35f + 0.45f * p;
-            pushPrompt.alpha = 0.6f + 0.4f * p;
+            float p = .5f + .5f * Mathf.Sin(Time.time * 7f);
+            rage.alpha = .35f + .45f * p;
+            pushPrompt.alpha = .6f + .4f * p;
             Breathe(face);
             yield return null;
         }
         pushPrompt.gameObject.SetActive(false);
-        yield return Push(out0, face);
+        yield return Push(out0, face, true);
     }
 
     // the shove, the grab, the fall
-    IEnumerator Push(Vector3 outward, Vector3 face)
+    IEnumerator Push(Vector3 outward, Vector3 face, bool pulled = false)
     {
         Transform kt = killer.transform;
         Vector3 k0 = kt.position;
         Quaternion kr = kt.rotation;
         Vector3 c0 = cine.transform.position;
 
-        // lunge
         MusicManager.Stop(0.6f);
         Sounds.OneShot(sfx, "Prologue/Push", ProceduralAudio.Thud(), 1f);
         rage.alpha = 1f;
-        yield return Tween(0.16f, t => cine.transform.position = Vector3.Lerp(c0, c0 + outward * 1.2f, t));
-        Vector3 c1 = cine.transform.position;
-
-        // he goes back over the edge, arms out
-        DialogueBox.Instance.SayNow(grabLines);
-        if (whisper != null) sfx.PlayOneShot(whisper, 0.7f * Sounds.Volume("Prologue/Whisper (the fall)"));
         bool fallClip = killer.animator != null && HasState(killer.animator, killerFallState);
-        if (fallClip) { killer.enabled = false; killer.animator.speed = 1f; killer.animator.CrossFadeInFixedTime(killerFallState, 0.15f); }
-        Vector3 axis = Vector3.Cross(Vector3.up, outward);
-        yield return Tween(0.6f, t =>
+        Vector3 c1, over;
+        if (pulled)
         {
-            kt.position = k0 + outward * 0.9f * t;
-            kt.rotation = Quaternion.AngleAxis((fallClip ? killerFallTilt : 80f) * t * t, axis) * kr;   // the clip throws him back itself
-            cine.transform.rotation = Quaternion.LookRotation(kt.position + kt.up * 1.4f - cine.transform.position);
-            rage.alpha = 1f - 0.6f * t;
-        });
+            // both hands in his coat: you throw yourself at him...
+            Vector3 toward = -outward;
+            yield return Tween(0.22f, t =>
+            {
+                cine.transform.position = Vector3.Lerp(c0, c0 + toward * 0.55f, t);
+                cine.transform.rotation = Quaternion.LookRotation(kt.position + Vector3.up * 1.5f - cine.transform.position);
+            });
+            c1 = cine.transform.position;
+            DialogueBox.Instance.SayNow(grabLines);
+            if (whisper != null) sfx.PlayOneShot(whisper, 0.7f * Sounds.Volume("Prologue/Whisper (the fall)"));
+            if (fallClip) { killer.enabled = false; killer.animator.speed = 1f; killer.animator.CrossFadeInFixedTime(killerFallState, 0.15f); }
+            // ...and let your weight go backwards, over the edge, with him in your arms
+            over = c1 + outward * 2.6f + Vector3.down * 0.5f;
+            Quaternion rs0 = cine.transform.rotation;
+            yield return Tween(0.8f, t =>
+            {
+                cine.transform.position = Vector3.Lerp(c1, over, t * t);
+                kt.position = cine.transform.position + toward * 0.85f + Vector3.down * 0.2f * t;
+                cine.transform.rotation = Quaternion.Slerp(rs0, Quaternion.LookRotation(kt.position + Vector3.up * 0.3f - cine.transform.position), t);
+                rage.alpha = 1f - 0.6f * t;
+            });
+        }
+        else
+        {
+            // lunge
+            yield return Tween(0.16f, t => cine.transform.position = Vector3.Lerp(c0, c0 + outward * 1.2f, t));
+            c1 = cine.transform.position;
 
-        // yanked after him, over the edge
-        Vector3 over = k0 + outward * 1.6f + Vector3.up * (c1.y - k0.y);
-        Quaternion lookDown = Quaternion.LookRotation(outward * 0.35f + Vector3.down);
-        Quaternion rs = cine.transform.rotation;
-        yield return Tween(0.45f, t =>
-        {
-            cine.transform.position = Vector3.Lerp(c1, over, t * t);
-            cine.transform.rotation = Quaternion.Slerp(rs, lookDown, t);
-        });
+            // he goes back over the edge, arms out
+            DialogueBox.Instance.SayNow(grabLines);
+            if (whisper != null) sfx.PlayOneShot(whisper, 0.7f * Sounds.Volume("Prologue/Whisper (the fall)"));
+            if (fallClip) { killer.enabled = false; killer.animator.speed = 1f; killer.animator.CrossFadeInFixedTime(killerFallState, 0.15f); }
+            Vector3 axis = Vector3.Cross(Vector3.up, outward);
+            yield return Tween(0.6f, t =>
+            {
+                kt.position = k0 + outward * 0.9f * t;
+                kt.rotation = Quaternion.AngleAxis((fallClip ? killerFallTilt : 80f) * t * t, axis) * kr;   // the clip throws him back itself
+                cine.transform.rotation = Quaternion.LookRotation(kt.position + kt.up * 1.4f - cine.transform.position);
+                rage.alpha = 1f - 0.6f * t;
+            });
+
+            // yanked after him, over the edge
+            over = k0 + outward * 1.6f + Vector3.up * (c1.y - k0.y);
+            Quaternion lookDown = Quaternion.LookRotation(outward * 0.35f + Vector3.down);
+            Quaternion rs = cine.transform.rotation;
+            yield return Tween(0.45f, t =>
+            {
+                cine.transform.position = Vector3.Lerp(c1, over, t * t);
+                cine.transform.rotation = Quaternion.Slerp(rs, lookDown, t);
+            });
+        }
         rage.alpha = 0f;
         StartCoroutine(Bars(0f));
 
@@ -690,8 +990,31 @@ public class PrologueDirector : MonoBehaviour
     void Objective(string text)
     {
         if (objective == null) return;
-        objective.gameObject.SetActive(!string.IsNullOrEmpty(text));
+        bool on = !string.IsNullOrEmpty(text);
+        ObjectiveBar(objective, on);
+        objective.gameObject.SetActive(on);
         objective.text = "> " + text;   // the pixel font has no ▸
+    }
+
+    // black strip behind the objective so it reads against any scene; made on first use
+    public static void ObjectiveBar(TextMeshProUGUI t, bool on)
+    {
+        var tr = t.transform;
+        var bar = tr.parent.Find("ObjectiveBar");
+        if (bar == null)
+        {
+            var go = new GameObject("ObjectiveBar", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+            bar = go.transform;
+            bar.SetParent(tr.parent, false);
+            var rt = (RectTransform)bar;
+            rt.anchorMin = new Vector2(0f, 1f); rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.sizeDelta = new Vector2(0f, 90f); rt.anchoredPosition = Vector2.zero;
+            var img = go.GetComponent<UnityEngine.UI.Image>();
+            img.color = new Color(0f, 0f, 0f, 0.85f); img.raycastTarget = false;
+            bar.SetSiblingIndex(tr.GetSiblingIndex());   // behind the text
+        }
+        bar.gameObject.SetActive(on);
     }
 
     void Lock(bool on)

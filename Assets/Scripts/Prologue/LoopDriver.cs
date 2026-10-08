@@ -16,7 +16,8 @@ public class LoopDriver : MonoBehaviour
 
     static readonly List<LoopDriver> all = new List<LoopDriver>();
 
-    private float[] along;                  // distance at each point
+    private PrologueVan[] vans = new PrologueVan[0];
+    private float[] along;                 // distance at each point
     private float length, s, v;
 
     void OnEnable() => all.Add(this);
@@ -30,6 +31,7 @@ public class LoopDriver : MonoBehaviour
         s = Mathf.Repeat(startAt, length);
         v = speed;
         if (player == null) { var p = GameObject.FindGameObjectWithTag("Player"); if (p != null) player = p.transform; }
+        vans = FindObjectsByType<PrologueVan>(FindObjectsSortMode.None);
         Place(true);
     }
 
@@ -45,6 +47,15 @@ public class LoopDriver : MonoBehaviour
             to.y = 0f;
             float ahead = Vector3.Dot(to, fwd);
             if (ahead > 0f && ahead < brakeDistance && Vector3.Cross(fwd, to).magnitude < 2.4f) target = 0f;
+        }
+        // the van (parked or driven): this car is a kinematic collider, so driving into it would fling it away
+        foreach (var van in vans)
+        {
+            if (van == null) continue;
+            Vector3 to = van.transform.position - transform.position;
+            to.y = 0f;
+            float ahead = Vector3.Dot(to, fwd);
+            if (ahead > -4f && ahead < brakeDistance + 6f && Vector3.Cross(fwd, to).magnitude < 3.6f) target = 0f;
         }
         // the car in front
         foreach (var o in all)

@@ -506,7 +506,7 @@ public class KillerCutscenes : MonoBehaviour
             Vector3 drift = (side * (Mathf.PerlinNoise(Time.time * 0.6f, 3f) - 0.5f) + Vector3.up * (Mathf.PerlinNoise(7f, Time.time * 0.6f) - 0.5f)) * 0.12f;
             Arm(maya.animator, true, (jab + drift + Vector3.up * 0.14f * (1f - stab)).normalized);
         };
-        for (float t = 0f; t < 2.5f || (box != null && box.Busy && t < 60f); t += Time.deltaTime)
+        for (float t = 0f; t < 2.5f || (box != null && box.Busy); t += Time.deltaTime)
         {
             float k = Mathf.SmoothStep(0f, 1f, t / 13f);
             cam.transform.position = Vector3.Lerp(c0, c1, k) + new Vector3(Mathf.PerlinNoise(t * 0.7f, 0f) - 0.5f, Mathf.PerlinNoise(0f, t * 0.7f) - 0.5f, 0f) * 0.05f;
@@ -542,6 +542,8 @@ public class KillerCutscenes : MonoBehaviour
         foreach (var r in rends) r.SetPropertyBlock(null);
         mt.position = m;
 
+        yield return RevisedPlotDirector.WaitForDialogue();
+
         // and it has her
         Zombie z = risen.damned;
         Transform zt = z.transform;
@@ -558,6 +560,8 @@ public class KillerCutscenes : MonoBehaviour
         yield return Shake(1.6f, 0.06f, face);
         Destroy(glow.gameObject);
         if (box != null) box.SayNow(seen);
+
+        yield return RevisedPlotDirector.WaitForDialogue();
 
         // shot 2: from where you stand, looking up the shaft. It comes down.
         Vector3 land = Landing(centre.position, boss.transform.position);

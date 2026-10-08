@@ -52,14 +52,9 @@ public static class HellCityBuilder
         }
 
         // ---- 3. the cutscene, on the trigger
-        var deer = hell.Cast<Transform>().Where(t => t.name.StartsWith("model")).OrderBy(t => (t.position - trig.transform.position).sqrMagnitude).First();
-        var feeder = holders.OrderBy(h => (h.position - deer.position).sqrMagnitude).First();
         var dc = trig.GetComponent<DeerCutscene>();
         if (dc == null) dc = Undo.AddComponent<DeerCutscene>(trig.gameObject);
         Undo.RecordObject(dc, "Deer");
-        dc.feeder = feeder;
-        dc.feederAnim = feeder.GetComponentInChildren<Animator>(true);
-        dc.deer = deer;
         var player = GameObject.FindGameObjectWithTag("Player");
         dc.player = player != null ? player.transform : null;
         dc.playerCam = Object.FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None).First(c => c.name == "PlayerCamera");
@@ -96,7 +91,7 @@ public static class HellCityBuilder
         EditorUtility.SetDirty(dc);
         EditorUtility.SetDirty(trig);
         EditorSceneManager.MarkSceneDirty(trig.gameObject.scene);
-        Debug.Log("Deer cutscene: " + holders.Count + " feeding zombies pinned, cutscene on " + feeder.name + " by " + deer.name + ", " + dc.onDone.GetPersistentEventCount() + " calls moved to after it.");
+        Debug.Log("Street cutscene wired on " + trig.name + ", " + dc.onDone.GetPersistentEventCount() + " calls moved to after it.");
     }
 
     static void CopyCall(SerializedProperty a, SerializedProperty b)

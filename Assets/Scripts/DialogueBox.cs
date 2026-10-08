@@ -50,7 +50,11 @@ public class DialogueBox : MonoBehaviour
     static readonly Dictionary<string, Color> plates = new Dictionary<string, Color>
     {
         { "kessler", new Color(0.92f, 0.22f, 0.17f) },
+        { "vane", new Color(0.92f, 0.22f, 0.17f) },
+        { "clinic employee", new Color(.75f, .75f, .75f) },
+        { "unseen voice", new Color(.65f, .7f, .8f) },
         { "the demon king", new Color(1f, 0.42f, 0.1f) },
+        { "???", new Color(0.55f, 0.55f, 0.6f) },
         { "elias", new Color(0.72f, 0.52f, 1f) },
         { "maya", new Color(0.31f, 0.82f, 0.77f) },
         { "sam", new Color(0.39f, 0.70f, 0.93f) },
@@ -63,9 +67,12 @@ public class DialogueBox : MonoBehaviour
         { "mrs. okafor", new Color(0.96f, 0.68f, 0.33f) },
         { "man at the door", new Color(0.75f, 0.75f, 0.75f) },
     };
-    static readonly Regex speakerRx = new Regex(@"^([A-Za-z][A-Za-z .'&\-]{0,24}):\s+(.+)$", RegexOptions.Singleline);
+    static readonly Regex speakerRx = new Regex(@"^([A-Za-z?][A-Za-z? .'&\-]{0,24}):\s+(.+)$", RegexOptions.Singleline);
 
-    private readonly Queue<string> queue = new Queue<string>();
+    struct QueuedLine { public string raw, batch; public int generation; }
+    private readonly Queue<QueuedLine> queue = new Queue<QueuedLine>();
+    private readonly Dictionary<string, int> pendingBatches = new Dictionary<string, int>();
+    private int generation;
     private bool running;
     private bool cutCurrent;               // SayNow: drop the line on screen as well
     private bool urgent;                   // SayNow lines: no letterbox, they're shouted mid-action
@@ -86,10 +93,12 @@ public class DialogueBox : MonoBehaviour
     private PrologueVan van;
     private ChaseKiller chase;
     private GameObject[] fightBars;
+    private DialoguePresentation presentation;
 
     void Awake()
     {
         Instance = this;
+        presentation = DialoguePresentation.Subtitle(this);
         Sounds.Apply(blip, "General/Dialogue blip");
         voice = Sounds.Clips("General/Dialogue blip", null);
         group.alpha = 0f;
@@ -104,6 +113,21 @@ public class DialogueBox : MonoBehaviour
             foreach (var n in new[] { "BossBar", "DemonHealthBar", "AirBar" }) { var t = canvas.transform.Find(n); if (t != null) found.Add(t.gameObject); }
         fightBars = found.ToArray();
         SetBars(0f);
+        Raise();
+    }
+
+    // The cutscene letterboxes (LetterboxTop/Bottom) are made after this box, so they drew over the subtitles. Keep the
+    // dialogue's own bars and the box above everything else on the canvas, just under the pause menu.
+    public void Raise()
+    {
+        var parent = transform.parent;
+        if (parent == null) return;
+        if (barTop != null && barTop.parent == parent) barTop.SetAsLastSibling();
+        if (barBottom != null && barBottom.parent == parent) barBottom.SetAsLastSibling();
+        transform.SetAsLastSibling();
+        if (ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.transform.parent == parent) ChoiceDialogue.Instance.transform.SetAsLastSibling();
+        var pause = parent.Find("PauseMenu");
+        if (pause != null) pause.SetAsLastSibling();
     }
 
     public void SetHellStyle(bool hell)
@@ -114,19 +138,44 @@ public class DialogueBox : MonoBehaviour
 
     public void Say(string lines)
     {
-        foreach (var l in lines.Split('|'))
-            if (l.Trim().Length > 0) queue.Enqueue(l.Trim());
+        if (string.IsNullOrWhiteSpace(lines)) return;
+        string batch = lines.Trim();
+        // Two collider/event callbacks may request the same speech before it finishes.
+        // Deduplicate whole requests only: deliberate repeated words inside a speech remain intact.
+        if (pendingBatches.ContainsKey(batch)) return;
+        var parts = new List<string>();
+        foreach (var l in batch.Split('|')) if (l.Trim().Length > 0) parts.Add(l.Trim());
+        if (parts.Count == 0) return;
+        pendingBatches[batch] = parts.Count;
+        foreach (var l in parts) queue.Enqueue(new QueuedLine { raw = l, batch = batch, generation = generation });
+        Raise();   // other scripts add things to the canvas as the game runs
         if (!running) StartCoroutine(Run());
     }
 
     // time-critical lines (DRIVE!, SWIM!): throw away the backlog and say this straight away
     public void SayNow(string lines)
     {
+        if (string.IsNullOrWhiteSpace(lines)) return;
+        if (urgent && pendingBatches.ContainsKey(lines.Trim())) return;
+        generation++;
         queue.Clear();
+        pendingBatches.Clear();
         cutCurrent = running;
         urgent = true;
         Say(lines);
     }
+
+    public void Clear()
+    {
+        StopAllCoroutines();
+        generation++;
+        queue.Clear(); pendingBatches.Clear();
+        running = cutCurrent = urgent = bars = false;
+        if (group != null) group.alpha = 0f;
+        if (hintText != null) hintText.alpha = 0f;
+    }
+
+    void OnDestroy() { if (Instance == this) Instance = null; }
 
     // ---------------------------------------------------------------- who is this line?
 
@@ -134,11 +183,14 @@ public class DialogueBox : MonoBehaviour
     {
         public string speaker, body;
         public Color plate, colour;
-        public bool italic;
+        public bool italic, narration;
     }
 
     public Line Parse(string raw)
     {
+        // "*text*": narration, not anyone's speech (white italics with a shadow, no box)
+        if (raw.Length > 1 && raw[0] == '*')
+            return new Line { speaker = "", body = raw.Trim('*', ' '), plate = Color.white, colour = Color.white, italic = true, narration = true };
         var m = speakerRx.Match(raw);
         if (m.Success && IsName(m.Groups[1].Value.Trim()))
         {
@@ -172,17 +224,19 @@ public class DialogueBox : MonoBehaviour
     IEnumerator Run()
     {
         running = true;
+        if (!tutorialShown) yield return Tutorial();
         // (outer loop: a line that arrives while the box is fading out is still said, not left stranded in the queue)
         while (queue.Count > 0)
         {
             bars = !urgent && Calm();
-            Show(Parse(queue.Peek()), 0);
+            Show(Parse(queue.Peek().raw), 0);
             yield return Fade(1f);
 
             while (queue.Count > 0)
             {
                 cutCurrent = false;
-                Line line = Parse(queue.Dequeue());
+                var queued = queue.Dequeue();
+                Line line = Parse(queued.raw);
                 Show(line, 0);
                 text.ForceMeshUpdate();
                 int count = text.textInfo.characterCount;
@@ -209,6 +263,11 @@ public class DialogueBox : MonoBehaviour
                     yield return null;
                 }
                 if (hintText != null) hintText.alpha = 0f; else text.text = Old(line);
+                if (queued.generation == generation && pendingBatches.TryGetValue(queued.batch, out int remaining))
+                {
+                    if (remaining <= 1) pendingBatches.Remove(queued.batch);
+                    else pendingBatches[queued.batch] = remaining - 1;
+                }
                 yield return null;
             }
 
@@ -219,11 +278,45 @@ public class DialogueBox : MonoBehaviour
         running = false;
     }
 
-    bool Pressed() => !PauseMenu.Paused && (Input.GetKeyDown(advanceKey)
-                      || (AutoAdvanceAfter > 0f && text.maxVisibleCharacters > 9999 && Time.unscaledTime - lineShownAt > AutoAdvanceAfter));
+    bool Pressed() => !PauseMenu.Paused && !(ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open) && (Input.GetKeyDown(advanceKey)
+                      || (text.maxVisibleCharacters > 9999 && Time.unscaledTime - lineShownAt > (AutoAdvanceAfter > 0f ? AutoAdvanceAfter : InEcho ? 10f : 3f)));   // no key needed: a line stays 3 s (10 s in the Echo realm)
+
+    static bool InEcho => RevisedPlotDirector.Instance != null && RevisedPlotDirector.Instance.Echo;
+
+    // a one-off "how dialogue works" card before the first line of the game
+    static bool tutorialShown;
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetTutorial() => tutorialShown = false;
+
+    IEnumerator Tutorial()
+    {
+        tutorialShown = true;
+        var parent = transform.parent;
+        if (parent == null || AutoAdvanceAfter > 0f) yield break;
+        var panel = new GameObject("DialogueTutorial", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+        panel.transform.SetParent(parent, false);
+        var rt = (RectTransform)panel.transform;
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
+        panel.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.82f);
+        var t = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+        t.transform.SetParent(panel.transform, false);
+        t.font = text.font; t.fontSize = 34f; t.alignment = TextAlignmentOptions.Center; t.raycastTarget = false;
+        t.text = "<size=130%>HOW CONVERSATIONS WORK</size>\n\n" +
+                 "Press <color=#FFCC5C>[E]</color> to skip to the end of a line, and again for the next one.\n" +
+                 "Lines also move on by themselves: after 3 seconds, or 10 seconds when you're talking in the Echo realm.\n" +
+                 "When choices appear, pick the answer you mean. Some people won't wait for you.\n\n" +
+                 "<alpha=#99>Press [E] to begin";
+        var trt = t.rectTransform; trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one; trt.offsetMin = new Vector2(160f, 0f); trt.offsetMax = new Vector2(-160f, 0f);
+        panel.transform.SetAsLastSibling();
+        yield return null;
+        while (!Input.GetKeyDown(advanceKey)) yield return null;
+        Destroy(panel);
+        yield return null;
+    }
 
     void Show(Line line, int visible)
     {
+        if (presentation != null) presentation.SetNarration(line.narration);
         if (nameText != null)
         {
             nameText.text = line.speaker.ToUpperInvariant();
@@ -234,6 +327,7 @@ public class DialogueBox : MonoBehaviour
         }
         else text.text = Old(line);
         text.maxVisibleCharacters = visible;
+        if (presentation != null) presentation.RefreshLine();
     }
 
     // the old single-text box: the name goes in front of the line

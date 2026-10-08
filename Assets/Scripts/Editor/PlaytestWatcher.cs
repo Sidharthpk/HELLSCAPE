@@ -59,7 +59,7 @@ static class PlaytestWatcher
         var d = DialogueBox.Instance;
         string t = d != null && d.text != null && d.Busy ? d.text.text : "";
         if (lastLine.Length > 0 && !t.StartsWith(lastLine)) Write("SAY " + lastLine.Replace('\n', ' '));
-        lastLine = t;
+        lastLine = t ?? "";
 
         if (EditorApplication.timeSinceStartup < nextBeat) return;
         double dt = EditorApplication.timeSinceStartup - fpsStart;

@@ -43,6 +43,19 @@ public static class TitleScreenBuilder
         camGo.AddComponent<UniversalAdditionalCameraData>().renderPostProcessing = true;
         ts.cam = cam;
 
+        // the sci-fi core tunnel (if it's in the scene): its own clip twists it while the camera rides down the inside
+        var coreGo = GameObject.Find("Sci fi Core");
+        if (coreGo != null)
+        {
+            var anim = coreGo.TryGetComponent<Animator>(out var a) ? a : coreGo.AddComponent<Animator>();
+            const string ctrlPath = "Assets/Materials/Title/TitleCore.controller";
+            var clip = AssetDatabase.LoadAllAssetsAtPath("Assets/New Folder/Sci fi Core.blend").OfType<AnimationClip>().First(c => !c.name.StartsWith("__preview__"));
+            if (AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(ctrlPath) == null)
+                UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPathWithClip(ctrlPath, clip);
+            anim.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(ctrlPath);
+            ts.core = anim;
+        }
+
         // slow dollies through the city, each cut through black
         ts.shots = new[]
         {

@@ -268,6 +268,101 @@ public static class PlaytestDriver
         Say($"DONE: {prog:0}/{total:0} m in {Time.time - started:0} s, top speed {topSpeed * 3.6f:0} km/h, furthest off the line {maxOff:0.0} m; stuck {stuck}, flipped {flips}, fell {falls}");
     }
 
+    // ---------------------------------------------------------------- Kessler's tunnel chase (door -> bridge -> silo door)
+
+    public static void RunTunnel() => Run(Tunnel());
+
+    public static string ShotDir = "Logs/shots";
+    static void Shot(string name)
+    {
+        System.IO.Directory.CreateDirectory(ShotDir);
+        ScreenCapture.CaptureScreenshot($"{ShotDir}/{name}.png");
+    }
+
+    static IEnumerator Tunnel()
+    {
+        var fpc = Object.FindFirstObjectByType<FirstPersonController>();
+        var player = fpc.transform;
+        var rb = player.GetComponent<Rigidbody>();
+        var hp = player.GetComponent<PlayerHealth>();
+        var cuts = Object.FindFirstObjectByType<KillerCutscenes>(FindObjectsInactive.Include);
+        var chase = Object.FindFirstObjectByType<KesslerChase>(FindObjectsInactive.Include);
+        var all = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        Transform Named(string start) => all.First(t => t.name.StartsWith(start));
+        float eye = player.lossyScale.y;
+        DialogueBox.AutoAdvanceAfter = 0.8f;
+        string K() => chase.kessler.gameObject.activeInHierarchy ? $"Kessler {Vector3.Distance(chase.kessler.position, player.position):0.0} m away" : "Kessler hidden";
+        IEnumerator Wait(float s) { float t0 = Time.time; while (Time.time - t0 < s) yield return null; }
+        // walk (stepped, like Silo()) to a spot on the floor; holds still while a cutscene has the controls
+        IEnumerator Walk(Vector3 feet, float speed, string what)
+        {
+            float last = Time.time, t0 = Time.time;
+            while ((player.position - Vector3.up * eye - feet).magnitude > 0.2f && Time.time - t0 < 30f)
+            {
+                float dt = Time.time - last; last = Time.time;
+                if (hp.IsDead) { Say($"DIED on the way to {what} at {player.position:F1}"); yield break; }
+                if (cuts.Playing || !fpc.enabled) { yield return null; continue; }
+                if (rb != null) rb.isKinematic = true;
+                Vector3 step = Vector3.MoveTowards(player.position - Vector3.up * eye, feet, speed * dt);
+                Vector3 look = feet - step; look.y = 0f;
+                player.position = step + Vector3.up * eye;
+                if (look.sqrMagnitude > 0.01f) player.rotation = Quaternion.LookRotation(look);
+                yield return null;
+            }
+            if (rb != null && fpc.enabled && !cuts.Playing) rb.isKinematic = false;
+        }
+
+        Say($"in the tunnel at {player.position:F1}, hp {hp.currentHealth:0}; {K()}");
+        float lastHp = hp.currentHealth;
+        // the first knock cutscene, then control
+        yield return Wait(2.5f);
+        while (cuts.Playing) yield return null;
+        Say("door knock cutscene over; control " + fpc.enabled);
+
+        var wps = Named("Route (door to bridge)");
+        int n = 0;
+        foreach (Transform wp in wps)
+        {
+            yield return Walk(wp.position, 7f, wp.name);
+            if (hp.currentHealth != lastHp) { Say($"  hp {lastHp:0} -> {hp.currentHealth:0} at {wp.name}; {K()}"); lastHp = hp.currentHealth; }
+            if (++n % 8 == 0) Say($"  {wp.name}: chasing {chase.Chasing}; {K()}");
+            if (hp.IsDead) yield break;
+        }
+        Say($"end of the tunnel; chasing {chase.Chasing}; {K()}");
+        yield return Walk(Named("BridgeTrigger").position - Vector3.up * 1.4f, 7f, "the bridge");
+        Say("on the bridge; " + K());
+        player.rotation = Quaternion.LookRotation(Vector3.back);   // (looking back down the tunnel at Tomas and him)
+        yield return Wait(2.2f);
+        Shot("tomas_hold");
+        Say($"Tomas {(chase.tomas.gameObject.activeInHierarchy ? "is holding" : "is NOT there")}; {K()}");
+        var open = Named("SiloDoorOpen").position;
+        yield return Walk(open - Vector3.up * 1.4f, 7f, "the silo door");
+        Say($"at the silo door; chasing {chase.Chasing}; hp {hp.currentHealth:0}; {K()}");
+        // F on the door: the A-D wheel. Tapped at a hurried human pace, with a few frames kept (Logs/shots)
+        chase.siloDoor.GetComponent<Interactable>().Use();
+        yield return Wait(0.3f);
+        var wheel = chase.GetComponent<TapLock>();
+        Say($"wheel up: {(TapLock.Active ? "YES" : "NO")}");
+        int tapN = 0;
+        for (float tw = 0f; TapLock.Active && tw < 20f; tw += 0.18f)
+        {
+            yield return Wait(0.18f);
+            wheel.Tap(tapN++ % 2 == 0 ? -1 : 1);
+            if (tapN % 4 == 1) Shot("wheel_" + tapN);
+        }
+        Say($"wheel done after {tapN} taps (still up: {TapLock.Active})");
+        yield return Wait(0.2f);
+        float t1 = Time.time;
+        while (Time.time - t1 < 15f && (cuts.Playing || !fpc.enabled)) yield return null;
+        Say($"through the silo door: player {player.position:F1}, checkpoint {(Checkpoint.Current ? Checkpoint.Current.name : "-")}, hp {hp.currentHealth:0}");
+        Shot("next_room");
+        yield return Wait(6f);
+        Shot("next_room_later");
+        Say($"inside: chasing {chase.Chasing}; {K()}");
+        DialogueBox.AutoAdvanceAfter = 0f;
+        Say("DONE");
+    }
+
     // ---------------------------------------------------------------- the silo complex
 
     public static void RunSilo() => Run(Silo());
@@ -400,6 +495,132 @@ public static class PlaytestDriver
         Say($"after the leap ({Time.time - t0:0.0} s): player {Feet():F1}, hp {hp.currentHealth:0}, checkpoint {(Checkpoint.Current ? Checkpoint.Current.name : "-")}, music {MusicManager.CurrentArea}");
         yield return Wait(6f);
         Say($"on the silo floor: movement {fpc.enabled}, killer active {enc.killer.gameObject.activeInHierarchy} at {enc.killer.transform.position:F1}");
+        DialogueBox.AutoAdvanceAfter = 0f;
+        Say("DONE");
+    }
+
+    // ---------------------------------------------------------------- the prologue (revised plot)
+
+    const string PKey = "HellScape.Playtest.Prologue";
+
+    // from the editor (not playing): opens Prologue and enters Play; the robot teleports through the drops, the
+    // depot, the flat and the tape, then watches Elias reach the door and hesitate
+    public static void StartPrologue()
+    {
+        if (EditorApplication.isPlaying) { Debug.LogWarning("Stop Play first."); return; }
+        if (UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene().isDirty) { Debug.LogWarning("Save the open scene first."); return; }
+        UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/Prologue.unity");
+        SessionState.SetBool(PKey, true);
+        EditorApplication.isPlaying = true;
+    }
+
+    [InitializeOnLoadMethod]
+    static void HookPrologue()
+    {
+        EditorApplication.playModeStateChanged += st =>
+        {
+            if (st != PlayModeStateChange.EnteredPlayMode || !SessionState.GetBool(PKey, false)) return;
+            SessionState.EraseBool(PKey);
+            Run(PrologueRun());
+        };
+    }
+
+    static IEnumerator PrologueRun()
+    {
+        IEnumerator Wait(float s) { float t0 = Time.time; while (Time.time - t0 < s) yield return null; }
+        IEnumerator Idle() { yield return null; while (DialogueBox.Instance != null && DialogueBox.Instance.Busy) yield return null; }
+        PrologueDirector dir = null;
+        while (dir == null) { dir = Object.FindFirstObjectByType<PrologueDirector>(); yield return null; }
+        var run = dir.deliveries;
+        var van = run.van;
+        DialogueBox.AutoAdvanceAfter = 1.2f;
+        yield return Wait(6f);
+        Say($"in the van: {van.InVan}; Revised director present: {Object.FindFirstObjectByType<RevisedPlotDirector>() != null}");
+
+        for (int i = 0; i < run.stops.Length; i++)
+        {
+            var s = run.stops[i];
+            // the run starts after the opening fade: wait until it has actually put this stop's objective up
+            float tw = Time.time;
+            while ((run.objective == null || !run.objective.gameObject.activeSelf || !run.objective.text.Contains(s.objective)) && Time.time - tw < 90f) yield return null;
+            Say($"stop {i} objective up after {Time.time - tw:0.0}s");
+            van.body.position = s.bay.position + Vector3.up * 0.5f; van.body.linearVelocity = Vector3.zero;
+            Physics.SyncTransforms();
+            yield return Wait(0.5f);
+            van.Exit();
+            float t0 = Time.time;
+            while (s.customer != null && !s.customer.enabled && Time.time - t0 < 10f) yield return null;
+            Say($"stop {i}: '{s.objective}' customer ready={s.customer != null && s.customer.enabled}");
+            if (s.customer != null && s.customer.enabled) s.customer.Use();
+            yield return Wait(1f);
+            yield return Idle();
+            yield return Wait(2f);
+            Say($"stop {i} done");
+        }
+
+        float tdw = Time.time;
+        while ((run.objective == null || !run.objective.gameObject.activeSelf || !run.objective.text.Contains(run.depotObjective)) && Time.time - tdw < 60f) yield return null;
+        van.body.position = run.depotBay.position + Vector3.up * 0.5f; van.body.linearVelocity = Vector3.zero;
+        Physics.SyncTransforms();
+        yield return Wait(0.5f);
+        van.Exit();
+        float td = Time.time;
+        while (!run.Done && Time.time - td < 60f) { if (DialogueBox.Instance.Busy == false) yield return null; yield return null; }
+        var clues = GameObject.Find("Depot clues");
+        Say($"depot done={run.Done}; clues={(clues != null ? string.Join(",", clues.GetComponentsInChildren<Transform>().Skip(1).Select(c => c.name + (c.GetComponent<AudioSource>() != null && c.GetComponent<AudioSource>().isPlaying ? "(sound)" : ""))) : "MISSING")}");
+        yield return Wait(3f);
+
+        // home: hallway, then into the flat looking at Derek
+        var player = dir.fpc.transform; var rb = player.GetComponent<Rigidbody>();
+        void Put(Vector3 p, Vector3 look) { if (rb != null) rb.linearVelocity = Vector3.zero; player.SetPositionAndRotation(p, Quaternion.LookRotation(look)); Physics.SyncTransforms(); }
+        // the walk home starts after the clock-out and the establishing shot: wait for its objective
+        float th = Time.time;
+        while (!(dir.objective.gameObject.activeSelf && dir.objective.text.Contains(dir.goHome)) && Time.time - th < 90f) yield return null;
+        Say($"walk-home objective up after {Time.time - th:0.0}s");
+        Put(dir.hallway.center, Vector3.forward); yield return Wait(3f);
+        while (DialogueBox.Instance.Busy) yield return null;
+        th = Time.time;
+        while (!(dir.objective.text.Contains(dir.findDerek)) && Time.time - th < 20f) { Put(dir.flat.center, dir.body.position - dir.flat.center); yield return null; }
+        // Derek is ~15 m in: stand 7 m from him, eyes on him (FindBody needs him within 8 m and 32 degrees)
+        Vector3 away = dir.flat.center - dir.body.position; away.y = 0f; away.Normalize();
+        Vector3 spot = dir.body.position + away * 7f; spot.y = dir.flat.center.y - 0.5f;
+        // (the flat's walls get in the way of that line sometimes: any free spot with a clear view of him will do)
+        bool Clear(Vector3 p)
+        {
+            if (Physics.CheckCapsule(p + Vector3.up * 0.4f, p + Vector3.up * 1.4f, 0.3f, ~0, QueryTriggerInteraction.Ignore)) return false;
+            Vector3 eye = p + Vector3.up * 1.6f, to = dir.body.position - eye;
+            foreach (var h in Physics.RaycastAll(eye, to.normalized, to.magnitude, ~0, QueryTriggerInteraction.Ignore))
+                if (!h.collider.transform.IsChildOf(dir.body) && !h.collider.transform.IsChildOf(player)) return false;
+            return to.magnitude < 7.5f;
+        }
+        if (!Clear(spot))
+            for (float r = 6.5f; r >= 2.5f; r -= 1f)
+                for (int a = 0; a < 360; a += 15)
+                {
+                    Vector3 p = dir.body.position + Quaternion.Euler(0f, a, 0f) * Vector3.forward * r; p.y = spot.y;
+                    if (Clear(p)) { spot = p; r = 0f; break; }
+                }
+        Vector3 look = dir.body.position - spot; look.y = 0f;
+        Put(spot, look);
+        Say($"in the flat: objective '{dir.objective.text}'"); yield return Wait(6f);
+        float tf = Time.time;
+        while (dir.pc == null || !dir.pc.enabled) { if (Time.time - tf > 60f) { Say("never reached the tape"); yield break; } yield return null; }
+        Say("found Derek; tape ready");
+        dir.pc.Use();
+        tf = Time.time;
+        var killer = dir.killer;
+        while (!killer.gameObject.activeInHierarchy && Time.time - tf < 120f) yield return null;
+        Say($"killer active after {Time.time - tf:0.0}s (tape + closet)");
+        // he creeps to the flat door; with nobody looking, he should stop, face you, and hold ~2 s before fleeing
+        player.rotation = Quaternion.LookRotation(Vector3.up);   // not looking at him
+        float tr = Time.time, stoodAt = -1f;
+        while (Time.time - tr < 40f)
+        {
+            if (killer.AtFlatDoor && stoodAt < 0f) { stoodAt = Time.time; Say("Elias at the flat door"); }
+            if (stoodAt > 0f && !killer.AtFlatDoor) { Say($"Elias ran after {Time.time - stoodAt:0.0}s at the door"); break; }
+            yield return null;
+        }
+        if (stoodAt < 0f) Say("Elias never reached the door");
         DialogueBox.AutoAdvanceAfter = 0f;
         Say("DONE");
     }

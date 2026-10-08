@@ -93,6 +93,13 @@ Shader "PostEffect/Fog"
             float linearDepth = Linear01Depth(Depth);
             //float finalDepth = linearDepth * _FogDistance;
             
+            // the sky (nothing drawn, depth at the far plane) keeps its own picture instead of becoming a flat fog colour
+            #if UNITY_REVERSED_Z
+            if (Depth < 0.000001) return Color;
+            #else
+            if (Depth > 0.999999) return Color;
+            #endif
+
             float dist = ComputeDistance(Depth);
             float fog = 1.0 - ComputeFog(dist, _FogDensity);
  
