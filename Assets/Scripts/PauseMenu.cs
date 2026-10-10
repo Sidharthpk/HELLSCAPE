@@ -28,6 +28,7 @@ public class PauseMenu : MonoBehaviour
     void Awake()
     {
         Paused = false;
+        ApplyTypography();
         Show(false);
         if (resumeButton != null) resumeButton.onClick.AddListener(Resume);
         if (restartButton != null) restartButton.onClick.AddListener(Restart);
@@ -47,6 +48,17 @@ public class PauseMenu : MonoBehaviour
         {
             sensitivity.SetValueWithoutNotify(sens);
             sensitivity.onValueChanged.AddListener(v => { ApplySensitivity(v); PlayerPrefs.SetFloat("hs.sensitivity", v); });
+        }
+    }
+
+    public void ApplyTypography()
+    {
+        var font = Resources.Load<TMPro.TMP_FontAsset>("SourceSans3-Semibold SDF");
+        if (font == null) return;
+        foreach (var text in GetComponentsInChildren<TMPro.TMP_Text>(true))
+        {
+            text.font = font;
+            text.fontSharedMaterial = font.material;
         }
     }
 

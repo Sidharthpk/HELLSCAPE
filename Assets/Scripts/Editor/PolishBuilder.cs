@@ -143,6 +143,8 @@ public static class PolishBuilder
         ht.alignment = TextAlignmentOptions.Center;
         // on top of everything else on the story canvas (the dialogue box, the HUD)
         panel.SetAsLastSibling();
+        foreach (var screen in Object.FindObjectsByType<GameOverScreen>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            screen.ApplyTypography();
         var fader = story.Find("ScreenFader");
         if (fader != null) fader.SetAsLastSibling();
         hint.gameObject.SetActive(true);

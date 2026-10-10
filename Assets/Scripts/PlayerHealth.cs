@@ -37,7 +37,7 @@ public class PlayerHealth : MonoBehaviour
     {
         if (isDead) return;
 
-        currentHealth -= amount;
+        currentHealth = Mathf.Max(0f, currentHealth - amount);
 
         if (vignette != null)
             vignette.SetDamage(1f - (currentHealth / maxHealth));

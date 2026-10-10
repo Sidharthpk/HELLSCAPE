@@ -30,6 +30,10 @@ public class CityWalkers : MonoBehaviour
 
     IEnumerator Spawn()
     {
+        // not while you're still out cold: the death vision takes you off the street (nowhere near the navmesh), and
+        // the calm would run out before you ever stood up
+        yield return null;
+        while (SleepSequence.Waking) yield return null;
         var calm = new List<ZombieAI>();
         for (int i = 0; i < damned + lost; i++)
         {

@@ -63,6 +63,9 @@ public class Checkpoint : MonoBehaviour
 
     IEnumerator Respawn()
     {
+        // a cutscene still rolling (you died in it, or paused and restarted): its camera and locks go first
+        foreach (var scene in FindObjectsByType<KillerCutscenes>(FindObjectsInactive.Include, FindObjectsSortMode.None)) scene.Abort();
+        foreach (var scene in FindObjectsByType<TurningCutscene>(FindObjectsInactive.Include, FindObjectsSortMode.None)) scene.Abort();
         foreach (var visit in FindObjectsByType<EchoVisit>(FindObjectsInactive.Include, FindObjectsSortMode.None)) visit.Cancel();
         foreach (var office in FindObjectsByType<OfficeHorrorDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None)) office.CancelSwitch();
         foreach (var encounter in FindObjectsByType<KesslerConfrontation>(FindObjectsInactive.Include, FindObjectsSortMode.None)) encounter.AbortAmbush();

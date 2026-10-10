@@ -41,10 +41,12 @@ public class Pursuer : MonoBehaviour
     public void Approach(Transform who) { target = who; mode = Mode.Approach; }
     public void Hold() { mode = Mode.Hold; Speed(0f); }
 
-    public void Chase(Transform who)
+    // (via: somewhere to go first, a doorway between him and you)
+    public void Chase(Transform who, Vector3? via = null)
     {
         target = who;
         trail.Clear();
+        if (via != null) trail.Add(via.Value);
         trail.Add(who.position);
         at = 0;
         Caught = false; closeFor = 0f;

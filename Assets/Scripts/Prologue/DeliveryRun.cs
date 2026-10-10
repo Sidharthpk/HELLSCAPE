@@ -62,6 +62,7 @@ public class DeliveryRun : MonoBehaviour
             if (s.customer != null) s.customer.enabled = false;
             Objective(s.objective);
             Beacon(s.bay);
+            van.stopAt = s.bay; van.stopRadius = s.bayRadius;
 
             // parked in the bay, and out of the van
             yield return new WaitUntil(() => !van.InVan && Near(van.transform, s.bay, s.bayRadius));
@@ -83,6 +84,7 @@ public class DeliveryRun : MonoBehaviour
 
         Objective(depotObjective);
         Beacon(depotBay);
+        van.stopAt = depotBay; van.stopRadius = depotRadius;
         yield return new WaitUntil(() => !van.InVan && Near(van.transform, depotBay, depotRadius));
         Beacon(null);
         van.Lock();
@@ -102,6 +104,8 @@ public class DeliveryRun : MonoBehaviour
         }
         if (titleCard != null)
         {
+            var cardFont = Resources.Load<TMPro.TMP_FontAsset>("SourceSans3-Semibold SDF");
+            if (cardFont != null) { titleCard.font = cardFont; titleCard.fontSharedMaterial = cardFont.material; }
             titleCard.text = clockOutCard;
             for (float t = 0f; t < 1f; t += Time.deltaTime) { titleCard.alpha = t; yield return null; }
             titleCard.alpha = 1f;
@@ -255,10 +259,8 @@ public class DeliveryRun : MonoBehaviour
 
     void Objective(string text)
     {
-        if (objective == null) return;
-        PrologueDirector.ObjectiveBar(objective, !string.IsNullOrEmpty(text));
-        objective.gameObject.SetActive(!string.IsNullOrEmpty(text));
-        objective.text = "> " + text;   // (as the director writes them)
+        if (objective != null) objective.gameObject.SetActive(false);   // (as the director: ObjectiveUI draws it)
+        ObjectiveUI.Set(text);
     }
 
     static void Say(string lines)

@@ -74,8 +74,21 @@ public class PrologueVan : MonoBehaviour
         if (getIn != null) getIn.enabled = false;
     }
 
+    // where the round wants you parked next (DeliveryRun's beacon): stopped there, the prompt says how to get out
+    [System.NonSerialized] public Transform stopAt;
+    [System.NonSerialized] public float stopRadius;
+    private bool prompting;
+
     void Update()
     {
-        if (InVan && Time.time - enteredAt > 0.4f && Input.GetKeyDown(key) && Speed < 2.5f) Exit();
+        bool canLeave = InVan && Speed < 2.5f;
+        if (canLeave && Time.time - enteredAt > 0.4f && Input.GetKeyDown(key)) { Exit(); canLeave = false; }
+
+        Vector3 d = stopAt != null ? stopAt.position - transform.position : Vector3.zero; d.y = 0f;
+        bool show = canLeave && stopAt != null && d.magnitude < stopRadius;
+        if (show == prompting) return;
+        prompting = show;
+        var interactor = playerCamera != null ? playerCamera.GetComponent<PlayerInteractor>() : null;
+        if (interactor != null) interactor.Show(show ? "Leave the van" : null);
     }
 }

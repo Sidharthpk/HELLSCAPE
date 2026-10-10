@@ -5,13 +5,16 @@ using UnityEngine.UI;
 
 // Shared by runtime and editor builders, so existing scenes adopt the dialogue design on Play.
 // Only presentation is rebuilt: dialogue queues, choices and story callbacks remain with their owners.
+// Smooth Source Sans typography, charcoal panels and restrained red accents.
 [AddComponentMenu("")]
 public class DialoguePresentation : MonoBehaviour
 {
     const string RootName = "CinematicDialogue";
-    public static readonly Color Gold = new Color(1f, 0.78f, 0.36f);
-    static readonly Color Paper = new Color(0.96f, 0.94f, 0.88f);
-    static readonly Color Muted = new Color(0.70f, 0.69f, 0.67f);
+    public static readonly Color Blood = new Color(0.78f, 0.05f, 0.04f);    // the HUD's red (BloodBar.Red)
+    public static readonly Color Bone = new Color(0.94f, 0.94f, 0.92f);
+    static readonly Color Muted = new Color(0.66f, 0.69f, 0.72f);
+    static readonly Color Ink = new Color(0.035f, 0.042f, 0.052f, 1f);
+    static readonly Color Edge = new Color(0.24f, 0.27f, 0.30f, 1f);
 
     [SerializeField] RectTransform root;
     [SerializeField] TextMeshProUGUI speaker, body, hint;
@@ -22,14 +25,26 @@ public class DialoguePresentation : MonoBehaviour
     [SerializeField] bool choices;
     public void SetCountdown(float seconds)
     {
-        if (eyebrow != null && eyebrow.TryGetComponent<TextMeshProUGUI>(out var label))
-            label.text = "MEMORY FADING  " + Mathf.CeilToInt(seconds) + "s";
+        if (eyebrow == null || !eyebrow.TryGetComponent<TextMeshProUGUI>(out var label)) return;
+        label.text = "MEMORY FADING";
+        if (fading == null)
+        {
+            fading = BloodBar.Make(eyebrow, "Memory left", new Vector2(220f, 28f));
+            var track = (RectTransform)fading.transform.parent;
+            track.anchorMin = track.anchorMax = new Vector2(0f, .5f); track.pivot = new Vector2(0f, .5f); track.anchoredPosition = new Vector2(206f, 2f);
+        }
+        if (seconds > fadingFrom) fadingFrom = seconds;   // (the first value of a question is its whole time)
+        fading.transform.parent.gameObject.SetActive(true);
+        fading.fillAmount = fadingFrom > 0f ? Mathf.Clamp01(seconds / fadingFrom) : 0f;
+        fading.color = BloodBar.Red * (seconds <= 5f ? 1f + .4f * Mathf.Sin(Time.unscaledTime * 14f) : 1f);
     }
+    Image fading;
+    float fadingFrom;
     int count;
     float lastWidth = -1f, lastHeight = -1f;
 
-    static TMP_FontAsset BodyFont => Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF") ?? TMP_Settings.defaultFontAsset;
-    static TMP_FontAsset HeadFont => Resources.Load<TMP_FontAsset>("Fonts & Materials/Oswald Bold SDF") ?? BodyFont;
+    static TMP_FontAsset BodyFont => Resources.Load<TMP_FontAsset>("SourceSans3-Regular SDF") ?? TMP_Settings.defaultFontAsset;
+    static TMP_FontAsset HeadFont => Resources.Load<TMP_FontAsset>("SourceSans3-Semibold SDF") ?? BodyFont;
 
     public static DialoguePresentation Subtitle(DialogueBox dialogue)
     {
@@ -39,7 +54,8 @@ public class DialoguePresentation : MonoBehaviour
         dialogue.hintText = v.hint;
         dialogue.accent = v.rule.GetComponent<Graphic>();
         dialogue.border = new Graphic[0];
-        v.hint.text = "<color=#FFCA5C>" + dialogue.advanceKey.ToString().ToUpperInvariant() + "</color>   CONTINUE";
+        dialogue.playerColor = Bone;   // (the scenes have the old amber saved on the box)
+        v.hint.text = "<color=#C70D0A>[" + dialogue.advanceKey.ToString().ToUpperInvariant() + "]</color>";
         return v;
     }
 
@@ -76,68 +92,59 @@ public class DialoguePresentation : MonoBehaviour
         v.root = Node(RootName, owner.transform);
         v.root.pivot = new Vector2(0.5f, 0f);
         Place(v.root, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(1160f, 200f));
-        v.speaker = Text("Speaker", v.root, HeadFont, 25f, Gold, TextAlignmentOptions.TopLeft);
-        v.speaker.characterSpacing = 4f;
-        v.body = Text("Line", v.root, BodyFont, isChoice ? 30f : 33f, Paper,
-            isChoice ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.Top);
-        v.body.lineSpacing = 5f;
-        v.body.outlineColor = new Color(0f, 0f, 0f, 0.9f);
-        v.body.outlineWidth = 0.18f;
-        v.hint = Text("Hint", v.root, HeadFont, 19f, Muted, TextAlignmentOptions.BottomRight);
-        v.hint.characterSpacing = 2f;
-        v.rule = Node("Rule", v.root);
+        v.speaker = Text("Speaker", v.root, HeadFont, 24f, Blood, TextAlignmentOptions.TopLeft);
+        v.speaker.characterSpacing = 2f;
+        v.body = Text("Line", v.root, BodyFont, isChoice ? 28f : 30f, Bone, TextAlignmentOptions.TopLeft);
+        v.body.lineSpacing = 10f;
+        v.hint = Text("Hint", v.root, HeadFont, 20f, Muted, TextAlignmentOptions.BottomRight);
+        v.rule = Node("Rule", v.root);   // the speaker's colour: a square beside the name, or the line over your answers
         var line = v.rule.gameObject.AddComponent<Image>();
-        line.color = Gold;
+        line.color = Blood;
         line.raycastTarget = false;
+        // Opaque charcoal surface with a fine neutral edge.
+        v.shade = Node("Box", v.root);
+        v.shade.SetAsFirstSibling();
+        var box = v.shade.gameObject.AddComponent<DialoguePanelGraphic>();
+        box.color = Ink; box.edge = Edge; box.corner = 10f; box.thickness = 1f; box.raycastTarget = false;
+        if (isChoice) Stretch(v.shade, -26f, -26f, -26f, -22f); else Stretch(v.shade, 0f, 0f, 0f, 0f);
 
         if (isChoice)
         {
             v.eyebrow = Text("ResponseLabel", v.root, HeadFont, 18f, Muted, TextAlignmentOptions.TopLeft).rectTransform;
-            v.eyebrow.GetComponent<TMP_Text>().text = "YOUR RESPONSE";
-            v.eyebrow.GetComponent<TMP_Text>().characterSpacing = 3f;
-            v.hint.text = "1–4  CHOOSE     /     ARROWS + ENTER     /     CLICK";
+            v.eyebrow.GetComponent<TMP_Text>().text = "YOUR ANSWER";
+            v.eyebrow.GetComponent<TMP_Text>().characterSpacing = 4f;
+            v.hint.text = "[1-4] CHOOSE";
             v.buttons = new Button[4];
             v.labels = new TextMeshProUGUI[4];
             for (int i = 0; i < 4; i++)
             {
                 var card = Node("Response " + (i + 1), v.root);
                 var graphic = card.gameObject.AddComponent<DialoguePanelGraphic>();
-                graphic.color = new Color(0.045f, 0.035f, 0.055f, 0.94f);
+                graphic.color = new Color(0.09f, 0.105f, 0.125f, 1f); graphic.edge = new Color(0.28f, 0.31f, 0.35f, 1f);
+                graphic.corner = 6f; graphic.thickness = 1f;
                 var button = card.gameObject.AddComponent<Button>();
                 button.targetGraphic = graphic;
                 var colors = button.colors;
                 colors.normalColor = Color.white;
-                colors.highlightedColor = new Color(3.6f, 3.1f, 2.0f, 1f);
+                colors.highlightedColor = new Color(2.3f, 1.6f, 1.5f, 1f);
                 colors.selectedColor = colors.highlightedColor;
-                colors.pressedColor = new Color(5f, 4f, 2f, 1f);
+                colors.pressedColor = new Color(3f, 1.9f, 1.7f, 1f);
                 colors.colorMultiplier = 1f;
                 colors.fadeDuration = 0.12f;
                 button.colors = colors;
                 // The graphic's vertex tint is multiplied by the selectable's transition color.
-                var number = Text("Key", card, HeadFont, 28f, Gold, TextAlignmentOptions.Center);
+                var number = Text("Key", card, HeadFont, 28f, Bone, TextAlignmentOptions.Center);   // (red would vanish on the lit card)
                 number.text = (i + 1).ToString();
                 Place(number.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(34f, 0f), new Vector2(36f, 42f));
                 var divider = Node("Divider", card);
-                var ink = divider.gameObject.AddComponent<Image>(); ink.color = new Color(1f, 0.78f, 0.36f, 0.42f); ink.raycastTarget = false;
+                var ink = divider.gameObject.AddComponent<Image>(); ink.color = new Color(0.78f, 0.05f, 0.04f, 0.5f); ink.raycastTarget = false;
                 Place(divider, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(65f, 0f), new Vector2(1f, 32f));
-                v.labels[i] = Text("Answer", card, BodyFont, 26f, Paper, TextAlignmentOptions.MidlineLeft);
+                v.labels[i] = Text("Answer", card, BodyFont, 24f, Bone, TextAlignmentOptions.MidlineLeft);
                 Stretch(v.labels[i].rectTransform, 86f, 14f, 24f, 14f);
-                v.labels[i].lineSpacing = 3f;
+                v.labels[i].lineSpacing = 6f;
                 v.buttons[i] = button;
                 card.gameObject.SetActive(false);
             }
-        }
-        else
-        {
-            var shadow = Node("SubtitleShade", v.root);
-            v.shade = shadow;
-            shadow.SetAsFirstSibling();
-            var panel = shadow.gameObject.AddComponent<DialoguePanelGraphic>();
-            panel.color = new Color(0.015f, 0.015f, 0.025f, 0.76f);
-            panel.edge = new Color(0f, 0f, 0f, 0.12f);
-            panel.corner = 16f;
-            panel.raycastTarget = false;
-            Stretch(shadow, -24f, -10f, -24f, -10f);
         }
         v.Layout();
         return v;
@@ -145,7 +152,9 @@ public class DialoguePresentation : MonoBehaviour
 
     public void ShowChoices(string who, string question, string[] options, Color color, System.Action<int> select)
     {
-        if (eyebrow != null) eyebrow.GetComponent<TMP_Text>().text = "YOUR RESPONSE";
+        if (eyebrow != null) eyebrow.GetComponent<TMP_Text>().text = "YOUR ANSWER";
+        fadingFrom = 0f;
+        if (fading != null) fading.transform.parent.gameObject.SetActive(false);
         speaker.text = who.ToUpperInvariant();
         speaker.color = color;
         rule.GetComponent<Graphic>().color = color;
@@ -160,14 +169,14 @@ public class DialoguePresentation : MonoBehaviour
             int index = i;
             buttons[i].onClick.AddListener(() => select(index));
         }
-        hint.text = (count == 1 ? "1" : "1–" + count) + "  CHOOSE     /     ARROWS + ENTER     /     CLICK";
+        hint.text = "[" + (count == 1 ? "1" : "1-" + count) + "] CHOOSE";
         Layout();
         if (count > 0 && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(buttons[0].gameObject);
     }
 
     public void RefreshLine() => Layout();
 
-    // Narration: no panel, name plate or rule. Just white italics with a drop shadow, like a storybook caption.
+    // Narration: no box, no name. Just the words in the middle, with a hard shadow, like a caption on old footage.
     public void SetNarration(bool on)
     {
         if (choices) return;
@@ -180,13 +189,13 @@ public class DialoguePresentation : MonoBehaviour
         {
             m.EnableKeyword("UNDERLAY_ON");
             m.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0f, 0f, 0f, 0.95f));
-            m.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 1.1f);
-            m.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -1.1f);
-            m.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.4f);
-            m.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.35f);
+            m.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 1.2f);
+            m.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -1.2f);
+            m.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.5f);
+            m.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0f);
         }
         else m.DisableKeyword("UNDERLAY_ON");
-        body.color = on ? Color.white : body.color;
+        body.alignment = on ? TextAlignmentOptions.Top : TextAlignmentOptions.TopLeft;
         body.UpdateMeshPadding();
         Layout();
     }
@@ -213,19 +222,21 @@ public class DialoguePresentation : MonoBehaviour
         float width = Mathf.Min(1180f, Mathf.Max(280f, available.width * 0.82f));
         float bottom = Mathf.Max(32f, available.height * 0.075f);
         root.anchoredPosition = new Vector2(0f, bottom);
-        float textWidth = width - 48f;
-        float bodyHeight = Mathf.Max(44f, body.GetPreferredValues(body.text, textWidth, Mathf.Infinity).y + 8f);
+        const float pad = 32f;
+        float textWidth = choices ? width - 48f : width - pad * 2f;
+        float bodyHeight = Mathf.Max(34f, body.GetPreferredValues(body.text, textWidth, Mathf.Infinity).y + 6f);
         if (!choices)
         {
-            float height = bodyHeight + (narration ? 44f : 100f);
+            // the name (a square of the speaker's colour beside it), the words under it, the key in the corner
+            float height = bodyHeight + (narration ? 28f : 92f);
             root.sizeDelta = new Vector2(width, height);
-            Place(speaker.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(24f, -8f), new Vector2(width - 48f, 40f));
-            speaker.rectTransform.pivot = new Vector2(0f, 1f);
-            Place(rule, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(24f, -49f), new Vector2(46f, 2f));
+            Place(rule, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(pad, -22f), new Vector2(12f, 12f));
             rule.pivot = new Vector2(0f, 1f);
-            Place(body.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, narration ? -8f : -57f), new Vector2(textWidth, bodyHeight));
-            body.rectTransform.pivot = new Vector2(0.5f, 1f);
-            Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-24f, 0f), new Vector2(300f, 32f));
+            Place(speaker.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(pad + 24f, -16f), new Vector2(textWidth - 24f, 30f));
+            speaker.rectTransform.pivot = new Vector2(0f, 1f);
+            Place(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(pad, narration ? -14f : -56f), new Vector2(textWidth, bodyHeight));
+            body.rectTransform.pivot = new Vector2(0f, 1f);
+            Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-pad + 8f, 8f), new Vector2(120f, 26f));
             hint.rectTransform.pivot = new Vector2(1f, 0f);
             return;
         }
@@ -250,7 +261,7 @@ public class DialoguePresentation : MonoBehaviour
         body.rectTransform.pivot = new Vector2(0f, 1f);
         Place(eyebrow, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, cardsHeight + 39f), new Vector2(250f, 24f));
         eyebrow.pivot = Vector2.zero;
-        Place(rule, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, cardsHeight + 32f), new Vector2(width, 1f));
+        Place(rule, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, cardsHeight + 32f), new Vector2(width, 2f));
         rule.pivot = Vector2.zero;
         float y = cardsHeight + 22f;
         for (int i = 0; i < count; i++)

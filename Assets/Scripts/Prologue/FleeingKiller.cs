@@ -24,6 +24,10 @@ public class FleeingKiller : MonoBehaviour
     public PrologueDoor[] doors;
     public float doorReach = 1.8f;
 
+    [Header("The knife in his hand (RevisedPlotDirector puts it there; none: a plain grey blade)")]
+    public GameObject knifeModel;           // the user's knife_LP, blade along its +y
+    public Material knifeMaterial;
+
     [Header("Footsteps")]
     public AudioSource steps;               // 3D, on him
     public AudioClip[] stepClips;

@@ -4,16 +4,25 @@ public class PunchController : MonoBehaviour
 {
     public Animator armsAnimator;
     public Transform cam;
+    public float cooldown = 0.55f;          // seconds between jabs: a fist has to come back before the next goes out
+    public float jabSpeed = 0.78f;          // the jab clips' playback (1 = as authored: too snappy)
     private bool useLeftNext = true;
+    private float nextPunch;
 
     void Update()
     {
         if (GunController.Equipped) return;
-        if (Input.GetMouseButtonDown(0))
+        // (back to the normal pace once the jab is over, unless something else has taken the arms: PalmLight pauses them)
+        if (Time.time >= nextPunch && Mathf.Approximately(armsAnimator.speed, jabSpeed)) armsAnimator.speed = 1f;
+        if (Input.GetMouseButtonDown(0) && Time.time >= nextPunch)
         {
+            nextPunch = Time.time + cooldown;
+            armsAnimator.speed = jabSpeed;
             Punch();
         }
     }
+
+    void OnDisable() { if (armsAnimator != null && Mathf.Approximately(armsAnimator.speed, jabSpeed)) armsAnimator.speed = 1f; }
 
     // fists down, out of the way (lying in the street after the fall): the first frame of the draw, held
     public void HoldDown()

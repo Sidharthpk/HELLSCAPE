@@ -2,22 +2,33 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
-// The prologue's opening flashback: Friday evening, the night before. You walk across the office to clock out for
-// the night run, say hi to Priya and Nadia (typing away at their desks), wave goodbye to the room, then the van
-// rolls out of the garage. Then the real prologue starts: Saturday morning, the end of the run.
-// Everything is found by name, so the scene needs no wiring (Priya and Nadia get Typing.controller here).
+// The prologue's opening flashback: Friday evening, the night before. You walk out through the office to start the
+// night run: it opens on Maya, Vane's assistant, at her computer across his desk, then you go past Omar on his
+// rounds in the hall outside Vane's door, Ben having it out with the kitchen's vending machine, Nadia typing on the
+// open-plan floor and Priya at the reception desk, and out of the front door. Then the van rolls out of the garage, and the
+// real prologue starts: Saturday morning, the end of the run.
+// It is the same office you come back to in the hell city ("Office Ground Floor", unburnt, on the same spot of this
+// scene), with everyone where you later find them. Everything is found by name, so the scene needs no wiring.
 public class OfficeFlashback : MonoBehaviour
 {
     public string timeCard = "FRIDAY  -  10:45 PM";
     public static bool Playing { get; private set; }   // the radio briefing waits for it
     public float eye = 1.6f;                // above the office floor
-    public float walkSpeed = 1.9f;
+    public float walkSpeed = 3.2f;          // (a big floor: 140 m from Vane's door to the front door)
 
-    // the office (it sits far off from the street, in the same scene): in through the east door, west along the aisle
-    static readonly Vector3 Door = new Vector3(993.4f, 0f, 982.2f);
-    static readonly Vector3 HelloPriya = new Vector3(987.6f, 0f, 981.8f);
-    static readonly Vector3 HelloNadia = new Vector3(990.9f, 0f, 981.8f);   // (walking west: Nadia's desk comes up first)
-    static readonly Vector3 Leave = new Vector3(982.4f, 0f, 980.0f);
+    // Maya is in Vane's office, behind his shut door: one held shot of her from across the desk, then a cut
+    static readonly Vector3 MayaShot = new Vector3(1047.4f, 0f, 905.7f);
+
+    // the walk, leg by leg: corners of the office's own walk map (NewOfficeFit bakes it in MainGameScene), eased off the walls.
+    // Each leg ends where you stand to talk: beside Ben (his profile, the machine in front of him), across the desk
+    // from Nadia and across the counter from Priya. The people are where the scene has them: move one and her leg's
+    // last point wants moving. (ToPriya goes straight through the open-plan floor's south door: in the hell city that
+    // door is bolted and cut out of the walk map.)
+    static readonly Vector3[] ToOmar = { new Vector3(1039.00f, 0f, 905.80f), new Vector3(1033.50f, 0f, 905.60f) };
+    static readonly Vector3[] ToBen = { new Vector3(1033.50f, 0f, 905.60f), new Vector3(1012.83f, 0f, 906.67f), new Vector3(1012.50f, 0f, 907.00f), new Vector3(1009.33f, 0f, 915.67f), new Vector3(1009.00f, 0f, 916.00f), new Vector3(999.00f, 0f, 918.17f), new Vector3(993.20f, 0f, 918.50f) };
+    static readonly Vector3[] ToNadia = { new Vector3(993.20f, 0f, 918.50f), new Vector3(999.00f, 0f, 918.17f), new Vector3(999.33f, 0f, 917.83f), new Vector3(999.33f, 0f, 914.83f), new Vector3(998.83f, 0f, 913.00f), new Vector3(998.50f, 0f, 912.67f), new Vector3(1000.00f, 0f, 910.90f) };   // (off to one side of her desk: from straight across it her own monitor hides her)
+    static readonly Vector3[] ToPriya = { new Vector3(1000.00f, 0f, 910.90f), new Vector3(995.80f, 0f, 910.90f), new Vector3(990.85f, 0f, 905.00f), new Vector3(990.85f, 0f, 898.60f), new Vector3(989.50f, 0f, 898.17f), new Vector3(986.80f, 0f, 897.90f), new Vector3(986.80f, 0f, 895.10f), new Vector3(986.60f, 0f, 886.60f), new Vector3(983.67f, 0f, 883.67f), new Vector3(983.33f, 0f, 883.33f), new Vector3(977.67f, 0f, 882.17f), new Vector3(976.50f, 0f, 882.17f), new Vector3(976.17f, 0f, 882.50f), new Vector3(975.20f, 0f, 889.50f), new Vector3(975.20f, 0f, 895.20f), new Vector3(972.60f, 0f, 895.60f) };   // (up the aisle east of the waiting seats, round their north end to the counter)
+    static readonly Vector3[] ToDoor = { new Vector3(972.60f, 0f, 895.60f), new Vector3(975.20f, 0f, 895.20f), new Vector3(975.20f, 0f, 889.50f), new Vector3(976.17f, 0f, 882.50f), new Vector3(982.50f, 0f, 872.20f) };
 
     public IEnumerator Run(PrologueDirector d)
     {
@@ -38,18 +49,18 @@ public class OfficeFlashback : MonoBehaviour
         if (priya == null || nadia == null || d.cine == null) yield break;   // an older scene: just skip it
 
         var typing = Resources.Load<RuntimeAnimatorController>("Typing");
-        foreach (var g in new[] { priya, nadia })
+        var maya = GameObject.Find("Maya");
+        foreach (var g in new[] { priya, nadia, maya })
         {
-            var a = g.GetComponent<Animator>();
+            var a = g != null ? g.GetComponent<Animator>() : null;
             if (a == null) continue;
             if (typing != null) a.runtimeAnimatorController = typing;
-            a.applyRootMotion = false;
-            g.transform.rotation = Quaternion.Euler(0f, g == priya ? 150f : 90f, 0f);   // turned to her keyboard (they were facing away)
+            a.applyRootMotion = false;           // (sat on her chair, as placed in the scene)
             a.Play("Typing", 0, Random.value);   // not in step with each other
         }
 
-        float floor = priya.transform.position.y;
-        var daylight = Interior(floor);
+        const float floor = 3.4f;   // the office's (the seated ones are on their chairs, a little higher)
+        var daylight = Interior(floor, d.cine);
         Vector3 At(Vector3 p) { p.y = floor + eye; return p; }
         var cam = d.cine;
         var ct = cam.transform;
@@ -58,18 +69,23 @@ public class OfficeFlashback : MonoBehaviour
         data.renderPostProcessing = false;   // the cutscene camera is plain: no post-processing
 
         // a title over black, then the picture comes up on the office door
+        var cardFont = Resources.Load<TMPro.TMP_FontAsset>("SourceSans3-Semibold SDF");
+        if (cardFont != null) { d.titleCard.font = cardFont; d.titleCard.fontSharedMaterial = cardFont.material; }
         d.titleCard.text = timeCard;
         d.titleCard.alpha = 0f;
         yield return Fade(d, 1f, 1.2f);
         yield return new WaitForSeconds(1.8f);
         yield return Fade(d, 0f, 1f);
 
-        // Omar paces the east hallway, Ben fights the printer in the south-west room (both placed in the scene)
+        // Omar paces the hall outside Vane's door, Ben is at the vending machine in the kitchen (both placed in the scene)
         var omar = GameObject.Find("Omar");
-        var ben = GameObject.Find("Character_05");
+        var ben = GameObject.Find("Ben");
         Vector3 omarHome = omar != null ? omar.transform.position : default;
         Quaternion omarRot = omar != null ? omar.transform.rotation : default;
         var omarAnim = omar != null ? omar.GetComponent<Animator>() : null;
+        var benAnim = ben != null ? ben.GetComponent<Animator>() : null;
+        var angry = Resources.Load<RuntimeAnimatorController>("AngryPoint");   // (the user's Mixamo "Angry Point", looped)
+        if (benAnim != null && angry != null) { benAnim.runtimeAnimatorController = angry; benAnim.applyRootMotion = false; }
         var omarCtrl = omarAnim != null ? omarAnim.runtimeAnimatorController : null;
         bool hall = omar != null && omarAnim != null;
         if (hall)
@@ -78,7 +94,7 @@ public class OfficeFlashback : MonoBehaviour
             if (walk != null) omarAnim.runtimeAnimatorController = walk;
             omarAnim.applyRootMotion = false;
             omarAnim.speed = 0.7f;
-            omar.transform.position = new Vector3(HallX, omarHome.y, 973f);
+            omar.transform.position = new Vector3(PaceEnds[0].x, omarHome.y, PaceEnds[0].z);
             paceOn = true;
             d.StartCoroutine(Pace(omar.transform));
         }
@@ -88,56 +104,41 @@ public class OfficeFlashback : MonoBehaviour
         CutsceneHUD.Hide(true);
         d.StartCoroutine(d.fader.FadeTo(0f, 1.5f));
         d.StartCoroutine(Track(ct));
-        Vector3 Hall(float z) => At(new Vector3(HallCamX, 0f, z));
-        if (hall) ct.SetPositionAndRotation(Hall(964f), Quaternion.LookRotation(Vector3.forward));
-        else ct.SetPositionAndRotation(At(Door), Quaternion.LookRotation(Vector3.left));
+        Vector3[] Leg(Vector3[] pts) { var r = new Vector3[pts.Length]; for (int i = 0; i < pts.Length; i++) r[i] = At(pts[i]); return r; }
+        IEnumerator Talk(Transform who, float height, string lines)
+        {
+            lookAt = who; lookHeight = height;
+            Say(lines);
+            yield return Wait();
+            lookAt = null;
+        }
+        if (maya != null)
+        {
+            // Vane's assistant, typing at the computer on his desk: a slow push in on her, then cut to the walk
+            Vector3 from = At(MayaShot), look = maya.transform.position + Vector3.up * 1.05f, push = (look - from).normalized * 0.7f;
+            ct.SetPositionAndRotation(from, Quaternion.LookRotation(look - from));
+            for (float t = 0f; t < 4f; t += Time.deltaTime) { ct.position = from + push * Mathf.SmoothStep(0f, 1f, t / 4f); yield return null; }
+            yield return d.fader.FadeTo(1f, 0.5f);
+            ct.SetPositionAndRotation(At(ToOmar[0]), Quaternion.LookRotation(Vector3.left));
+            d.StartCoroutine(d.fader.FadeTo(0f, 0.8f));
+        }
+        ct.SetPositionAndRotation(At(ToOmar[0]), Quaternion.LookRotation(Vector3.left));
         yield return new WaitForSeconds(0.6f);
-        Say("Night run again.");
 
-        if (hall)
-        {
-            // up the hallway to Omar, who is walking his rounds
-            yield return Path(ct, new[] { Hall(964f), Hall(968.8f) }, walkSpeed);
-            lookAt = omar.transform; lookHeight = 1.35f;
-            Say("Night, Omar.|Omar: Night. Mind the road.");
-            yield return Wait();
-            lookAt = null;
-            // on up the hallway and in through the door to the main office
-            yield return Path(ct, new[] { Hall(968.8f), Hall(978.5f), At(new Vector3(1000.75f, 0f, 979.8f)), At(new Vector3(1000.75f, 0f, 982.8f)), At(new Vector3(996.0f, 0f, 983.4f)), At(new Vector3(993.8f, 0f, 983.3f)) }, walkSpeed);
-            paceOn = false;
-        }
-        else yield return new WaitForSeconds(0.4f);
-        Vector3 inside = hall ? At(new Vector3(993.8f, 0f, 983.3f)) : At(Door);
-        yield return Walk(ct, inside, At(HelloNadia), Face(HelloNadia, nadia, floor), walkSpeed);
+        // the hall outside Vane's door: Omar, walking his rounds
+        yield return Path(ct, Leg(ToOmar), walkSpeed);
+        if (hall) yield return Talk(omar.transform, 1.55f, HS.S("1-4"));
 
-        // Nadia's desk first, then Priya's
-        Say("Evening, Nadia.|Nadia: Sign the sheet before you go. Vane's been checking.");
-        yield return Wait();
-        yield return Walk(ct, At(HelloNadia), At(HelloPriya), Face(HelloPriya, priya, floor), walkSpeed * 0.8f);
-        Say("Priya.|Priya: Sleep when you're back. You look terrible.");
-        yield return Wait();
-        Say("Will do. Night, you two.|Nadia: Drive safe.");
+        // past him, round the open-plan floor by the corridors and into the kitchen: Ben, telling the vending machine what he thinks of it
+        yield return Path(ct, Leg(ToBen), walkSpeed);
+        paceOn = false;
+        if (ben != null) yield return Talk(ben.transform, 1.5f, HS.S("14-16"));
 
-        if (ben != null)
-        {
-            // through to the print room: Ben, glaring at the printer
-            Vector3 benStand = At(new Vector3(981.3f, 0f, 975.2f));
-            yield return Path(ct, new[] { At(HelloPriya), At(new Vector3(983.5f, 0f, 981.4f)), At(new Vector3(981.9f, 0f, 979.2f)), At(new Vector3(981.75f, 0f, 977.3f)), benStand }, walkSpeed);
-            benOn = true;
-            d.StartCoroutine(Fidget(ben.transform));
-            lookAt = ben.transform; lookHeight = 1.25f;
-            Say("Ben: Jammed. Again. Third time tonight.|Ben: Sixty jobs depend on a printer older than I am.|Night, Ben.|Ben: Yeah. Go. ...Come ON, you--");
-            yield return Wait();
-            lookAt = null;
-            benOn = false;
-            // out through the south door
-            yield return Path(ct, new[] { benStand, At(new Vector3(980.6f, 0f, 972.0f)), At(new Vector3(979.75f, 0f, 969.4f)), At(new Vector3(979.75f, 0f, 965.8f)) }, walkSpeed);
-        }
-        else
-        {
-            yield return Walk(ct, At(HelloPriya), At(Leave), At(Leave) + Vector3.left * 5f + Vector3.down * 0.2f, walkSpeed);
-            yield return Wait();
-        }
+        // back out and onto the open-plan floor: Nadia at her desk. Then its south door, the corridor and reception: Priya at the counter
+        yield return Path(ct, Leg(ToNadia), walkSpeed);
+        yield return Talk(nadia.transform, 1.1f, HS.S("5-10"));
+        yield return Path(ct, Leg(ToPriya), walkSpeed);
+        yield return Talk(priya.transform, 1.1f, HS.S("11-13"));
 
         if (hall)
         {
@@ -146,8 +147,12 @@ public class OfficeFlashback : MonoBehaviour
             omarAnim.speed = 1f;
         }
 
-        // out through the office, to the garage
+        // out through the lobby to the front door, and the garage (Maya on the radio as you go)
+        Say(HS.S("17-19"));
+        yield return Path(ct, Leg(ToDoor), walkSpeed * 0.8f);
+        yield return Wait();
         yield return d.fader.FadeTo(1f, 0.8f);
+
         daylight();
         cam.enabled = false;
         yield return DriveOut(d, ct, cam);
@@ -207,29 +212,36 @@ public class OfficeFlashback : MonoBehaviour
     }
 
     // the office at night: no sun through the windows, flat cool ambient and a few LED ceiling panels along the way
-    static System.Action Interior(float floor)
+    static System.Action Interior(float floor, Camera cam)
     {
+        var flags = cam.clearFlags; var bg = cam.backgroundColor;
+        cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.02f, 0.03f, 0.07f);   // (10:45 PM out of the windows)
         var suns = new System.Collections.Generic.List<(Light l, float i)>();
         foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None)) if (l.type == LightType.Directional) { suns.Add((l, l.intensity)); l.intensity = 0f; }
         float amb = RenderSettings.ambientIntensity;
         RenderSettings.ambientIntensity = amb * 0.55f;
         var root = new GameObject("Office LEDs");
         Vector3[] spots = {
-            new Vector3(1001.0f, 0f, 966f), new Vector3(1001.0f, 0f, 972f), new Vector3(1001.0f, 0f, 978f),
-            new Vector3(998f, 0f, 984f), new Vector3(992f, 0f, 981f), new Vector3(986f, 0f, 979f),
-            new Vector3(981.5f, 0f, 975f), new Vector3(981.5f, 0f, 970f), new Vector3(978.7f, 0f, 967f) };
+            new Vector3(1039f, 0f, 906f), new Vector3(1030f, 0f, 906f), new Vector3(1021f, 0f, 906f), new Vector3(1012f, 0f, 907f),   // the hall outside Vane's door
+            new Vector3(1011f, 0f, 913f), new Vector3(1009f, 0f, 918f), new Vector3(1002f, 0f, 917.8f),   // up its east side, the north corridor
+            new Vector3(991f, 0f, 920f), new Vector3(993.5f, 0f, 922.5f),   // kitchen
+            new Vector3(999f, 0f, 911f), new Vector3(993f, 0f, 905f), new Vector3(988f, 0f, 900f),   // open-plan floor
+            new Vector3(986.5f, 0f, 891f), new Vector3(983f, 0f, 885f), new Vector3(979f, 0f, 879f), new Vector3(982.5f, 0f, 873f),   // corridor, lobby
+            new Vector3(974f, 0f, 887.5f), new Vector3(972f, 0f, 895f),   // reception
+            new Vector3(1048f, 0f, 906f), new Vector3(1053f, 0f, 903f) };   // Vane's office
         foreach (var p in spots)
         {
             var go = new GameObject("LED");
             go.transform.SetParent(root.transform);
-            go.transform.position = new Vector3(p.x, floor + 3.1f, p.z);
+            go.transform.position = new Vector3(p.x, floor + 2.6f, p.z);
             var l = go.AddComponent<Light>();
-            l.type = LightType.Point; l.color = new Color(0.82f, 0.93f, 1f); l.intensity = 2.2f; l.range = 8f; l.shadows = LightShadows.None;
+            l.type = LightType.Point; l.color = new Color(0.82f, 0.93f, 1f); l.intensity = 3.2f; l.range = 11f; l.shadows = LightShadows.None;
         }
         return () =>
         {
             foreach (var (l, i) in suns) if (l != null) l.intensity = i;
             RenderSettings.ambientIntensity = amb;
+            cam.clearFlags = flags; cam.backgroundColor = bg;
             if (root != null) Destroy(root);
         };
     }
@@ -268,21 +280,20 @@ public class OfficeFlashback : MonoBehaviour
         ct.rotation = Quaternion.LookRotation(look - to);
     }
 
-    // Omar's hallway (it runs north-south along the east side of the office) and the lane the camera takes
-    const float HallX = 1000.5f, HallCamX = 1001.5f;
-    bool paceOn, benOn;
+    // Omar's beat: the hall outside Vane's door, along its south wall (you pass on the north side)
+    static readonly Vector3[] PaceEnds = { new Vector3(1026f, 0f, 904.7f), new Vector3(1031.5f, 0f, 904.7f) };
+    bool paceOn;
     Transform lookAt;
     float lookHeight = 1.3f;
 
-    // up and down the hallway, turning at each end
+    // up and down it, turning at each end
     IEnumerator Pace(Transform omar)
     {
-        float[] ends = { 977.5f, 970.5f };
-        int to = 0;
+        int to = 1;
         while (paceOn)
         {
             Vector3 p = omar.position;
-            Vector3 goal = new Vector3(HallX, p.y, ends[to]);
+            Vector3 goal = new Vector3(PaceEnds[to].x, p.y, PaceEnds[to].z);
             Vector3 dir = goal - p; dir.y = 0f;
             if (dir.magnitude < 0.2f) { to = 1 - to; continue; }
             omar.position = p + dir.normalized * 0.95f * Time.deltaTime;
@@ -303,25 +314,6 @@ public class OfficeFlashback : MonoBehaviour
             }
             yield return null;
         }
-    }
-
-    // Ben thumps the printer now and then
-    IEnumerator Fidget(Transform ben)
-    {
-        Vector3 p0 = ben.position; Quaternion r0 = ben.rotation;
-        while (benOn)
-        {
-            yield return new WaitForSeconds(Random.Range(1.2f, 2.2f));
-            for (float t = 0f; t < 0.3f && benOn; t += Time.deltaTime)
-            {
-                float k = Mathf.Sin(t / 0.3f * Mathf.PI);
-                ben.position = p0 + ben.forward * 0.06f * k;
-                ben.rotation = r0 * Quaternion.Euler(0f, -4f * k, 0f);
-                yield return null;
-            }
-            ben.SetPositionAndRotation(p0, r0);
-        }
-        ben.SetPositionAndRotation(p0, r0);
     }
 
     // a continuous walk along several points, with a footstep bob; it looks where it's going

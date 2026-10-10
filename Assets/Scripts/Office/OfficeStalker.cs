@@ -95,7 +95,7 @@ public class OfficeStalker : MonoBehaviour
     bool InOffice(Vector3 p) => p.x > xRange.x && p.x < xRange.y && p.z > zRange.x && p.z < zRange.y;
 
     // nothing solid between your eyes and `b` (you and the figure itself do not count)
-    bool Clear(Vector3 a, Vector3 b)
+    public bool Clear(Vector3 a, Vector3 b)
     {
         Vector3 d = b - a; float len = d.magnitude;
         if (len < .01f) return true;

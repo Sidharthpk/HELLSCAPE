@@ -19,6 +19,8 @@ public class OfficeHorrorDirector : MonoBehaviour
     public int Stage { get; private set; }
     public int Corruption => Mathf.Max(0, Stage - 2);   // 0 safe .. 3 the Echo is hunted
     public OfficeStalker Auditor => stalker;
+    public OfficeEye Eye { get; private set; }
+    OfficeColleagues colleaguesAct;
 
     RevisedPlotDirector plot;
     Transform player; Camera cam; FirstPersonController fpc; PlayerHealth health;
@@ -53,7 +55,9 @@ public class OfficeHorrorDirector : MonoBehaviour
 
     class DeskPhone { public Transform t; public AudioSource ring; public Interactable use; public bool ringing; }
 
-    static bool In(Vector3 p) => p.x > 990f && p.x < 1030f && p.z > 984f && p.z < 1036f;
+    // the office = the zone of its InteriorDarkness (OfficeAct/Office), so it follows the model wherever it stands
+    static Bounds zone = new Bounds(new Vector3(1015.5f, 5f, 899.4f), new Vector3(106f, 18f, 77f));
+    public static bool In(Vector3 p) => zone.Contains(p);
     bool InOffice => player != null && In(player.position);
     bool Safe => fpc != null && fpc.enabled && !GhostNPC.Conversing && !PauseMenu.Paused && !TitleScreen.Showing && !GameOverScreen.Open
         && !NoteViewer.Blocking && !(conf != null && conf.Ambushing) && (plot == null || !plot.InSequence)
@@ -70,22 +74,26 @@ public class OfficeHorrorDirector : MonoBehaviour
         cam = player != null ? player.GetComponentInChildren<Camera>() : null;
         health = player != null ? player.GetComponentInParent<PlayerHealth>() ?? player.GetComponentInChildren<PlayerHealth>() : null;
         if (player == null || cam == null) { enabled = false; return; }
+        foreach (var d in RevisedPlot.All<InteriorDarkness>(scene)) if (d.name == "Office") zone = d.zone;
+        gameObject.AddComponent<OfficeMinimap>().Init(player, zone);
 
         GhostNPC male = null, female = null;
+        var colleagues = new List<GhostNPC>();
         foreach (var g in RevisedPlot.All<GhostNPC>(scene))
         {
             if (g.ghostName == "Ben") male = g;
             if (g.ghostName == "Priya") female = g;
             if (g.ghostName == "Tomas")
             {
-                tomas = g.GetComponent<SoulConviction>() ?? g.gameObject.AddComponent<SoulConviction>();
+                tomas = g.GetOrAdd<SoulConviction>();
                 tomas.Solidify(WitnessLook.Load("IntactMale"), new Color(.92f, .92f, .95f, 1f));
             }
             // burnt look for the witnesses (Tomas keeps his own, nearly intact; Vane is Kessler's stand-in)
             if ((g.ghostName == "Priya" || g.ghostName == "Ben" || g.ghostName == "Nadia" || g.ghostName == "Omar") && g.GetComponent<WitnessLook>() == null)
             {
                 g.gameObject.AddComponent<WitnessLook>();
-                if (g.GetComponent<PainWalk>() == null) g.gameObject.AddComponent<PainWalk>();   // burnt, not judged yet, walking in pain
+                if (g.GetComponent<PainWalk>() == null) g.gameObject.AddComponent<PainWalk>().roam = 0f;   // burnt, not judged yet, in pain: standing, not wandering (OfficeColleagues)
+                colleagues.Add(g);
             }
         }
         Transform mt = male != null ? male.body ?? male.transform : null, ft = female != null ? female.body ?? female.transform : mt;
@@ -129,7 +137,16 @@ public class OfficeHorrorDirector : MonoBehaviour
 
         foreach (var i in RevisedPlot.All<Interactable>(scene)) if (i.name == "YourDesk_Note") deskNote = i.transform;
         BuildProps(scene);
-        gameObject.AddComponent<OfficeLurkers>().Init(this, stalker, player, cam, health, mt, conf != null && conf.damned != null ? conf.damned.gameObject : null, () => Safe && InOffice && !echo && !withdrawn && !ended);
+        gameObject.AddComponent<OfficeLurkers>().Init(this, stalker, player, cam, health, mt, conf != null && conf.damned != null ? conf.damned.gameObject : null, () => Safe && InOffice && !echo && !withdrawn && !ended && (Eye == null || !Eye.Chasing));
+        colleaguesAct = gameObject.AddComponent<OfficeColleagues>(); colleaguesAct.Init(colleagues, player, cam, stalker, () => Safe && InOffice && !echo && !withdrawn && !ended);
+        foreach (var go in scene.GetRootGameObjects())
+            if (go.name == "EyeBalls" && Eye == null)
+            {
+                Eye = gameObject.AddComponent<OfficeEye>();
+                // (not `Safe`: a line of your own on screen must not stop it mid-chase. Only what stops you stops it)
+                Eye.Init(go.transform, player, cam, health, stalker, () => InOffice && fpc.enabled && !GhostNPC.Conversing && !NoteViewer.Blocking && !PauseMenu.Paused
+                    && !GameOverScreen.Open && !(plot != null && plot.InSequence) && !(ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open), () => !echo && !withdrawn && !ended);
+            }
         blink = gameObject.AddComponent<RealmBlink>(); blink.Initialize(player);
         cctv = gameObject.AddComponent<OfficeCctvMemory>(); cctv.Initialize(tapes, player, cam, mt);
         var loop = gameObject.AddComponent<OfficeMemoryLoop>(); loop.Initialize(this, director, fpc);
@@ -141,6 +158,7 @@ public class OfficeHorrorDirector : MonoBehaviour
         var s = new GameObject(name).AddComponent<OfficeStalker>();
         s.transform.SetParent(transform, false);
         s.player = player; s.cam = cam; s.health = health;
+        s.xRange = new Vector2(zone.min.x, zone.max.x); s.zRange = new Vector2(zone.min.z, zone.max.z);
         s.canAct = () => Safe && InOffice && !echo;
         s.Build(template, material);
         s.enabled = false;
@@ -259,7 +277,7 @@ public class OfficeHorrorDirector : MonoBehaviour
         var t = go.AddComponent<TextMeshPro>();
         var pixel = Resources.Load<TMP_FontAsset>("NotePixelFont");
         if (pixel != null) t.font = pixel;
-        t.text = text; t.fontSize = size * 10f; t.color = c; t.alignment = TextAlignmentOptions.Center; t.enableWordWrapping = false;
+        t.text = text; t.fontSize = size * 10f; t.color = c; t.alignment = TextAlignmentOptions.Center; t.textWrappingMode = TextWrappingModes.NoWrap;
         t.rectTransform.sizeDelta = new Vector2(2f, .4f);
         return t;
     }
@@ -279,9 +297,9 @@ public class OfficeHorrorDirector : MonoBehaviour
         {
             case 1: redEvents.Enqueue(DesksEvent); break;
             case 2: redEvents.Enqueue(PhonesEvent); break;
-            case 3: stalker.enabled = true; visitor.enabled = true; redEvents.Enqueue(AuditorIntro); break;
+            case 3: stalker.enabled = true; visitor.enabled = true; Say(HS.S("268")); redEvents.Enqueue(AuditorIntro); break;
         }
-        if (s == 4) { visitor.progress = .5f; FlashOverlay(new Color(.4f, .55f, .8f), .5f, .6f); Say("The Echo flickered. The wall clock just ran backwards."); }
+        if (s == 4) { visitor.progress = .5f; FlashOverlay(new Color(.4f, .55f, .8f), .5f, .6f); Say(HS.S("284-285")); }
         RefreshDesk();
     }
 
@@ -294,7 +312,7 @@ public class OfficeHorrorDirector : MonoBehaviour
         if (step == 1)
         {
             if (tape != null && tape.display != null) tape.display.text = "CAM 1  " + tape.order[0].ToUpperInvariant() + "\n1 PERSON STANDING";
-            Say("The lobby feed has someone standing in it.|I walked through the lobby. There was nobody.");
+            Say(HS.S("321"));
             Sting();
         }
         else if (step == 2)
@@ -302,13 +320,13 @@ public class OfficeHorrorDirector : MonoBehaviour
             if (tape != null && tape.display != null) tape.display.text = "CAM 2  " + tape.order[1].ToUpperInvariant() + "\nYOU";
             if (stalker.enabled == false) stalker.enabled = true;
             if (stalker.TryFind(3.5f, false, out var behind)) stalker.Apparition(behind, .9f);
-            Say("The monitor shows the back of someone's head. My jacket. My shoulders.|Something is standing right behind them.");
+            Say(HS.S("322"));
             FlashOverlay(Color.black, .7f, .15f);
         }
         else if (step == 3)
         {
             if (tape != null && tape.display != null) tape.display.text = "CAM 1 / 2 / 3 / 4\nTHE SAME CORRIDOR";
-            Say("All four cameras show the same corridor now.|They are not supposed to be the same place.");
+            Say(HS.S("323-324"));
             Sting();
         }
     }
@@ -317,6 +335,7 @@ public class OfficeHorrorDirector : MonoBehaviour
     {
         if (ended || breakdown) return;
         Advance(5);
+        Say(HS.S("320,325-335"));   // the terminal, then what the tape's microphone caught
         StartCoroutine(Breakdown());
     }
 
@@ -332,7 +351,7 @@ public class OfficeHorrorDirector : MonoBehaviour
         Sting();
         yield return new WaitForSeconds(2f);
         for (int i = 0; i < 4; i++) { pendingShifts++; yield return new WaitForSeconds(1.2f); }
-        Pa("PA: Driver. Report to Vane's office.|PA: ...Driver. We know you read it.");
+        Pa(HS.S("338-339"));
     }
 
     // ---------------------------------------------------------------- red-city events
@@ -348,12 +367,12 @@ public class OfficeHorrorDirector : MonoBehaviour
                 if (g != null) figs.Add(g);
             }
         lightMul = 1f; lightsDirty = true;
-        Say("Everyone's at their desk.|They're all facing away from me.");
+        Say(HS.S("269-271"));
         yield return new WaitForSeconds(3.2f);
         yield return LightStutter(.9f, 0f);
         foreach (var g in figs) if (g != null) Destroy(g);
         yield return new WaitForSeconds(.4f);
-        Say("...No. There's nobody there. There was never anybody there.");
+        Say(HS.S("272"));
     }
 
     IEnumerator PhonesEvent()
@@ -361,14 +380,13 @@ public class OfficeHorrorDirector : MonoBehaviour
         Sting();
         if (phones.Count > 0) Ring(phones[0], true);
         PrintPage();
-        yield return new WaitForSeconds(1.2f);
-        Say("Somewhere in the office a phone is ringing.");
+        yield return null;   // (the ring is the line)
     }
 
     IEnumerator AuditorIntro()
     {
         yield return new WaitForSeconds(2f);
-        Say("Something is standing at the far end of the corridor.|Don't look at it for too long.");
+        Pa(HS.S("273-274"));
     }
 
     void Ring(DeskPhone p, bool on)
@@ -382,10 +400,7 @@ public class OfficeHorrorDirector : MonoBehaviour
     {
         Ring(p, false);
         answers++;
-        if (answers == 1) Say("Hello?|...|Breathing. Then the line goes dead.");
-        else if (answers == 2) Say("Phone: ...who signed it?|Phone: Who signed it?");
-        else if (answers == 3) Say("Phone: I didn't read it. I didn't read it. I didn't read it.|That's my voice. That's MY voice.");
-        else Say("Phone: Pick up the other one.");
+        Say(HS.S(answers == 1 ? "367" : answers == 2 ? "368" : "369"));
         if (answers < 4 && phones.Count > 0 && Stage >= 2) StartCoroutine(RingLater(phones[UnityEngine.Random.Range(0, phones.Count)], UnityEngine.Random.Range(25f, 45f)));
     }
 
@@ -394,10 +409,7 @@ public class OfficeHorrorDirector : MonoBehaviour
     void PrinterRead()
     {
         prints++;
-        if (Stage < 2) Say("The printer's burnt through. Dead.");
-        else if (Stage == 2) Say("A page, half-printed: INCIDENT REPORT -- T. Rourke fell... fell... fell.|The toner is still warm.");
-        else if (Stage == 3) Say("Page after page, the same signature. Mine. Over and over.");
-        else Say("Every sheet reads the same:|I DIDN'T READ IT.");
+        Say(HS.S(Stage < 3 ? "375" : "376-377"));
     }
 
     void RefreshDesk()
@@ -415,6 +427,7 @@ public class OfficeHorrorDirector : MonoBehaviour
             ? "Derek and me beside the delivery van. Two faces. I remember taking this."
             : "Derek is still in the photograph. My face has been scraped away. The frame is warm.";
         bodies.SetEcho(on);
+        if (colleaguesAct != null) colleaguesAct.SetEcho(on);
         bed.clip = on ? humEcho : humRed; bed.Play();
         foreach (var m in mugs) if (m != null) m.gameObject.SetActive(on && Stage >= 2);
         if (on) ShuffleMugs();
@@ -504,7 +517,7 @@ public class OfficeHorrorDirector : MonoBehaviour
         if (pendingShifts > 0 && !echo && bodies.Shift()) pendingShifts--;
 
         paTimer -= Time.deltaTime; scareTimer -= Time.deltaTime; footTimer -= Time.deltaTime; boxTimer -= Time.deltaTime;
-        if (paTimer <= 0f) { paTimer = Mathf.Lerp(80f, 30f, Stage / 5f) * UnityEngine.Random.Range(.8f, 1.3f); NextAnnouncement(); }
+        if (paTimer <= 0f) { paTimer = Mathf.Lerp(150f, 75f, Stage / 5f) * UnityEngine.Random.Range(.8f, 1.3f); NextAnnouncement(); }
         if (scareTimer <= 0f) { scareTimer = Mathf.Lerp(45f, 16f, Stage / 5f) * UnityEngine.Random.Range(.7f, 1.3f); StartCoroutine(FalseScare()); }
         if (echo && Corruption >= 1 && footTimer <= 0f) { footTimer = UnityEngine.Random.Range(22f, 40f); StartCoroutine(Footsteps(8f, 5, .6f)); }
         if (boxTimer <= 0f) { boxTimer = 1f; TendBox(); }
@@ -542,18 +555,18 @@ public class OfficeHorrorDirector : MonoBehaviour
 
     static readonly string[][] Announcements =
     {
-        new[] { "PA: Attention staff. Fire drill at six fifteen. Please leave by the nearest exit.", "PA: Reminder: all incident reports must be signed before the end of the shift." },
-        new[] { "PA: Incident report incomplete.", "PA: Priya, please come to reception.", "PA: Ben. Ben, please come to reception." },
-        new[] { "PA: Would the night cleaner please come to the front desk.", "PA: Who signed it?", "PA: Nadia to the printer. Omar to the printer." },
-        new[] { "Tomas: Why didn't you ask?", "PA: This is not a drill. This was never a drill.", "PA: The Echo is closed for maintenance." },
-        new[] { "PA: Driver. Report to Vane's office.", "PA: Driver. We know you read it." },
-    };
+        new[] { "154-156", "370" },
+        new[] { "371" },
+        new[] { "372", "373" },
+        new[] { "373", "374" },
+        new[] { "338", "339" },
+    };   // rows of the script, by stage (3.1, 3.12 and the 3.14 pool)
 
     void NextAnnouncement()
     {
         if (breakdown || (DialogueBox.Instance != null && DialogueBox.Instance.Busy)) return;
         var set = Announcements[Mathf.Clamp(Stage < 2 ? 0 : Stage - 1, 0, Announcements.Length - 1)];
-        Pa(set[paIndex++ % set.Length]);
+        Pa(HS.S(set[paIndex++ % set.Length]));
     }
 
     void Pa(string line) { StartCoroutine(PaRoutine(line)); }
@@ -648,7 +661,8 @@ public class OfficeHorrorDirector : MonoBehaviour
         if (Vector3.Angle(cam.transform.forward, to) > 28f) return;
         deskSeen = true;
         stalker.Apparition(h.point, 1.4f);
-        Say("Someone is sitting in my chair.");
+        Say(HS.S("378"));
+
     }
 
     // ---------------------------------------------------------------- the end of it

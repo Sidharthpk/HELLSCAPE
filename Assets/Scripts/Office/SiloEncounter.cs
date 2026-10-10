@@ -51,7 +51,10 @@ public class SiloEncounter : MonoBehaviour
     [TextArea] public string throwLine = "Maya: HEY! Down there! Security's rifle-- CATCH!";
     [TextArea] public string gunLine = "Security's rifle. Okay. Okay.";
     [TextArea] public string defeatedLine = "He drops to his knees, blood running down his face.|Elias: Go on. Finish it. You people are good at that.";
-    [TextArea] public string killLine = "...|There's a visitor badge in his coat. ELIAS ROURKE.|Clipped to it, a photo of the night cleaner. TOMAS ROURKE. 'My little brother.'";
+    [TextArea] public string killTalkLine = "";   // after the first shot, before the one that ends it
+    public bool mayaTurnsOnKill = true;           // kill route: Maya says it anyway and turns (as built). Off: she swims out with you
+    [TextArea] public string killMayaLine = "";   // what she says then
+    [TextArea] public string killLine ="...|There's a visitor badge in his coat. ELIAS ROURKE.|Clipped to it, a photo of the night cleaner. TOMAS ROURKE. 'My little brother.'";
     [TextArea] public string spareLine = "Elias: ...you'd let me live? After everything?|Elias: My brother Tomas cleaned your floors for six years. Nobody knew his name.|Elias: One night he opened one of the trucks Kessler ran through Silo 2. That's all. He looked.|Elias: He was scared out of his mind. So he told one person. Someone he trusted.";
 
     [Header("Mercy: Maya says it out loud")]
@@ -536,6 +539,14 @@ public class SiloEncounter : MonoBehaviour
         if (kill)
         {
             Judgement.KilledKiller = true;
+            if (!string.IsNullOrEmpty(killTalkLine))
+            {
+                // the click was a shot he took on his knees: they say it to each other, then the second one
+                Say(killTalkLine);
+                yield return Talk(40f);
+                var gun = FindFirstObjectByType<GunController>();
+                if (gun != null && gun.source != null && gun.shotClip != null) gun.source.PlayOneShot(gun.shotClip);
+            }
             killer.FallDead();
             yield return new WaitForSeconds(1f);
             Say(killLine);
@@ -595,9 +606,11 @@ public class SiloEncounter : MonoBehaviour
         Say(keysLine + "|" + confessionLine);
         yield return RevisedPlotDirector.WaitForDialogue();
         // Ending Elias cannot suppress Maya's choice: both routes leave her Damned for Tomas's finale.
-        if (maya != null && !maya.Turned && flood != null && flood.risenDamned != null)
+        // (The game document and the rewritten script say she goes into the flood with you instead: clear
+        // mayaTurnsOnKill for that. Rows 473-482 and the "pulled Maya out" verdict are only reachable then.)
+        if (mayaTurnsOnKill && maya != null && !maya.Turned && flood != null && flood.risenDamned != null)
         {
-            Say(mayaSnapLine);
+            Say(killMayaLine);
             yield return RevisedPlotDirector.WaitForDialogue();
             Vector3 at = killer.transform.position + killer.transform.right * 3f;
             if (Physics.Raycast(at + Vector3.up * 2f, Vector3.down, out var hit, 5f, ~0, QueryTriggerInteraction.Ignore)) at.y = hit.point.y;

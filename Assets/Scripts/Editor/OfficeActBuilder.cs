@@ -68,6 +68,13 @@ public static class OfficeActBuilder
     [MenuItem("HellScape/Build Office Act")]
     public static void Build()
     {
+        // this rebuild lays the act out for the old Sketchfab rooms and deletes OfficeAct first: it would wipe the
+        // ground-floor layout (HellScape > Office > Fit To New Office)
+        if (GameObject.Find(NewOfficeFit.ModelName) != null)
+        {
+            Debug.LogError("Build Office Act is for the old office rooms. The act now lives in '" + NewOfficeFit.ModelName + "': use HellScape > Office > Fit To New Office.");
+            return;
+        }
         // the models' walls are one-sided: without this, probes pass through a wall from behind and puzzles
         // end up placed on the far side of it
         bool backfaces = Physics.queriesHitBackfaces;
@@ -811,7 +818,8 @@ public static class OfficeActBuilder
         // real darkness inside: no sun or sky light through the model's one-sided walls and roof
         var dark = o.gameObject.AddComponent<InteriorDarkness>();
         dark.player = player.transform;
-        dark.blackoutUntilPowered = true;   // pitch black until the fuses are in: your palms (PalmLight) are the only light
+        dark.blackoutUntilPowered = true;   // dark but for the red emergency lamps until the fuses are in: your palms (PalmLight) are the light to see by
+        dark.fogDensity = 0f;               // no haze indoors
         var modelRs = officeModel.GetComponentsInChildren<Renderer>();
         var ob = modelRs[0].bounds;
         foreach (var r in modelRs) ob.Encapsulate(r.bounds);

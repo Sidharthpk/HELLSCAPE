@@ -38,7 +38,7 @@ public class OfficeRealmPuzzles : MonoBehaviour
             Vector3 half = box.size * .5f + pad;
             if (Mathf.Abs(local.x) < half.x && Mathf.Abs(local.y) < half.y && Mathf.Abs(local.z) < half.z)
             {
-                if (announce) DialogueBox.Instance?.Say("Clear the doorway before changing realms. The burnt door will close here.");
+                if (announce) DialogueBox.Instance?.Say("I can't switch here. I'm standing in the doorway.");
                 return false;
             }
         }

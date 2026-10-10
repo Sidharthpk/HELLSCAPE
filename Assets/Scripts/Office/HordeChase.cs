@@ -64,7 +64,8 @@ public class HordeChase : MonoBehaviour
     public float barHeight = 90f;
     public Behaviour carControl;
     public ScreenFader fader;
-    [TextArea] public string introLine = "Oh God. The whole city's coming--|They heard the engine. ALL of them heard it.";
+    [TextArea] public string clingLineAlone = "They're on the van. Shake them off.";   // Sam isn't in the van to say it
+    [TextArea] public string introLine ="Oh God. The whole city's coming--|They heard the engine. ALL of them heard it.";
     public string driveLine = "DRIVE!";
     [TextArea] public string stopLine = "They stopped... they won't set foot on the bridge.|What scares the damned?";
     public string musicArea = "Escape";
@@ -435,7 +436,13 @@ public class HordeChase : MonoBehaviour
         if (r.z.mainCollider != null) r.z.mainCollider.enabled = false;   // don't let the car's sweep run it over
         Screams(1, r.z);
         // the first time: say what's happening and how to get rid of them
-        if (!clingHinted && DialogueBox.Instance != null) { clingHinted = true; DialogueBox.Instance.Say(clingLine); }
+        if (!clingHinted && DialogueBox.Instance != null)
+        {
+            clingHinted = true;
+            bool sam = false;
+            foreach (var s in Survivor.All) if (s != null && s.Rescued && s.displayName == "Sam") sam = true;
+            DialogueBox.Instance.Say(sam ? clingLine : clingLineAlone);
+        }
     }
 
     void Cling(Runner r)

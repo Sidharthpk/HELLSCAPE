@@ -5,7 +5,7 @@ using UnityEngine;
 using TMPro;
 
 // The subtitle panel. Every line shows WHO is talking:
-//   - your own lines (plain text in the script): the name plate reads YOU and the text is amber
+//   - your own lines (plain text in the script): the name plate reads YOU and the text is bone white
 //   - someone else ("Name: text"): their name on the plate in their own colour, the text in white
 //   - a voice with no face ("quoted text": the TV, a radio, a memory): white italics, no name
 // While anyone is talking the picture goes letterbox (thin black bars), like a cutscene; not while you're driving
@@ -171,6 +171,7 @@ public class DialogueBox : MonoBehaviour
         generation++;
         queue.Clear(); pendingBatches.Clear();
         running = cutCurrent = urgent = bars = false;
+        if (tutorialCard != null) Destroy(tutorialCard);   // (its coroutine has just been stopped: it would stay up for good)
         if (group != null) group.alpha = 0f;
         if (hintText != null) hintText.alpha = 0f;
     }
@@ -195,7 +196,8 @@ public class DialogueBox : MonoBehaviour
         if (m.Success && IsName(m.Groups[1].Value.Trim()))
         {
             string who = m.Groups[1].Value.Trim();
-            return new Line { speaker = who, body = m.Groups[2].Value.Trim(), plate = Plate(who), colour = otherColor };
+            if (who == "You") raw = m.Groups[2].Value.Trim();   // your own line inside someone else's speech (HS.S)
+            else return new Line { speaker = who, body = m.Groups[2].Value.Trim(), plate = Plate(who), colour = otherColor };
         }
         if (raw.Length > 0 && (raw[0] == '"' || raw[0] == '“'))
             return new Line { speaker = "", body = raw, plate = voiceColor, colour = voiceColor, italic = true };
@@ -224,7 +226,7 @@ public class DialogueBox : MonoBehaviour
     IEnumerator Run()
     {
         running = true;
-        if (!tutorialShown) yield return Tutorial();
+        if (!tutorialShown && InOffice) yield return Tutorial();
         // (outer loop: a line that arrives while the box is fading out is still said, not left stranded in the queue)
         while (queue.Count > 0)
         {
@@ -283,8 +285,11 @@ public class DialogueBox : MonoBehaviour
 
     static bool InEcho => RevisedPlotDirector.Instance != null && RevisedPlotDirector.Instance.Echo;
 
-    // a one-off "how dialogue works" card before the first line of the game
+    // a one-off "how talking works" card before the first line said inside the office, where the conversations are
+    // (not at the start of the game: the prologue and the street have nobody to answer)
+    static bool InOffice => Camera.main != null && Camera.main.gameObject.scene.name == "MainGameScene" && OfficeHorrorDirector.In(Camera.main.transform.position);
     static bool tutorialShown;
+    GameObject tutorialCard;
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetTutorial() => tutorialShown = false;
 
@@ -293,19 +298,20 @@ public class DialogueBox : MonoBehaviour
         tutorialShown = true;
         var parent = transform.parent;
         if (parent == null || AutoAdvanceAfter > 0f) yield break;
-        var panel = new GameObject("DialogueTutorial", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+        var panel = tutorialCard = new GameObject("DialogueTutorial", typeof(RectTransform), typeof(UnityEngine.UI.Image));
         panel.transform.SetParent(parent, false);
         var rt = (RectTransform)panel.transform;
         rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
-        panel.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.82f);
+        panel.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.88f);
         var t = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
         t.transform.SetParent(panel.transform, false);
-        t.font = text.font; t.fontSize = 34f; t.alignment = TextAlignmentOptions.Center; t.raycastTarget = false;
-        t.text = "<size=130%>HOW CONVERSATIONS WORK</size>\n\n" +
-                 "Press <color=#FFCC5C>[E]</color> to skip to the end of a line, and again for the next one.\n" +
-                 "Lines also move on by themselves: after 3 seconds, or 10 seconds when you're talking in the Echo realm.\n" +
-                 "When choices appear, pick the answer you mean. Some people won't wait for you.\n\n" +
-                 "<alpha=#99>Press [E] to begin";
+        t.font = text.font; t.fontSize = 30f; t.alignment = TextAlignmentOptions.Center; t.raycastTarget = false;
+        t.color = DialoguePresentation.Bone; t.lineSpacing = 14f;
+        t.text = "<size=150%><color=#C70D0A>TALKING TO THE DEAD</color></size>\n\n" +
+                 "<color=#C70D0A>[E]</color>  next line\n" +
+                 "<color=#C70D0A>[1-4]</color>  choose your answer\n\n" +
+                 "Some of them won't wait for you.\n\n" +
+                 "<alpha=#88>[E] to go on";
         var trt = t.rectTransform; trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one; trt.offsetMin = new Vector2(160f, 0f); trt.offsetMax = new Vector2(-160f, 0f);
         panel.transform.SetAsLastSibling();
         yield return null;

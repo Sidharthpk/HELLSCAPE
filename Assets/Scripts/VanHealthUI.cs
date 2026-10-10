@@ -36,7 +36,7 @@ public class VanHealthUI : MonoBehaviour
             percent = rt.gameObject.AddComponent<TextMeshProUGUI>();
             var font = Resources.Load<TMP_FontAsset>("NotePixelFont");
             if (font != null) percent.font = font;
-            percent.fontSize = 24f; percent.alignment = TextAlignmentOptions.MidlineLeft; percent.raycastTarget = false; percent.enableWordWrapping = false;
+            percent.fontSize = 24f; percent.alignment = TextAlignmentOptions.MidlineLeft; percent.raycastTarget = false; percent.textWrappingMode = TextWrappingModes.NoWrap;
         }
         percent.gameObject.SetActive(true);
     }

@@ -205,7 +205,7 @@ public class KesslerConfrontation : MonoBehaviour
         {
             RestoreAmbush(); Ambushing = false;
             ghost.transform.SetPositionAndRotation(originalGhostPosition, originalGhostRotation);
-            DialogueBox.Instance?.Say("Vane: I know you watched it. Come and ask me yourself.");
+            DialogueBox.Instance?.Say(HS.S("340"));
             yield break;
         }
         ScareVisible = true;

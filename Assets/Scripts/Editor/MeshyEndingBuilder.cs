@@ -5,14 +5,17 @@ using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-// The not-damned ending's last shot: the Meshy character walks off toward the city (EndingSequence.WalkAway) with the
-// HELLSCAPE / TO BE CONTINUED title down the left side. Sets up the looping walk, the walker and the title card.
+// The not-damned ending's last scene (EndingSequence.WalkAway): the confessor (the user's Meshy survivor, Assets/New
+// Folder/Confessor_*) stands looking at the marks on his hands, then limps off toward the city with the HELLSCAPE /
+// TO BE CONTINUED title down the left side. The two animations came as two FBXs of the same man whose armatures are
+// set up differently (one in centimetres), so each clip plays on its own copy and the scene cuts between them.
 // HellScape > Finale > Meshy Walk-Away Ending. (MainGameScene must be open.)
 public static class MeshyEndingBuilder
 {
-    const string Dir = "Assets/Enemies/Meshy_AI_Shadowchain_T_Pose_biped/";
-    const string Fbx = Dir + "Meshy_AI_Shadowchain_T_Pose_biped_Animation_01a0f8f0-6e5a-75a4-a63c-8b44556809ac_withSkin.fbx";
-    const string ControllerPath = Dir + "MeshyWalk.controller";
+    const string CursedDir = "Assets/New Folder/Confessor_Cursed/Meshy_AI_rigged_survivor_biped/";
+    const string WalkDir = "Assets/New Folder/Confessor_Walk/Meshy_AI_rigged_survivor_biped/";
+    const string CursedFbx = CursedDir + "Meshy_AI_rigged_survivor_biped_Animation_01a1215f-d21e-7463-8c18-e22d7848dcd5_withSkin.fbx";
+    const string WalkFbx = WalkDir + "Meshy_AI_rigged_survivor_biped_Animation_Injured_Walk_withSkin.fbx";
 
     [MenuItem("HellScape/Finale/Meshy Walk-Away Ending")]
     public static void Menu() => Debug.Log(Build());
@@ -23,40 +26,55 @@ public static class MeshyEndingBuilder
         var ending = Object.FindFirstObjectByType<EndingSequence>(FindObjectsInactive.Include);
         if (ending == null || ending.continuedCard == null) return "No EndingSequence / continued card in the open scenes (run To Be Continued Ending first).";
 
-        // the walk has to loop, and stay on the spot (the Hips carry the forward travel; EndingSequence moves him)
-        var imp = (ModelImporter)AssetImporter.GetAtPath(Fbx);
-        imp.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
-        imp.motionNodeName = "Hips";
-        var clips = imp.clipAnimations.Length > 0 ? imp.clipAnimations : imp.defaultClipAnimations;
-        foreach (var c in clips) { c.loopTime = true; c.lockRootPositionXZ = true; }
-        imp.clipAnimations = clips;
-        imp.SaveAndReimport();
-        var clip = AssetDatabase.LoadAllAssetsAtPath(Fbx).OfType<AnimationClip>().Where(c => !c.name.StartsWith("__preview__")).OrderByDescending(c => c.length).First();
-
-        var ctrl = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath) ?? AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
-        var sm = ctrl.layers[0].stateMachine;
-        if (sm.states.Length == 0) sm.defaultState = sm.AddState("Walk");
-        sm.defaultState.motion = clip;
-        EditorUtility.SetDirty(ctrl);
+        // the FBXs come without their texture on the material
+        string matPath = WalkDir + "Confessor.mat";
+        var mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+        if (mat == null) { mat = new Material(Shader.Find("Universal Render Pipeline/Lit")); AssetDatabase.CreateAsset(mat, matPath); }
+        mat.mainTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(WalkDir + "Meshy_AI_rigged_survivor_biped_texture_0.png");
+        mat.SetFloat("_Smoothness", 0.15f);
+        EditorUtility.SetDirty(mat);
 
         Transform parent = ending.walkTarget != null ? ending.walkTarget.parent : ending.transform;
-        Transform old = parent.Find("Ending - Walker");
-        if (old != null) Object.DestroyImmediate(old.gameObject);
-        var walker = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Fbx), parent);
-        walker.name = "Ending - Walker";
-        var anim = walker.GetComponent<Animator>();
-        if (anim == null) anim = walker.AddComponent<Animator>();
-        anim.runtimeAnimatorController = ctrl;
-        anim.avatar = AssetDatabase.LoadAllAssetsAtPath(Fbx).OfType<Avatar>().FirstOrDefault();
-        anim.applyRootMotion = false;
-        walker.SetActive(false);
-        ending.walker = walker;
+        ending.cursed = Man(parent, "Ending - Confessor (his hands)", CursedFbx, CursedDir + "ConfessorCursed.controller", false, mat);
+        ending.walker = Man(parent, "Ending - Walker", WalkFbx, WalkDir + "ConfessorWalk.controller", true, mat);
+        ending.walkerSpeed = 0.33f;   // measured: his planted foot slides back 2.88 m in the 8.67 s clip
 
         string cardMsg = TitleCard(ending);
         EditorUtility.SetDirty(ending);
         EditorSceneManager.MarkSceneDirty(ending.gameObject.scene);
         AssetDatabase.SaveAssets();
-        return $"Walker '{walker.name}' ({clip.name}, {clip.length:0.0}s loop) wired. " + cardMsg;
+        return "Confessor wired: '" + ending.cursed.name + "' then '" + ending.walker.name + "'. " + cardMsg;
+    }
+
+    // one copy of the man playing one clip (the longest in the file), switched off until the ending
+    static GameObject Man(Transform parent, string name, string fbx, string controllerPath, bool loop, Material mat)
+    {
+        var imp = (ModelImporter)AssetImporter.GetAtPath(fbx);
+        imp.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+        var clips = imp.clipAnimations.Length > 0 ? imp.clipAnimations : imp.defaultClipAnimations;
+        foreach (var c in clips) c.loopTime = loop;
+        imp.clipAnimations = clips;
+        imp.SaveAndReimport();
+        var clip = AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<AnimationClip>().Where(c => !c.name.StartsWith("__preview__")).OrderByDescending(c => c.length).First();
+
+        var ctrl = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath) ?? AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+        var sm = ctrl.layers[0].stateMachine;
+        if (sm.states.Length == 0) sm.defaultState = sm.AddState("Play");
+        sm.defaultState.motion = clip;
+        EditorUtility.SetDirty(ctrl);
+
+        Transform old = parent.Find(name);
+        if (old != null) Object.DestroyImmediate(old.gameObject);
+        var man = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(fbx), parent);
+        man.name = name;
+        var anim = man.GetComponent<Animator>();
+        if (anim == null) anim = man.AddComponent<Animator>();
+        anim.runtimeAnimatorController = ctrl;
+        anim.avatar = AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<Avatar>().FirstOrDefault();
+        anim.applyRootMotion = false;
+        foreach (var r in man.GetComponentsInChildren<Renderer>(true)) r.sharedMaterial = mat;
+        man.SetActive(false);
+        return man;
     }
 
     [MenuItem("HellScape/Finale/End Title Card")]

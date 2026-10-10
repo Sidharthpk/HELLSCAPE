@@ -31,6 +31,6 @@ public class OfficeMemoryLoop : MonoBehaviour
         mover.transform.position = back;
         if (mover.TryGetComponent<Rigidbody>(out var rb)) { rb.position = back; rb.linearVelocity = Vector3.zero; }
         Physics.SyncTransforms();
-        DialogueBox.Instance?.Say("This is the same stretch of corridor. I already passed this door.");
+        DialogueBox.Instance?.Say("I've already passed this door. The corridor is looping.");
     }
 }

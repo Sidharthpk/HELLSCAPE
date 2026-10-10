@@ -485,10 +485,10 @@ public class KesslerChase : MonoBehaviour
         if (siloDoor == null) return;
         var src = FindObjectsByType<Teleporter>(FindObjectsInactive.Include, FindObjectsSortMode.None).FirstOrDefault(t => t.transition != null);
         if (src == null) return;
-        siloTele = siloDoor.GetComponent<Teleporter>() ?? siloDoor.AddComponent<Teleporter>();
+        siloTele = siloDoor.GetOrAdd<Teleporter>();
         siloTele.player = src.player; siloTele.fader = src.fader; siloTele.transition = src.transition;
         if (siloTele.destination == null) { siloTele.destination = new GameObject("Silo door destination").transform; siloTele.destination.SetParent(transform); }
-        var use = siloDoor.GetComponent<Interactable>() ?? siloDoor.AddComponent<Interactable>();
+        var use = siloDoor.GetOrAdd<Interactable>();
         use.prompt = "Open door";
         use.once = false;
         use.onUse.RemoveListener(OpenSiloDoorNow);
@@ -522,7 +522,7 @@ public class KesslerChase : MonoBehaviour
             inDoorScene = false;
             if (!snapped) return;
             if (health != null) health.TakeDamage(hitDamage);
-            if (DialogueBox.Instance != null) DialogueBox.Instance.Say("He's through the door. Again. Quick.");
+            if (DialogueBox.Instance != null) DialogueBox.Instance.Say(runLine);
         });
     }
 

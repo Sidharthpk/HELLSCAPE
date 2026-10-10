@@ -30,7 +30,7 @@ public class EchoOfficeMemory : MonoBehaviour
                 // Scope swaps to the authored office, including its inactive children.
                 bool inOffice = doorRoots.Exists(t => r.transform.IsChildOf(t));
                 for (var p = r.transform; p != null; p = p.parent)
-                    if (p.name == "Sketchfab_2023_11_11_16_15_44" ||
+                    if (p.name == "Office Ground Floor" ||
                         p.name == "Office" && p.parent != null && p.parent.name == "OfficeAct") { inOffice = true; break; }
                 if (!inOffice) continue;
                 var before = r.sharedMaterials;
