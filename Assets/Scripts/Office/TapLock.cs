@@ -190,7 +190,7 @@ public class TapLock : MonoBehaviour
     {
         var t = Anchored(parent, "words", pos, new Vector2(460f, 70f)).gameObject.AddComponent<TextMeshProUGUI>();
         if (font != null) t.font = font;
-        t.text = s; t.fontSize = size; t.color = col; t.alignment = TextAlignmentOptions.Center; t.raycastTarget = false; t.enableWordWrapping = false;
+        t.text = s; t.fontSize = size; t.color = col; t.alignment = TextAlignmentOptions.Center; t.raycastTarget = false; t.textWrappingMode = TextWrappingModes.NoWrap;
         return t;
     }
 

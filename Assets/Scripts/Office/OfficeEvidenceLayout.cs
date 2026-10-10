@@ -18,6 +18,7 @@ public class OfficeEvidenceLayout : MonoBehaviour
             bool box = item.name == "KEEP COLD - collection";
             bool phone = item.name == "Vane's Echo telephone";
             if (!small && !box && !phone) continue;
+            if (item.name == "CleaningRota") { Placed.Add(item.transform); continue; }   // pinned to the wall: it needs no table under it
             Place(item.transform, box || phone);
         }
     }

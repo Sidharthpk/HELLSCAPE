@@ -2,7 +2,7 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 
-// Six seconds of visible Echo time per visit. Vane owns his conversation until the last reply ends.
+// Six seconds of visible Echo time per visit; the clock waits while a line is spoken or a question is open. Vane owns his conversation until the last reply ends.
 public class EchoVisit : MonoBehaviour
 {
     public const float Duration = 6f;
@@ -19,6 +19,7 @@ public class EchoVisit : MonoBehaviour
     KesslerConfrontation encounter;
     Vector3 lastSafe;
     TextMeshProUGUI counter;
+    UnityEngine.UI.Image bar;
 
     public void Initialize(RevisedPlotDirector director, Transform body, GhostNPC[] ghosts, KesslerConfrontation confrontation)
     {
@@ -34,6 +35,10 @@ public class EchoVisit : MonoBehaviour
         counter.fontSize = 23f; counter.alignment = TextAlignmentOptions.TopRight; counter.raycastTarget = false;
         var rect = counter.rectTransform; rect.anchorMin = rect.anchorMax = new Vector2(1f, 1f); rect.pivot = Vector2.one;
         rect.anchoredPosition = new Vector2(-48f, -50f); rect.sizeDelta = new Vector2(320f, 40f);
+        // the time left is a smear of blood under the word, running out from its tail: no number
+        bar = BloodBar.Make(counter.transform, "Echo time left", new Vector2(300f, 34f));
+        var track = (RectTransform)bar.transform.parent;
+        track.anchorMin = track.anchorMax = new Vector2(1f, 1f); track.pivot = new Vector2(1f, 1f); track.anchoredPosition = new Vector2(0f, -26f);
         counter.gameObject.SetActive(false);
     }
     public void RealmChanged(bool echo)
@@ -43,15 +48,19 @@ public class EchoVisit : MonoBehaviour
     }
     public void AdvanceClock(float delta)
     {
-        if (plot == null || !plot.Echo || Returning || HeldForVane || PauseMenu.Paused || (DialogueBox.Instance != null && DialogueBox.Instance.Busy) || (horror != null && horror.Switching)) return;
+        if (plot == null || !plot.Echo || Returning || HeldForVane || PauseMenu.Paused || (DialogueBox.Instance != null && DialogueBox.Instance.Busy) || (ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open) || (horror != null && horror.Switching)) return;
         Remaining = Mathf.Max(0f, Remaining - Mathf.Max(0f, delta));
     }
     void Update()
     {
         if (plot == null || player == null) return;
         counter.gameObject.SetActive(plot.Echo && !PauseMenu.Paused && !GameOverScreen.Open && !TitleScreen.Showing);
-        counter.text = HeldForVane ? "ECHO  /  VANE" : "ECHO  " + Remaining.ToString("0.0") + "s";
-        counter.color = Remaining <= 2f && !HeldForVane ? new Color(1f, .55f, .4f) : new Color(.68f, .88f, 1f);
+        counter.text = HeldForVane ? "ECHO  /  VANE" : "ECHO";
+        bool low = Remaining <= 2f && !HeldForVane;
+        counter.color = low ? new Color(1f, .55f, .4f) : new Color(.68f, .88f, 1f);
+        bar.fillAmount = HeldForVane ? 1f : Mathf.Clamp01(Remaining / Duration);
+        // the last two seconds it throbs
+        bar.color = BloodBar.Red * (low ? 1f + .45f * Mathf.Sin(Time.unscaledTime * 16f) : 1f);
         if (!plot.Echo || TitleScreen.Showing || PauseMenu.Paused || GameOverScreen.Open || EndingSequence.Playing) return;
         if (puzzles == null || puzzles.CanSwitch(player, false)) lastSafe = player.position;
         AdvanceClock(Time.deltaTime);

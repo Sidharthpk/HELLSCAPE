@@ -54,7 +54,8 @@ MonoBehaviour:
       - {fileID: 8300000, guid: 39076266763ce9c44a2abfe307cd800e, type: 3}
       volume: 1
     - name: Office ambience
-      note: 'The office background noise under the Friday-night flashback (now: At The Office).'
+      note: 'The office background noise under the Friday-night flashback (now: At
+        The Office).'
       clips:
       - {fileID: 8300000, guid: 80115752bd8c44e4785ad6dcd770174d, type: 3}
       volume: 1
@@ -385,17 +386,19 @@ MonoBehaviour:
       - {fileID: 8300000, guid: 89d1b1c1695190445b1a1ac08d6cf2de, type: 3}
       volume: 1
     - name: Shadow whispers
-      note: 'Evil whispers as the shadow people close in; they swell the longer it goes, and stop when the Demon King comes (now: Evil Whisper).'
+      note: 'Evil whispers as the shadow people close in; they swell the longer it
+        goes, and stop when the Demon King comes (now: Evil Whisper).'
       clips:
       - {fileID: 8300000, guid: 8c6186ed568ac5d4dbab6f897102b65e, type: 3}
       volume: 1
     - name: Shadow music
-      note: 'Tense horror bed under the shadow walk: a very long fade in, louder as they gather, gone when the Demon King comes.'
+      note: 'Tense horror bed under the shadow walk: a very long fade in, louder
+        as they gather, gone when the Demon King comes.'
       clips:
       - {fileID: 8300000, guid: 8b1cefc4f4540e44e8ecba7113a49248, type: 3}
       volume: 1
     - name: Shadow scream
-      note: 'Nightmare yelling when a shadow person catches you.'
+      note: Nightmare yelling when a shadow person catches you.
       clips:
       - {fileID: 8300000, guid: aeeee505593a30f48ae52ee2e3917f03, type: 3}
       volume: 1
@@ -404,6 +407,63 @@ MonoBehaviour:
       clips:
       - {fileID: 8300000, guid: 8d015c3b96de8da408f2820dcaf19307, type: 3}
       volume: 1
+    - name: Phone ring
+      note: 'Post-credits: the telephone ringing on the black screen, looped (built-in:
+        two-tone ring).'
+      clips:
+      - {fileID: 8300000, guid: 4ce477893c1d7ed4aa93f9e73984045f, type: 3}
+      volume: 1
+    - name: Phone pick up
+      note: 'Post-credits: the receiver click (built-in: click).'
+      clips: []
+      volume: 1
+    - name: Phone disconnect
+      note: 'Post-credits: the line going dead (built-in: click).'
+      clips:
+      - {fileID: 8300000, guid: 5472369e4a062354986c3c34487efd7b, type: 3}
+      volume: 1
+    - name: Post-credits voice 642
+      note: 'Kessler: Did he get to you?'
+      clips: []
+      volume: 1
+    - name: Post-credits voice 643
+      note: 'Second voice: He tried.'
+      clips: []
+      volume: 1
+    - name: Post-credits voice 644
+      note: 'Kessler: And the protection?'
+      clips: []
+      volume: 1
+    - name: Post-credits voice 645
+      note: 'Second voice: Held. Just like you said it would.'
+      clips: []
+      volume: 1
+    - name: Post-credits voice 646
+      note: 'Kessler: Good. Vane never suspected a thing.'
+      clips: []
+      volume: 1
+    - name: Post-credits voice 647
+      note: 'Second voice: He wasn''t supposed to.'
+      clips: []
+      volume: 1
+    - name: Post-credits voice 648
+      note: 'Kessler: Your brother''s dead, Derek.'
+      clips: []
+      volume: 1
+    - name: Post-credits voice 649
+      note: 'Second voice: I know.'
+      clips: []
+      volume: 1
+    - name: Post-credits voice 650
+      note: 'Kessler: And now he''s coming for us.'
+      clips: []
+      volume: 1
+    - name: Phone line
+      note: 'Post-credits: the open line''s noise, looped under the whole call (empty:
+        silence).'
+      clips:
+      - {fileID: 8300000, guid: 6e3ef80c030bd7145b207d38bf7e4683, type: 3}
+      volume: 0.35
   - name: General
     music: {fileID: 0}
     musicVolume: 0.6

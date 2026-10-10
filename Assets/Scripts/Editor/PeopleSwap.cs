@@ -102,8 +102,112 @@ public static class PeopleSwap
         Debug.Log("Mrs. Okafor is an old lady now (" + System.IO.Path.GetFileName(path) + ").");
     }
 
+    // Elias (the prologue's fleeing killer, and the silo's chase / boss / cutscenes) was the Jason model: he is the
+    // pack's Character_Killer now, in both scenes. MainGameScene open; the Prologue is opened alongside and saved.
+    [MenuItem("HellScape/People: Elias is Character_Killer")]
+    public static void Elias() => Debug.Log(EliasSwap());
+
+    public static string EliasSwap()
+    {
+        if (EditorApplication.isPlaying) return "Stop Play mode first.";
+        string path = AssetDatabase.FindAssets("Character_Killer t:Model", new[] { Pack }).Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault(p => p.EndsWith("/Character_Killer.fbx"));
+        if (path == null) return "No Character_Killer.fbx in the pack.";
+        var mi = (ModelImporter)AssetImporter.GetAtPath(path);
+        if (mi.animationType != ModelImporterAnimationType.Human)
+        {
+            // (a Mixamo skeleton like the rest of the pack: Humanoid, so Killer.controller's clips play on it)
+            mi.animationType = ModelImporterAnimationType.Human;
+            mi.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+            mi.importAnimation = false;
+            mi.SaveAndReimport();
+        }
+        var avatar = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Avatar>().FirstOrDefault();
+        if (avatar == null || !avatar.isValid || !avatar.isHuman) return "Character_Killer did not import as a valid Humanoid.";
+
+        var main = SceneManager.GetSceneByName("MainGameScene");
+        if (!main.isLoaded) return "Open MainGameScene first.";
+        var pro = SceneManager.GetSceneByName("Prologue");
+        bool opened = false;
+        if (!pro.isLoaded) { pro = EditorSceneManager.OpenScene("Assets/Scenes/Prologue.unity", OpenSceneMode.Additive); opened = true; }
+        var log = new List<string>();
+        foreach (var scene in new[] { main, pro })
+        {
+            var roots = scene.GetRootGameObjects();
+            var who = roots.SelectMany(r => r.GetComponentsInChildren<KillerBoss>(true)).Select(k => k.transform)
+                .Concat(roots.SelectMany(r => r.GetComponentsInChildren<FleeingKiller>(true)).Select(k => k.transform)).ToList();
+            var map = new Dictionary<Object, Object>();
+            foreach (var root in who)
+            {
+                var was = root.GetComponentInChildren<Animator>(true);
+                if (was == null || was.avatar == avatar) continue;   // already him
+                Swap(root, path, null, map, 0f);
+            }
+            Remap(scene, map);
+            Bury();
+            if (map.Count > 0) { EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); }
+            log.Add($"{scene.name}: {map.Count / 3} of {who.Count} swapped");
+        }
+        if (opened) EditorSceneManager.CloseScene(pro, true);
+        return "Elias is Character_Killer. " + string.Join("; ", log);
+    }
+
+    // The prologue's stab through the bedroom door was played by the killer baked into "machete stab.fbx" (a different
+    // man from Elias now). This takes that killer's half of the clip as a Humanoid clip (a copy of the FBX, imported
+    // Humanoid: the avatar maps its first skeleton, the killer's) and adds it to PrologueKiller.controller as
+    // "StabOver", which PrologueDirector plays on Elias himself, stood on the rig's origin.
+    const string StabFbx = "Assets/New Folder/jason-voorhees-machete-stab-animation/source/machete stab.fbx";
+    const string StabCopy = "Assets/Enemies/Elias Boss/Stab Over Derek.fbx";
+    const string PrologueKillerController = "Assets/Materials/Prologue/PrologueKiller.controller";
+
+    [MenuItem("HellScape/People: Elias Stabs Derek Himself")]
+    public static void EliasStabMenu() => Debug.Log(EliasStab());
+
+    public static string EliasStab()
+    {
+        if (EditorApplication.isPlaying) return "Stop Play mode first.";
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(StabCopy) == null && !AssetDatabase.CopyAsset(StabFbx, StabCopy)) return "Could not copy " + StabFbx;
+        var mi = (ModelImporter)AssetImporter.GetAtPath(StabCopy);
+        mi.animationType = ModelImporterAnimationType.Human;
+        mi.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+        mi.materialImportMode = ModelImporterMaterialImportMode.None;
+        mi.importCameras = false;
+        mi.importLights = false;
+        var clips = mi.defaultClipAnimations;
+        foreach (var c in clips)
+        {
+            // everything stays in the pose, as it is in the file: where he stands from the rig's origin, which way he faces
+            c.name = "EliasStabOver";
+            c.loopTime = false;
+            c.lockRootRotation = c.lockRootHeightY = c.lockRootPositionXZ = true;
+            c.keepOriginalOrientation = c.keepOriginalPositionY = c.keepOriginalPositionXZ = true;
+        }
+        mi.clipAnimations = clips;
+        mi.SaveAndReimport();
+        // (the automatic mapping takes the joint above both skeletons as the hips: it is the killer's pelvis)
+        var desc = mi.humanDescription;
+        var bones = desc.human;
+        for (int i = 0; i < bones.Length; i++)
+            if (bones[i].humanName == "Hips" && bones[i].boneName != "pelvis") { bones[i].boneName = "pelvis"; desc.human = bones; mi.humanDescription = desc; mi.SaveAndReimport(); break; }
+
+        var avatar = AssetDatabase.LoadAllAssetsAtPath(StabCopy).OfType<Avatar>().FirstOrDefault();
+        var clip = AssetDatabase.LoadAllAssetsAtPath(StabCopy).OfType<AnimationClip>().FirstOrDefault(c => c.name == "EliasStabOver");
+        if (avatar == null || !avatar.isValid || !avatar.isHuman || clip == null) return "The stab did not import as a Humanoid clip.";
+        string hips = avatar.humanDescription.human.FirstOrDefault(h => h.humanName == "Hips").boneName;
+        if (hips == null || hips.EndsWith("_2")) return "The avatar mapped Derek's skeleton (" + hips + "), not the killer's.";
+
+        var ac = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(PrologueKillerController);
+        if (ac == null) return "No PrologueKiller.controller.";
+        var sm = ac.layers[0].stateMachine;
+        var st = sm.states.Select(s => s.state).FirstOrDefault(s => s.name == "StabOver") ?? sm.AddState("StabOver");
+        st.motion = clip;
+        st.speed = 1f;
+        EditorUtility.SetDirty(ac);
+        AssetDatabase.SaveAssets();
+        return $"Elias's own stab: clip {clip.length:0.00} s on PrologueKiller.controller as StabOver (avatar hips = {hips}).";
+    }
+
     // replace the model under root (the child holding the Animator) with the pack model at modelPath
-    static void Swap(Transform root, string modelPath, Material overrideMat, Dictionary<Object, Object> map)
+    static void Swap(Transform root, string modelPath, Material overrideMat, Dictionary<Object, Object> map, float vary = 0.08f)
     {
         var oldAnim = root.GetComponentInChildren<Animator>(true);
         if (oldAnim == null) return;
@@ -126,12 +230,13 @@ public static class PeopleSwap
         g.transform.localPosition = old.localPosition;
         g.transform.localRotation = old.localRotation;
         g.transform.SetSiblingIndex(old.GetSiblingIndex());
+        g.SetActive(old.gameObject.activeSelf);
 
         // to a person's height (the pack's are ~4.8 units tall), a touch of variety
         var nrs = g.GetComponentsInChildren<Renderer>(true);
         float raw = 4.8f;
         if (nrs.Length > 0) { Bounds nb = nrs[0].bounds; foreach (var r in nrs) nb.Encapsulate(r.bounds); raw = nb.size.y / Mathf.Max(0.0001f, g.transform.lossyScale.y); }
-        float want = height * (1f + (Random.value - 0.5f) * 0.08f);
+        float want = height * (1f + (Random.value - 0.5f) * vary);
         g.transform.localScale = Vector3.one * (want / Mathf.Max(0.01f, raw));
 
         var anim = g.GetComponent<Animator>();

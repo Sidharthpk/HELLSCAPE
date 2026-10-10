@@ -30,6 +30,7 @@ public class GhostNPC : MonoBehaviour
     public float answerSeconds;             // > 0: the question times out and the memory is gone
     public string ghostName = "Priya";
     public GhostNode[] nodes;
+    [System.NonSerialized] public string opening;   // said before the first question
     [TextArea] public string afterLine = "...";   // talked to again once the conversation is done
     public UnityEngine.Events.UnityEvent onFinished = new UnityEngine.Events.UnityEvent();   // a conversation has run its course
 
@@ -181,9 +182,10 @@ public class GhostNPC : MonoBehaviour
         mine = true;
         Conversing = true;
         if (TryGetComponent<OfficeWitness>(out var witness) && witness.RedTalk()) return;
-        if (fate == Fate.Gone) { Say("There is no answer. The memory is gone."); return; }
+        if (fate == Fate.Gone) { Say(HS.S("240", ghostName)); return; }
         if (finished) { Say(afterLine); return; }
-        ShowNode(0);
+        if (string.IsNullOrEmpty(opening)) ShowNode(0);
+        else { Say(opening); StartCoroutine(Continue(0)); }   // what is said before the first question
     }
 
     void ShowNode(int i)
@@ -214,22 +216,15 @@ public class GhostNPC : MonoBehaviour
             }
         }, transform);
         choiceRevision = ChoiceDialogue.Instance.Revision;
-        if (answerSeconds > 0f)
-        {
-            float seconds = answerSeconds;
-            var plot = RevisedPlotDirector.Instance;
-            var visit = plot != null ? plot.GetComponent<EchoVisit>() : null;
-            if (visit != null && plot.Echo && ghostName != "Vane") seconds = Mathf.Min(seconds, Mathf.Max(.01f, visit.Remaining));
-            ChoiceDialogue.Instance.SetDeadline(seconds, Fade);
-        }
+        if (answerSeconds > 0f) ChoiceDialogue.Instance.SetDeadline(answerSeconds, Fade);   // (the Echo clock waits while a question is open: EchoVisit)
     }
 
     void Fade()
     {
         choiceRevision = -1;
         fate = Fate.Gone;
-        GetComponent<WitnessLook>()?.Set(WitnessLook.Mode.Lost);
-        Say("The memory fades before you answer.");
+        if (TryGetComponent<WitnessLook>(out var faded)) faded.Set(WitnessLook.Mode.Lost);
+        Say(HS.S("240", ghostName));
         // A timeout is not a confession and must never invoke a story completion event.
         finished = true;
         if (TryGetComponent<OfficeWitness>(out var witness)) witness.Resolved(fate);
@@ -279,7 +274,7 @@ public class GhostNPC : MonoBehaviour
             string p = parts[i].Trim();
             if (p.Length == 0) continue;
             var line = DialogueBox.Instance.Parse(p);
-            if (line.speaker == DialogueBox.Instance.playerName) parts[i] = ghostName + ": " + p;
+            if (line.speaker == DialogueBox.Instance.playerName && !p.StartsWith("You: ")) parts[i] = ghostName + ": " + p;
         }
         DialogueBox.Instance.Say(string.Join("|", parts));
     }

@@ -86,7 +86,7 @@ public static class StoryRegression
         foreach (var w in Object.FindObjectsByType<OfficeWitness>(FindObjectsSortMode.None))
         {
             var g = w.GetComponent<GhostNPC>(); var t = w.transform;
-            if (realm == "red") Check(g.working, "Worker starts at a desk: " + g.ghostName);
+            // (no "starts at a desk" check any more: the witnesses walk the office in pain, PainWalk clears `working`)
             var go = new GameObject("Desk verification camera"); var c = go.AddComponent<Camera>(); c.enabled = false; c.nearClipPlane = .05f; c.fieldOfView = 60f;
             go.transform.position = t.position + t.right * 2.2f - t.forward * .4f + Vector3.up * 1.4f;
             go.transform.LookAt(t.position + t.forward * .3f + Vector3.up * 1f);
@@ -136,6 +136,8 @@ public static class StoryRegression
         Check(choices != null, "Main scene choice UI exists");
         Check(RevisedPlotDirector.Instance != null, "Revised story initializes in MainGameScene");
         choices.Close(); box.Clear(); box.charDelay = 0f; box.fadeTime = 0f;
+        // (the one-off "how dialogue works" card waits for a key: nobody is here to press it)
+        typeof(DialogueBox).GetField("tutorialShown", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, true);
         DialogueBox.AutoAdvanceAfter = 0f;
         box.Say("Audit A|Audit B"); box.Say("Audit A|Audit B");
         Check(Pending(box) == 1, "Duplicate pending speech is suppressed");
@@ -250,7 +252,7 @@ public static class StoryRegression
         foreach (var w in witnesses) Check(w.gameObject.activeInHierarchy && w.GetComponent<WitnessLook>().Echo, "Human witness remains present in Echo: " + w.name);
         var optional = witnesses[0].GetComponent<GhostNPC>();
         int completed = 0; optional.onFinished.AddListener(() => completed++);
-        optional.answerSeconds = .6f; optional.Talk();
+        optional.answerSeconds = .6f; optional.opening = null; optional.Talk();
         Check(choices.Open && choices.SecondsLeft > 0f, "Echo questioning has a visible deadline");
         pause.Pause(); float seconds = choices.SecondsLeft;
         yield return new WaitForSecondsRealtime(.8f);
@@ -262,7 +264,12 @@ public static class StoryRegression
         for (int w = 1; w < witnesses.Length; w++)
         {
             var npc = witnesses[w].GetComponent<GhostNPC>(); npc.answerSeconds = 18f;
-            npc.Talk(); Set(choices, "openedAt", Time.unscaledTime - 1f); choose.Invoke(choices, new object[] { 0 });
+            npc.Talk();
+            for (float wait = 0f; !choices.Open && wait < 8f; wait += Time.deltaTime) yield return null;   // (the shared opening is spoken first)
+            Check(choices.Open, "First question arrives after the opening: " + npc.ghostName);
+            Set(choices, "openedAt", Time.unscaledTime - 1f); choose.Invoke(choices, new object[] { 0 });
+            yield return null;
+
             for (float wait = 0f; !choices.Open && wait < 6f; wait += Time.deltaTime) yield return null;
             Check(choices.Open, "Follow-up arrives after testimony: " + npc.ghostName);
             Set(choices, "openedAt", Time.unscaledTime - 1f); choose.Invoke(choices, new object[] { w - 1 });
@@ -277,7 +284,7 @@ public static class StoryRegression
             bool supported = false;
             foreach (var hit in Physics.RaycastAll(new Vector3(bounds.center.x, bounds.min.y + .01f, bounds.center.z), Vector3.down, .12f, ~0, QueryTriggerInteraction.Ignore))
                 if (!hit.transform.IsChildOf(item) && hit.normal.y > .9f) supported = true;
-            Check(supported, "Evidence has a support surface: " + item.name);
+            if (item.name != "CleaningRota") Check(supported, "Evidence has a support surface: " + item.name);   // (the rota is pinned to a wall: OfficeEvidenceLayout)
             var cameraObject = new GameObject("Evidence verification"); var camera = cameraObject.AddComponent<Camera>();
             camera.enabled = false; camera.nearClipPlane = .05f;
             var target = bounds.center;

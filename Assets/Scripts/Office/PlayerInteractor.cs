@@ -32,17 +32,19 @@ public class PlayerInteractor : MonoBehaviour
         if (ChoiceDialogue.Instance == null || !ChoiceDialogue.Instance.Open)
             current = Find();
 
-        if (Root != null)
-        {
-            Root.SetActive(current != null);
-            if (current != null)
-            {
-                if (keyText != null) { keyText.text = key.ToString(); promptText.text = current.prompt; }
-                else promptText.text = "[" + key + "] " + current.prompt;
-            }
-        }
+        Show(current != null ? current.prompt : null);
 
         if (current != null && Input.GetKeyDown(key)) current.Use();
+    }
+
+    // the prompt itself (null: hidden). Also used by the prologue van, while this is switched off with the player
+    public void Show(string prompt)
+    {
+        if (Root == null) return;
+        Root.SetActive(prompt != null);
+        if (prompt == null) return;
+        if (keyText != null) { keyText.text = key.ToString(); promptText.text = prompt; }
+        else promptText.text = "[" + key + "] " + prompt;
     }
 
     // nearest hit; trigger volumes are see-through unless they're something to talk to (ghosts)

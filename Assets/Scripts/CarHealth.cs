@@ -72,6 +72,7 @@ public class CarHealth : MonoBehaviour
             if (destroyedMessage != null) StartCoroutine(ShowDestroyedMessage());
             // wrecked: throw the player out on foot, no getting back in
             if (carInteract != null) carInteract.ForceExit(true);
+            if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(HS.S("528-529"));
             if (vignette != null) vignette.SetDamage(0f);
         }
     }

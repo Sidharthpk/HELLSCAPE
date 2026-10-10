@@ -73,6 +73,7 @@ public class RevisedPlotDirector : MonoBehaviour
             if (chase.tomas != null && chase.tomas.GetComponent<SoulConviction>() == null) chase.tomas.gameObject.AddComponent<SoulConviction>().rage = .75f;
         horror = gameObject.AddComponent<OfficeHorrorDirector>();
         horror.Init(this);
+        gameObject.AddComponent<StoryObjectives>();
         echoVisit = gameObject.AddComponent<EchoVisit>(); echoVisit.Initialize(this, player, ghosts, confrontation);
         foreach (var g in ghosts)
             if (g.GetComponent<WitnessLook>() != null) g.gameObject.AddComponent<OfficeWitness>().Initialize(g);
@@ -90,14 +91,14 @@ public class RevisedPlotDirector : MonoBehaviour
             item.prompt = "Read the Harlow manifest"; item.once = false;
             var note = container.AddComponent<ReadableNote>();
             note.title = "HARLOW COLLECTION MANIFEST";
-            note.body = EvidenceJournal.Account(EvidenceJournal.Invoice) + "\n\n05:00 dispatch instruction. Return sealed container to depot collection.\nKEEP COLD. Approval V-0500.";
-            note.afterLine = "The same box I brought back at seven. Here it's frosted with blood.|Vane approved the clinic's work. Evidence recorded - [J] to review.";
+            note.body = "HARLOW CLINIC\nKEEP COLD\n\nReturn sealed to Kessler & Vane depot.\nApproval: V-0500\nLinked disposal account: T. ROURKE\n05:00 collection instruction.";
+            note.afterLine = HS.S("305-306") + "|*Evidence recorded. [J] to review.*";
             AddEvidence(item, EvidenceJournal.Invoice);
             Vector3 phoneAt = vane.transform.position + vane.transform.right * 1.3f + Vector3.up * .85f;
             var phone = Box("Vane's Echo telephone", phoneAt, new Vector3(.42f, .16f, .28f), Color.black);
             Label(phone.transform, "05:00 / REPLAY", new Vector3(0f, .05f, -.505f), .02f);
             var use = phone.AddComponent<Interactable>(); use.once = false; use.prompt = "Replay Vane's call in the Echo";
-            use.onUse.AddListener(() => { if (Echo && !phoneSeen) StartCoroutine(PhoneReplay()); else if (!Echo) Say("An impression of a phone. Cross into the Echo with [V]."); else Say(EvidenceJournal.Account(EvidenceJournal.Phone)); });
+            use.onUse.AddListener(() => { if (Echo && !phoneSeen) StartCoroutine(PhoneReplay()); else if (!Echo) Say("A phone that isn't really here. Press [V] to enter the Echo."); else Say(EvidenceJournal.Account(EvidenceJournal.Phone)); });
             var lamp = new GameObject("Echo light"); lamp.transform.SetParent(transform); lamp.transform.position = phoneAt + Vector3.up * 2f;
             echoLight = lamp.AddComponent<Light>(); echoLight.color = new Color(.64f, .8f, 1f); echoLight.range = 45f; echoLight.intensity = 3f; echoLight.enabled = false;
             if (tomas != null)
@@ -129,15 +130,17 @@ public class RevisedPlotDirector : MonoBehaviour
         if (bay != null)
         {
             Vector3 p = bay.position + bay.right * 5f;
-            var car = Box("Vane's idling car", p + Vector3.up * .55f, new Vector3(1.8f, .8f, 3.9f), new Color(.13f, .15f, .18f));
-            Box("Cab", p + Vector3.up * 1.13f, new Vector3(1.55f, .65f, 2f), new Color(.07f, .11f, .14f), car.transform);
-            foreach (float x in new[] { -.87f, .87f }) foreach (float z in new[] { -1.25f, 1.25f })
+            // Vane's car is one of the street's own parked cars (the PSX estate), left on the pavement beside the
+            // garage door, where you see it driving in (there's no room for it inside: the side wall is 5 m from the bay)
+            var parked = RevisedPlot.All<BoxCollider>(gameObject.scene).FirstOrDefault(c => c.name == "Parked car 3");
+            if (parked != null)
             {
-                var wheel = GameObject.CreatePrimitive(PrimitiveType.Cylinder); wheel.name = "Wheel"; wheel.transform.SetParent(transform);
-                wheel.transform.position = p + new Vector3(x, .35f, z); wheel.transform.rotation = Quaternion.Euler(0f, 0f, 90f); wheel.transform.localScale = new Vector3(.65f, .14f, .65f);
-                wheel.GetComponent<Renderer>().sharedMaterial = Material(Color.black);
+                Vector3 kerb = bay.position + bay.right * 7.5f - bay.forward * 10.9f;
+                if (Physics.Raycast(kerb + Vector3.up * 2f, Vector3.down, out var ground, 6f, ~0, QueryTriggerInteraction.Ignore)) kerb = ground.point;
+                var car = Instantiate(parked.gameObject, kerb, bay.rotation * Quaternion.Euler(0f, 90f, 0f));
+                car.name = "Vane's idling car"; car.transform.localScale = parked.transform.lossyScale; car.transform.SetParent(transform, true);
+                Loop(car, ProceduralAudio.ScooterEngine(), .12f, 20f);
             }
-            Loop(car, ProceduralAudio.ScooterEngine(), .12f, 12f);
             var deskPhone = Box("Depot ringing desk phone", p + new Vector3(-2f, .9f, 1f), new Vector3(.4f, .15f, .3f), Color.black);
             Loop(deskPhone, Ring(), .16f, 14f);
             var bucket = GameObject.CreatePrimitive(PrimitiveType.Cylinder); bucket.name = "Cleaner bucket"; bucket.transform.SetParent(transform);
@@ -150,9 +153,14 @@ public class RevisedPlotDirector : MonoBehaviour
             var box = Box("Clinic KEEP COLD container", at, new Vector3(.9f, .6f, .65f), new Color(.55f, .65f, .67f));
             Label(box.transform, "KEEP COLD\nVANE / V-0500", new Vector3(0f, .51f, -.51f), .08f);
             var item = box.AddComponent<Interactable>(); item.prompt = "Inspect the container label"; item.once = false;
-            item.line = "KEEP COLD. Harlow Clinic. Approved V-0500. Vane's code. I'm carrying it anyway.";
+            item.line = HS.S("54-57");
             var clue = box.AddComponent<EvidenceClue>(); clue.prologueLabel = true;
-            run.stops[1].customer.onUse.AddListener(() => box.SetActive(false));
+            var stop = run.stops[1];
+            stop.customer.onUse.AddListener(() =>
+            {
+                box.SetActive(false);
+                if (!EvidenceJournal.ContainerInspected) stop.handOverLines += "|" + HS.S("58-59");   // took it without reading the label
+            });
         }
         var killer = RevisedPlot.All<FleeingKiller>(gameObject.scene).FirstOrDefault();
         if (killer != null)
@@ -162,8 +170,30 @@ public class RevisedPlotDirector : MonoBehaviour
             Transform hand = killer.animator != null && killer.animator.isHuman ? killer.animator.GetBoneTransform(HumanBodyBones.RightHand) : killer.transform;
             if (hand != null)
             {
-                var knife = Box("Elias's knife", hand.position, new Vector3(.035f, .26f, .055f), new Color(.55f, .57f, .59f));
-                knife.transform.SetParent(hand, false); knife.transform.localPosition = new Vector3(0f, -.1f, .03f);
+                GameObject knife;
+                if (killer.knifeModel != null)
+                {
+                    // the user's knife, 30 cm from pommel to tip, its middle on the holder's pivot
+                    // (measured again once it's scaled: the model's own pivot is nowhere near its middle)
+                    knife = new GameObject("Elias's knife");
+                    var body = Instantiate(killer.knifeModel, knife.transform);
+                    foreach (var c in body.GetComponentsInChildren<Collider>()) Destroy(c);
+                    var rs = body.GetComponentsInChildren<Renderer>();
+                    if (killer.knifeMaterial != null) foreach (var r in rs) r.sharedMaterial = killer.knifeMaterial;
+                    Bounds Extent() { Bounds e = rs[0].bounds; foreach (var r in rs) e.Encapsulate(r.bounds); return e; }
+                    Bounds b = Extent();
+                    body.transform.localScale *= .3f / Mathf.Max(.0001f, Mathf.Max(b.size.x, b.size.y, b.size.z));
+                    body.transform.position += knife.transform.position - Extent().center;
+                }
+                else knife = Box("Elias's knife", hand.position, new Vector3(.035f, .26f, .055f), new Color(.55f, .57f, .59f));
+                knife.transform.SetParent(hand, false);
+                // held in the fist, blade out past the thumb: the way he faces, square to the forearm (the hand's y runs down the fingers)
+                // (and a little outwards: with his arm hanging the hand turns in, and a blade dead ahead goes through his thigh)
+                Vector3 blade = hand.InverseTransformDirection(killer.transform.forward + killer.transform.right * .45f); blade.y = 0f; blade.Normalize();
+                float bone = Mathf.Max(.001f, hand.lossyScale.x);   // (his rig's bones are scaled)
+                knife.transform.localScale /= bone;
+                knife.transform.localRotation = Quaternion.FromToRotation(Vector3.up, blade);
+                knife.transform.localPosition = (Vector3.up * .08f + blade * .095f) / bone;   // the handle (its back 11 cm) in the fist
                 Destroy(knife.GetComponent<Collider>());
             }
         }
@@ -177,9 +207,9 @@ public class RevisedPlotDirector : MonoBehaviour
         yield return WaitForDialogue();
         var audio = gameObject.AddComponent<AudioSource>(); audio.playOnAwake = false; audio.spatialBlend = 0f;
         var noise = ProceduralAudio.Whisper(2f); clips.Add(noise); audio.PlayOneShot(noise, .09f);
-        yield return Speak("Maya: [Dispatch, 23:04] Okafor on Dunmore first, then the Harlow collection. Sam's loaded you.|Sam: [Recording] Bring it back in one piece this time.|Maya: [Dispatch, 23:04] And if Vane asks you to take a box with no manifest, just--");
+        yield return Speak(HS.S("21-27"));
         audio.Stop();
-        yield return Speak("*6:40 AM. The recording cuts out mid-sentence.*|Maya? Dispatch?|...Nothing. Just hiss.");
+        yield return Speak(HS.S("28-31"));
     }
 
     IEnumerator OpeningMark()
@@ -194,7 +224,7 @@ public class RevisedPlotDirector : MonoBehaviour
         if (player == null) yield break;
         GameObject guide = tomas != null ? Visual(tomas.body != null ? tomas.body : tomas.transform, "Tomas finds the marked driver", player.position + player.forward * 3f - Vector3.up) : null;
         if (guide != null) { guide.transform.LookAt(new Vector3(player.position.x, guide.transform.position.y, player.position.z)); guide.AddComponent<SoulConviction>().Exert(.3f); }
-        yield return Speak("Tomas: That beating isn't your heart. It's the mark. The Damned can hear it.|Tomas: I need you to take me to Vane. He's hiding in the Echo. The dead can't follow him there without a mark like yours.|Vane's dead and he's still hiding.|Tomas: In the office, press [V] to cross into the Echo. Press [J] to read your evidence.|Tomas: And be careful with excuses. They sound a lot like confessions.");
+        yield return Speak(HS.S("129-147") + "|*In the office: [V] opens the Echo. [J] is your evidence.*");
         if (guide != null) Destroy(guide);
     }
 
@@ -204,7 +234,7 @@ public class RevisedPlotDirector : MonoBehaviour
     void Update()
     {
         if ((horror != null && horror.Switching) || player == null || gameObject.scene.name != "MainGameScene" || TitleScreen.Showing || PauseMenu.Paused || GameOverScreen.Open || EndingSequence.Playing || InSequence || NoteViewer.Blocking || GhostNPC.Conversing) return;
-        bool nearOffice = office != null && Mathf.Abs(player.position.y - office.position.y) < 20f && Vector2.Distance(new Vector2(player.position.x, player.position.z), new Vector2(office.position.x, office.position.z)) < 65f;
+        bool nearOffice = office != null && OfficeHorrorDirector.In(player.position);
         if (Echo && !nearOffice) SetEcho(false);
         if (journalOpen && Input.GetKeyDown(KeyCode.J)) { ChoiceDialogue.Instance.Close(); journalOpen = false; return; }
         if (ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open || DialogueBox.Instance != null && DialogueBox.Instance.Busy) return;
@@ -240,7 +270,7 @@ public class RevisedPlotDirector : MonoBehaviour
         if (on && !echoVisited)
         {
             echoVisited = true;
-            Say("*The mark opens the Echo. Same collection box. Same office, before the blood. Six seconds, then the mark pulls me back. Vane can hold it while we talk.*|*The Echo shows their souls. Question them before it fades. Denial loses them; excuses damn them; accepting their own actions calms them.*|*The paper evidence will remain even if a witness is lost.*");
+            Say(HS.S("286-287") + "|*The Echo. Six seconds, then it pulls you back.*");
         }
     }
 
@@ -258,7 +288,8 @@ public class RevisedPlotDirector : MonoBehaviour
         phoneSeen = true;
         EvidenceJournal.Collect(EvidenceJournal.Phone);
         if (hallwayFigure != null) { hallwayFigure.SetActive(true); hallwayFigure.GetComponent<SoulConviction>().Exert(); }
-        yield return Speak("Vane: [05:00 replay] Arthur. The Rourke brother's on his way.|Kessler: Then you'd better not be there.|*The line goes dead.*|Tomas: You signed it. You SIGNED it.|That voice on the phone...|*The silhouette at the end of the hall is flickering red.*");
+        // ([disconnect], HS_0302, is a sound the project doesn't have yet: the narration stands in for it)
+        yield return Speak(HS.S("297-301") + "|*The line goes dead.*|" + HS.S("303-304,314"));
         if (tomas != null) tomas.GetComponent<SoulConviction>().Exert(.6f);
         if (hallwayFigure != null) hallwayFigure.SetActive(false);
     }
@@ -268,7 +299,7 @@ public class RevisedPlotDirector : MonoBehaviour
         var choice = ChoiceDialogue.Instance;
         if (choice == null) return;
         var entries = EvidenceJournal.Found;
-        if (entries.Length == 0) { Say("*No evidence recorded yet. Inspect the collection manifest, shift statement and ledger. Watch the CCTV. Replay Vane's phone in the Echo.*"); return; }
+        if (entries.Length == 0) { Say("*No evidence yet. Read the report and the ledger. Watch the security tape.*"); return; }
         if (journalPage * 3 >= entries.Length) journalPage = 0;
         var page = entries.Skip(journalPage * 3).Take(3).ToArray();
         var labels = page.Concat(new[] { entries.Length > 3 ? "Next page / close with [J]" : "Close journal" }).ToArray();
@@ -293,44 +324,113 @@ public class RevisedPlotDirector : MonoBehaviour
             string[] options = EvidenceJournal.Has(fact) ? new[] { "Present " + fact, "Ask about what I witnessed" } : new[] { "Ask about what I witnessed" };
             int selected = 0;
             yield return Choose("Vane", fact == EvidenceJournal.Invoice ? "That clinic was just another supplier." : "I did what the business needed.", options, i => selected = i);
-            if (fact == EvidenceJournal.Statement) yield return Speak("I signed your statement. You filed it as a fall.|Vane: A false report. I made every night worker sign it.");
-            else if (fact == EvidenceJournal.Tape) yield return Speak("I saw the tape. You threatened us both.|Vane: I ordered Derek to kill Tomas. He was protecting his brother. I used that.");
-            else yield return Speak(EvidenceJournal.Has(fact) && selected == 0 ? "Your code is on the Harlow invoice. What did you pay for?|Vane: The clinic. To process the bodies. To make Tomas disappear." : "I collected that box on your order. What was in it?|Vane: What remained of Tomas. I sent you to carry it.");
+            bool shown = EvidenceJournal.Has(fact) && selected == 0;
+            if (fact == EvidenceJournal.Statement) yield return Speak(shown ? HS.S("536-539") : HS.S("540-542"));
+            else if (fact == EvidenceJournal.Tape) yield return Speak(shown ? HS.S("543-546") : HS.S("547-549"));
+            else yield return Speak(shown ? HS.S("550-553") : HS.S("554-557"));
         }
-        yield return Speak("Vane: Kessler told me--|I'm not asking about Kessler.|Vane: ...I chose it. I ordered the murder. I sold the bodies. No excuse.|*Vane's voice separates from the others. The flesh at his neck loosens.*");
+        yield return Speak(HS.S("558-563"));
         EvidenceJournal.VaneConfessed = true;
         // His monstrous shell will sink in the existing finale; the confessed soul separates first.
         GameObject soul = vane != null ? Visual(vane.body != null ? vane.body : vane.transform, "Vane confessed", boss.transform.position + boss.transform.forward * 3f) : null;
         if (soul != null) soul.AddComponent<SoulConviction>().Confess();
-        yield return Speak("Maya: Tomas trusted me. I told Vane where he was. I knew.|Tomas: Don't listen. They're mine.|You gave Elias the names. Then you took these two for yourself.|Tomas: They deserved it.|The Demon King: Their sins are their own, Tomas. The chains are yours. Loose them.");
+        yield return Speak(HS.S("564-569"));
         EvidenceJournal.TomasDamned = true;
         if (soul != null) Destroy(soul);
         EvidenceJournal.Record("Tomas's amalgamation", "Tomas used Elias to kill, then bound Vane and Maya's ruined Damned bodies to himself. He wanted the mark to reach Kessler. Breaking the joined body freed three separate souls for judgement; it did not absolve any of them.");
-        yield return Speak("Tomas: They won't leave me again.|The Demon King: The scales are not yours to hold.|*The mark burns. The seams split. Three souls, no longer one.*");
+        yield return Speak(HS.S("570-576"));
         InSequence = false;
     }
 
     public IEnumerator PlayerConfession()
     {
         InSequence = true;
-        yield return Speak("The Demon King: I did not send thee to make Vane speak. I sent thee to hear thyself in him.|The Demon King: Thy brother's knife. Elias's rifle. And thy hands, driver. What did they hold?");
-        var answers = new List<string> { "I signed a statement I knew I hadn't witnessed.", "I pushed Elias off the roof. I wanted him dead." };
-        if (EvidenceJournal.ContainerInspected) answers.Add("I read the container label and carried it anyway.");
-        answers.Add("None of this was my fault.");
+        yield return Speak(HS.S("582-588"));
+        var answers = new List<string> { "I signed a statement I knew I had not witnessed.", "I pushed Elias off the roof. I wanted him dead." };
+        var accounts = new List<string> { HS.S("590-594"), HS.S("595-598") };
+        if (EvidenceJournal.ContainerInspected) { answers.Add("I read the label and still carried the box."); accounts.Add(HS.S("599-602")); }
+        answers.Add("None of this was my fault."); accounts.Add(HS.S("603-607"));
         int picked = -1;
-        yield return Choose("Your account", "Speak for yourself.", answers.ToArray(), i => picked = i);
+        yield return Choose("Your account", HS.T(589), answers.ToArray(), i => picked = i);
         EvidenceJournal.PlayerConfessed = picked >= 0 && picked < answers.Count - 1;
-        yield return Speak(EvidenceJournal.PlayerConfessed
-            ? "I signed for an accident I never saw. I carried a box I should have questioned.|I pushed Elias because I wanted him dead. Nobody made me."
-            : "They made me. Derek. Vane. Elias. I had no choice.|The Demon King: Even now, another's name sits where thine should be.");
+        yield return Speak(accounts[Mathf.Clamp(picked, 0, accounts.Count - 1)]);
         InSequence = false;
     }
 
-    public IEnumerator PostCredits()
+    // Script 8.5, after the end card: a black screen and a telephone call, nothing to see. The second voice's name plate
+    // is whatever its CSV row says (UNKNOWN), so it cannot read DEREK before Kessler has said the name (CallReveal).
+    // [Enter] skips the rest once the name is out. Timings are on EndingSequence, in the Inspector.
+    // HS-rows: 642-650
+    public const int CallFirst = 642, CallReveal = 648, CallLast = 650;
+    public const string CallVoice = "Ending/Post-credits voice ";   // + the row number: a recording replaces the mumble
+    bool callPlayed;
+
+    public IEnumerator PostCredits(float ringSeconds, float linePause, float revealPause, float endSilence)
     {
-        yield return Speak("*Somewhere in the living city.*|Unseen Voice: Vane talked.|Kessler: About himself.|Unseen Voice: The marked driver can reach the Echo.|Kessler: Then we leave.");
-        // The unseen witness is Leon Vale, Kessler's first murdered bookkeeper; intentionally unnamed on screen.
+        var box = DialogueBox.Instance;
+        if (callPlayed || box == null) yield break;
+        callPlayed = true;
+        yield return WaitForDialogue();
+        MusicManager.Stop(2f);
+        var phone = gameObject.AddComponent<AudioSource>();
+        phone.playOnAwake = false; phone.spatialBlend = 0f;
+        AudioClip ring = Ring(), click = ProceduralAudio.Click();
+        clips.Add(ring); clips.Add(click);
+        bool revealed = false, skip = false;
+        IEnumerator Hold(float seconds)
+        {
+            for (float t = 0f; t < seconds && !skip; t += Time.deltaTime) { skip = revealed && SkipCall; yield return null; }
+        }
+
+        Step("ring");
+        var recording = Sounds.Clip("Ending/Phone ring", null);
+        if (recording != null)   // a recording has the ringing and the pick-up in one: all of it, once
+        {
+            Sounds.OneShot(phone, "Ending/Phone ring", null);
+            yield return Hold(recording.length);
+            Step("pick up");
+        }
+        else
+        {
+            phone.clip = ring; phone.volume = .5f; phone.loop = true;
+            phone.Play();
+            yield return Hold(ringSeconds);
+            phone.Stop(); phone.volume = 1f;
+            Step("pick up");
+            Sounds.OneShot(phone, "Ending/Phone pick up", click);
+        }
+        // the open line hums under the whole conversation
+        phone.clip = Sounds.Clip("Ending/Phone line", null); phone.volume = Sounds.Volume("Ending/Phone line"); phone.loop = true;
+        if (phone.clip != null) phone.Play();
+
+        for (int id = CallFirst; id <= CallLast && !skip; id++)
+        {
+            yield return Hold(id == CallReveal ? revealPause : linePause);
+            if (skip) break;
+            Step("line " + id);
+            if (box.blip != null) box.blip.mute = Sounds.Has(CallVoice + id);
+            Sounds.OneShot(phone, CallVoice + id, null);
+            box.Say(HS.S(id.ToString()));
+            yield return null;
+            while (box.Busy && !skip) { skip = revealed && SkipCall; yield return null; }
+            revealed |= id == CallReveal;
+        }
+
+        if (skip) { box.Clear(); phone.Stop(); Step("skipped"); yield return null; }   // (a frame: the same Enter must not also leave the end card)
+        else
+        {
+            Step("disconnect");
+            phone.Stop(); phone.volume = 1f;
+            var hangUp = Sounds.Clip("Ending/Phone disconnect", click);
+            phone.PlayOneShot(hangUp, Sounds.Volume("Ending/Phone disconnect"));
+            yield return Hold(hangUp.length + endSilence);
+        }
+        if (box.blip != null) box.blip.mute = false;
+        Destroy(phone);
+        Step("end");
     }
+    static bool SkipCall => Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
+    static void Step(string what) => Debug.Log("[post-credits] " + what);   // read by HellScape > Tests > Post-Credits Call
 
     public static IEnumerator Speak(string lines)
     {

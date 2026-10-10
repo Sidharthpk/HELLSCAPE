@@ -27,9 +27,11 @@ public class OfficeLurkers : MonoBehaviour
         }
         anim = shade.GetComponentInChildren<Animator>();
         sfx = new GameObject("Lurker sfx").AddComponent<AudioSource>(); sfx.transform.SetParent(transform, false); sfx.spatialBlend = 1f; sfx.maxDistance = 25f; sfx.rolloffMode = AudioRolloffMode.Linear;
+        Backlight(shade.transform);
         shade.SetActive(false);
         // the runner is Kessler's own model with his RUNKESSLER "Run" clip, stripped of ragdoll and scripts (the original is inactive, so the copy is too)
-        if (runTemplate != null && runTemplate.GetComponentInChildren<Animator>(true) is Animator src && src.HasState(0, Animator.StringToHash("Run")))
+        // (the "Run" state can only be asked for on the copy once it is switched on: an inactive animator has no states)
+        if (runTemplate != null && runTemplate.GetComponentInChildren<Animator>(true) != null)
         {
             runner = Instantiate(runTemplate);
             runner.name = "Shadow runner"; runner.transform.SetParent(transform, false);
@@ -45,7 +47,9 @@ public class OfficeLurkers : MonoBehaviour
                 r.sharedMaterials = m; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
             runAnim = runner.GetComponentInChildren<Animator>(true); runAnim.applyRootMotion = false;
-            runner.SetActive(false);
+            runner.SetActive(true);
+            if (runAnim.HasState(0, Animator.StringToHash("Run"))) { Backlight(runner.transform); runner.SetActive(false); }
+            else { Destroy(runner); runner = null; runAnim = null; }
         }
         // the bag that falls: the westmost one, so the other keeps its own jump scare
         foreach (var b in RevisedPlot.All<BodyBagScare>(gameObject.scene))
@@ -55,9 +59,20 @@ public class OfficeLurkers : MonoBehaviour
 
     void OnDestroy() { if (black != null) Destroy(black); if (stomp != null) Destroy(stomp); }
 
+    // a dull red light at his back (he always faces you): in the blacked-out office a black figure is nothing
+    // without something to stand out against
+    static void Backlight(Transform figure)
+    {
+        var l = new GameObject("Shadow backlight").AddComponent<Light>();
+        l.transform.SetParent(figure, false);
+        l.transform.position = figure.position + Vector3.up * 1.3f - figure.forward * 1.2f;
+        l.type = LightType.Point; l.color = new Color(1f, .1f, .05f); l.range = 5f; l.intensity = 1.6f; l.shadows = LightShadows.None;
+    }
+
     void Update()
     {
-        if (player == null || !canAct()) return;
+        if (player == null) return;
+        if (!canAct()) { timer = Mathf.Max(timer, 10f); return; }   // only once things have gone quiet again
         if (!dropped && bag != null && !busy)
         {
             Vector3 d = player.position - bag.transform.position; d.y = 0f;
@@ -68,8 +83,8 @@ public class OfficeLurkers : MonoBehaviour
         if (timer > 0f) return;
         timer = UnityEngine.Random.Range(18f, 38f);
         float r = UnityEngine.Random.value;
-        if (r < .35f) dir.LurkSteps();
-        else if (r < .7f) StartCoroutine(Lurk());
+        if (r < .25f) dir.LurkSteps();
+        else if (r < .5f) StartCoroutine(Lurk());
         else StartCoroutine(Rush());
     }
 
@@ -106,28 +121,39 @@ public class OfficeLurkers : MonoBehaviour
         Hide();
     }
 
-    // the fast run: straight at you, and gone before it touches you
+    // the shadow man: footsteps behind you, down the room. Look round and he is running at you, and gone before he
+    // touches you. Until you look he only comes on slowly, and stops short at your back.
+    bool rushSaid;
     IEnumerator Rush()
     {
-        if (!finder.TryFind(UnityEngine.Random.Range(9f, 12f), true, out var at)) yield break;
+        // most spots behind you are behind a wall too: one a frame until there is one you will see when you turn
         busy = true;
+        Vector3 at = default; bool found = false;
+        for (int i = 0; i < 60 && !found && canAct(); i++)
+        {
+            found = finder.TryFind(UnityEngine.Random.Range(12f, 17f), false, out at) && finder.Clear(cam.transform.position, at + Vector3.up * 1.2f);
+            if (!found) yield return null;
+        }
+        if (found && !rushSaid && DialogueBox.Instance != null) { rushSaid = true; DialogueBox.Instance.Say(HS.S("385-386")); }   // the first time only
+        if (!found) { busy = false; yield break; }
         var swap = shade; var swapAnim = anim;
         if (runner != null) { shade = runner; anim = runAnim; Show(at, 0f, 1f); anim.Play("Run", 0, UnityEngine.Random.value); }
         else Show(at, 1.3f, 2.6f);   // no run clip: the civilian walk cycle at 2.6x
         if (stomp == null) stomp = ProceduralAudio.Stomp();
         sfx.pitch = UnityEngine.Random.Range(.55f, .7f); sfx.PlayOneShot(ProceduralAudio.Rumble(1f), .6f);
-        float step = 0f;
-        for (float t = 0f; t < 3f && canAct(); t += Time.deltaTime)
+        float step = 0f; bool seen = false;
+        for (float t = 0f; t < 8f && canAct(); t += Time.deltaTime)
         {
             Face();
             Vector3 pos = shade.transform.position, to = player.position - pos; to.y = 0f;
             float d = to.magnitude;
-            if (d < 1.8f) break;
-            Vector3 fwd = to / d; float len = 7.5f * Time.deltaTime;
+            seen |= Vector3.Angle(cam.transform.forward, pos + Vector3.up * 1.2f - cam.transform.position) < 40f;
+            if (d < (seen ? 2.2f : 4f)) break;
+            Vector3 fwd = to / d; float len = (seen ? 7.5f : 2.2f) * Time.deltaTime;
             if (Physics.SphereCast(pos + Vector3.up * .9f, .3f, fwd, out var h, len + .3f, ~0, QueryTriggerInteraction.Ignore) && !h.transform.IsChildOf(player.root)) break;
             shade.transform.position = sfx.transform.position = pos + fwd * len;
             step -= Time.deltaTime;
-            if (step <= 0f) { step = .24f; sfx.pitch = UnityEngine.Random.Range(.9f, 1.1f); sfx.PlayOneShot(stomp, .8f); }
+            if (step <= 0f) { step = seen ? .24f : .5f; sfx.pitch = UnityEngine.Random.Range(.9f, 1.1f); sfx.PlayOneShot(stomp, .8f); }
             yield return null;
         }
         sfx.pitch = .7f; sfx.PlayOneShot(stomp, 1f);
@@ -168,7 +194,7 @@ public class OfficeLurkers : MonoBehaviour
             float dmg = Mathf.Min(10f, health.currentHealth - 12f);
             if (dmg > 0f) health.TakeDamage(dmg);
         }
-        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow("AH-- a body bag. It fell right off the ceiling.");
+        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(HS.S("383"));
         busy = false;
     }
 }

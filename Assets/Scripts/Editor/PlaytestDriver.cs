@@ -542,7 +542,7 @@ public static class PlaytestDriver
             var s = run.stops[i];
             // the run starts after the opening fade: wait until it has actually put this stop's objective up
             float tw = Time.time;
-            while ((run.objective == null || !run.objective.gameObject.activeSelf || !run.objective.text.Contains(s.objective)) && Time.time - tw < 90f) yield return null;
+            while (!ObjectiveUI.Current.Contains(s.objective) && Time.time - tw < 90f) yield return null;
             Say($"stop {i} objective up after {Time.time - tw:0.0}s");
             van.body.position = s.bay.position + Vector3.up * 0.5f; van.body.linearVelocity = Vector3.zero;
             Physics.SyncTransforms();
@@ -559,7 +559,7 @@ public static class PlaytestDriver
         }
 
         float tdw = Time.time;
-        while ((run.objective == null || !run.objective.gameObject.activeSelf || !run.objective.text.Contains(run.depotObjective)) && Time.time - tdw < 60f) yield return null;
+        while (!ObjectiveUI.Current.Contains(run.depotObjective) && Time.time - tdw < 60f) yield return null;
         van.body.position = run.depotBay.position + Vector3.up * 0.5f; van.body.linearVelocity = Vector3.zero;
         Physics.SyncTransforms();
         yield return Wait(0.5f);
@@ -575,12 +575,12 @@ public static class PlaytestDriver
         void Put(Vector3 p, Vector3 look) { if (rb != null) rb.linearVelocity = Vector3.zero; player.SetPositionAndRotation(p, Quaternion.LookRotation(look)); Physics.SyncTransforms(); }
         // the walk home starts after the clock-out and the establishing shot: wait for its objective
         float th = Time.time;
-        while (!(dir.objective.gameObject.activeSelf && dir.objective.text.Contains(dir.goHome)) && Time.time - th < 90f) yield return null;
+        while (!ObjectiveUI.Current.Contains(dir.goHome) && Time.time - th < 90f) yield return null;
         Say($"walk-home objective up after {Time.time - th:0.0}s");
         Put(dir.hallway.center, Vector3.forward); yield return Wait(3f);
         while (DialogueBox.Instance.Busy) yield return null;
         th = Time.time;
-        while (!(dir.objective.text.Contains(dir.findDerek)) && Time.time - th < 20f) { Put(dir.flat.center, dir.body.position - dir.flat.center); yield return null; }
+        while (!ObjectiveUI.Current.Contains(dir.findDerek) && Time.time - th < 20f) { Put(dir.flat.center, dir.body.position - dir.flat.center); yield return null; }
         // Derek is ~15 m in: stand 7 m from him, eyes on him (FindBody needs him within 8 m and 32 degrees)
         Vector3 away = dir.flat.center - dir.body.position; away.y = 0f; away.Normalize();
         Vector3 spot = dir.body.position + away * 7f; spot.y = dir.flat.center.y - 0.5f;
@@ -602,7 +602,7 @@ public static class PlaytestDriver
                 }
         Vector3 look = dir.body.position - spot; look.y = 0f;
         Put(spot, look);
-        Say($"in the flat: objective '{dir.objective.text}'"); yield return Wait(6f);
+        Say($"in the flat: objective '{ObjectiveUI.Current}'"); yield return Wait(6f);
         float tf = Time.time;
         while (dir.pc == null || !dir.pc.enabled) { if (Time.time - tf > 60f) { Say("never reached the tape"); yield break; } yield return null; }
         Say("found Derek; tape ready");

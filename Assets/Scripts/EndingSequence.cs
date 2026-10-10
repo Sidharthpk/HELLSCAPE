@@ -61,11 +61,15 @@ public class EndingSequence : MonoBehaviour
     [TextArea] public string brandLine = "My hands... they're burning again. His mark is opening something.|The real world. I can cross into it now, not just this city.";
     [TextArea] public string boundLine = "He's gone. The fog at the end of the bridge never moved.|Behind me the city's still red. Still full of them, hiding what they did.|...fine. Who's next?";
     public float sinkTime = 5f;             // the king going back down
-    public GameObject walker;               // the Meshy character (walk animation, looping), disabled; walks off toward the city
+    public GameObject walker;               // the confessor (injured walk, looping), disabled; limps off toward the city
+    public GameObject cursed;               // the same man standing, lifting his hands to look at the marks, disabled: the shot before the walk
+    public float cursedSpeed = 0.55f;       // his 3 s clip, slowed
+    public float cursedShot = 7f;           // how long the camera stays in front of him, pushing in
+    public float hurtsAt = 2.6f;            // when he says it (HS_0651), hands up
     public GameObject titleCard;            // HELLSCAPE / TO BE CONTINUED down the left side, disabled
     public AudioClip endTrack;              // replaces the laugh in this ending: fades in once the king has gone down
     public float endTrackVolume = 0.8f;
-    public float walkerSpeed = 0.5f;        // m/s: the clip's own stride (2.27 m per 4.97 s loop), so the feet don't skate
+    public float walkerSpeed = 0.33f;       // m/s: matched to the clip's stride, so the feet don't skate
     public float walkAwayTime = 16f;       // at least this long, and until the boundLine is done
     public float besideTime = 2.5f;        // the camera stays at his shoulder this long before it starts to pull out
 
@@ -91,8 +95,14 @@ public class EndingSequence : MonoBehaviour
     [Header("The verdict (spoken before the end card)")]
     [TextArea] public string arriveLine = "The bridge just... ends. Red fog, black water, and nothing past it.|The sea's moving. Something's coming UP out of it.";
 
+    [Header("Post-credits call (script 8.5, rows 642-650): seconds")]
+    public float callRingSeconds = 5.4f;    // the telephone rings on the black screen this long before it is picked up
+    public float callLinePause = 0.9f;      // silence between lines
+    public float callRevealPause = 2.6f;    // the longer silence before "Your brother's dead, Derek."
+    public float callEndSilence = 2.5f;     // after the line goes dead, before TO BE CONTINUED
+
     [Header("Testing")]
-    public bool testOnStart = false;        // press Play in MainGameScene and the ending runs after 3 s (tick "testDamned" for the bad one)
+    public bool testOnStart = false;       // press Play in MainGameScene and the ending runs after 3 s (tick "testDamned" for the bad one)
     public bool testDamned = false;
 
     private bool played = false, walkedAway = false;
@@ -108,38 +118,20 @@ public class EndingSequence : MonoBehaviour
     // what the king says: everything you did in the city, read back to you, then the sentence
     public static string VerdictLines(bool damned)
     {
-        const string who = "The Demon King: ";
-        var l = new System.Collections.Generic.List<string>();
-        l.Add(who + (damned ? "Still thou wearest thy own skin, and still thou pretendest. Let us weigh what thou hast carried."
-                            : "Still thou wearest thy own skin. Keep it. I have a use for the vessel."));
-        l.Add(who + "Thou didst sign a murder into a fall, and never asked what thine eyes had seen.");
-        if (EvidenceJournal.ContainerInspected) l.Add(who + "A sealed weight was put in thy hands. Thou didst feel it, and carried it still.");
-        if (Judgement.KilledKiller) l.Add(who + "Elias Rourke: thou hast ended him. A brother, avenging a brother, ended by thee.");
-        else if (Judgement.SparedKiller) l.Add(who + "Elias Rourke: thou didst let him speak. He named his crime, and the one he did it for.");
-        var turned = Survivor.All.Where(x => x != null && x.Turned).Select(x => x.displayName).ToList();
-        if (turned.Count > 0) l.Add(who + string.Join(" and ", turned) + " clung to the excuse, and the excuse became the flesh. To speak is not to confess.");
-        var saved = Survivor.All.Where(x => x != null && x.Rescued).Select(x => x.displayName).ToList();
-        var lost = Survivor.All.Where(x => x != null && !x.Rescued && !x.Turned && !x.Drowned).Select(x => x.displayName).ToList();
-        var drowned = Survivor.All.Where(x => x != null && !x.Rescued && !x.Turned && x.Drowned).Select(x => x.displayName).ToList();
-        if (saved.Count > 0) l.Add(who + "Thou didst bear " + string.Join(" and ", saved) + " out of the red tide.");
-        if (lost.Count > 0) l.Add(who + "Thou didst leave " + string.Join(" and ", lost) + " to the dark.");
-        if (drowned.Count > 0) l.Add(who + "The flood took " + string.Join(" and ", drowned) + ". Their reckoning stays open.");
-        if (Judgement.Karma >= 2) l.Add(who + "Thou wert gentle with the dead when gentleness cost thee nothing.");
-        else if (Judgement.Karma <= -2) l.Add(who + "Thou wert cruel to the dead. The dead keep ledgers.");
-        if (damned)
+        // script 8.2: only the rows that are true of this game, then 8.3 (Damned) or 8.4 (Bound)
+        var l = new System.Collections.Generic.List<string> { "608" };
+        if (Judgement.KilledKiller) l.Add("609");
+        else if (Judgement.SparedKiller) l.Add("610");
+        foreach (var s in Survivor.All)
         {
-            l.Add(who + (EvidenceJournal.PlayerConfessed ? "Thou hast spoken thy guilt aloud. Now the sentence: thou shalt wear the shape thy deeds have made." : "Thou still hidest behind another's name. Then my mark will cease to hold thy shape."));
-            return string.Join("|", l);
+            if (s == null) continue;
+            if (s.displayName == "Maya") l.Add(s.Turned ? "611" : s.Rescued ? "612" : "613");
+            else l.Add(s.Rescued ? "614" : "615");
         }
-        l.Add(who + "Confession opens a hearing. It does not wash the blood. Thy sentence is to drag the hidden accounts into the light.");
-        l.Add(who + "I see the sins of the dead as one sees stars. The living hide from me. Kessler yet breathes.");
-        l.Add(who + "Vane gave up his own sins, and no man's but his own. Seek Kessler through the Echo.");
-        l.Add(who + "Tomas armed a brother, then bound the dead to himself to storm my gate.");
-        l.Add(who + "Thou hast broken the body he built. Tomas, Vane, Maya: each answers alone. To be wronged is not to own another's soul.");
-        l.Add(who + "The Damned may yet confess, but the road narrows with every step away. Do not mistake ruin for judgement.");
-        if (saved.Count > 0) l.Add(who + "Those thou broughtest receive their own hearing. They do not share thy sentence.");
-        l.Add(who + "My mark is my heartbeat, and thou art its drum. It beats until the work is done.");
-        return string.Join("|", l);
+        if (Judgement.Karma <= -2) l.Add("616");
+        // (damned for blaming someone else: the rows where you are told you named it, 617-618 and 621-622, do not apply)
+        l.Add(!damned ? "628-638" : EvidenceJournal.PlayerConfessed ? "617-627" : "619-620,623-627");
+        return HS.S(string.Join(",", l));
     }
 
     public static bool Playing { get; private set; }   // (the gun is put away for the judgement)
@@ -281,11 +273,22 @@ public class EndingSequence : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
+        // post-credits: the card goes, the screen stays black, the telephone rings. TO BE CONTINUED after it, both endings.
         if (RevisedPlotDirector.Instance != null)
         {
-            yield return new WaitForSeconds(2f);
+            // the end track is gone before the telephone rings
+            if (demonLaugh != null && demonLaugh.isPlaying) yield return FadeOutAudio(demonLaugh, 3f);
+            else yield return new WaitForSeconds(2f);
             if (card != null) card.SetActive(false);
-            yield return RevisedPlotDirector.Instance.PostCredits();
+            yield return RevisedPlotDirector.Instance.PostCredits(callRingSeconds, callLinePause, callRevealPause, callEndSilence);
+            if (damned && continuedCard != null)
+            {
+                card = continuedCard;
+                if (fader != null && fader.transform.parent == card.transform.parent && card.transform.GetSiblingIndex() < fader.transform.GetSiblingIndex())
+                    card.transform.SetSiblingIndex(fader.transform.GetSiblingIndex());
+            }
+            var continued = card != null ? card.transform.Find("Line2") : null;
+            if (continued != null) continued.gameObject.SetActive(true);
             if (card != null) card.SetActive(true);
         }
 
@@ -474,13 +477,40 @@ public class EndingSequence : MonoBehaviour
         dir.y = 0f; dir.Normalize();
         Vector3 left = -Vector3.Cross(Vector3.up, dir);
         Transform body = walker.transform;
-        body.SetPositionAndRotation(feet, Quaternion.LookRotation(dir));
-        walker.SetActive(true);
 
         cutsceneCam.enabled = true;
         var listener = cutsceneCam.GetComponent<AudioListener>();
         if (listener != null) listener.enabled = true;
         Camera.SetupCurrent(cutsceneCam);
+
+        // first, from in front of him: he stands there breathing, lifts his hands, looks at the marks. "It hurts..."
+        // The camera creeps in on his face and hands until they come down again.
+        if (cursed != null)
+        {
+            cursed.transform.SetPositionAndRotation(feet, Quaternion.LookRotation(dir));
+            cursed.SetActive(true);
+            var anim = cursed.GetComponent<Animator>();
+            if (anim != null) anim.speed = cursedSpeed;
+            Vector3 chest = feet + Vector3.up * 1.4f;
+            Vector3 far = chest + dir * 2.3f + left * 0.8f + Vector3.up * 0.1f, near = chest + dir * 1.55f + left * 0.5f + Vector3.up * 0.1f;
+            float fovWas = cutsceneCam.fieldOfView;
+            cutsceneCam.fieldOfView = fovWas * 0.72f;
+            if (fader != null) StartCoroutine(fader.FadeTo(0f, 1.2f));
+            bool said = false;
+            for (float t = 0f; t < cursedShot || (DialogueBox.Instance != null && DialogueBox.Instance.Busy && t < cursedShot + 6f); t += Time.deltaTime)
+            {
+                if (!said && t >= hurtsAt) { said = true; if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(HS.T(651)); }
+                cutsceneCam.transform.position = Vector3.Lerp(far, near, Mathf.SmoothStep(0f, 1f, t / cursedShot));
+                cutsceneCam.transform.rotation = Quaternion.LookRotation(chest - cutsceneCam.transform.position);
+                yield return null;
+            }
+            cutsceneCam.fieldOfView = fovWas;
+            cursed.SetActive(false);   // (cut: behind him now, and he's walking)
+        }
+        else if (fader != null) StartCoroutine(fader.FadeTo(0f, 1.2f));
+
+        body.SetPositionAndRotation(feet, Quaternion.LookRotation(dir));
+        walker.SetActive(true);
         // the camera starts right beside him, at his shoulder, then slowly pulls back and up
         Vector3 beside = left * 1.2f - dir * 1.8f + Vector3.up * 1.5f;
         Vector3 camEnd = feet - dir * 8f + left * 4f + Vector3.up * 3.5f;
@@ -496,15 +526,18 @@ public class EndingSequence : MonoBehaviour
             titleGroup = titleCard.GetComponent<CanvasGroup>();
             if (titleGroup == null) titleGroup = titleCard.AddComponent<CanvasGroup>();
             titleGroup.alpha = 0f;
+            var continued = titleCard.transform.Find("Line2");   // TO BE CONTINUED: not until the telephone call is over
+            if (continued != null) continued.gameObject.SetActive(false);
             titleCard.SetActive(true);
         }
-        if (fader != null) StartCoroutine(fader.FadeTo(0f, 1.2f));
         if (DialogueBox.Instance != null && !string.IsNullOrEmpty(boundLine)) DialogueBox.Instance.SayNow(boundLine);
 
+        float quietAt = -1f;   // when his last line ended: only then does the title come up
         for (float t = 0f; t < 45f; t += Time.deltaTime)
         {
             bool talking = DialogueBox.Instance != null && DialogueBox.Instance.Busy;
-            if (t > walkAwayTime && !talking) break;
+            if (!talking && quietAt < 0f) quietAt = t;
+            if (t > walkAwayTime && quietAt >= 0f && t > quietAt + 5f) break;
             body.position += dir * walkerSpeed * Time.deltaTime;
             float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / walkAwayTime));
             float pull = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - besideTime) / Mathf.Max(0.1f, walkAwayTime - besideTime)));
@@ -514,7 +547,7 @@ public class EndingSequence : MonoBehaviour
             float aside = Mathf.Min(2.5f, 0.35f * Vector3.Distance(cutsceneCam.transform.position, body.position));
             Vector3 aim = Vector3.Lerp(body.position + Vector3.up * 1.3f + dir * 1.5f * (1f - pull) + left * aside, skyline + left * 2.5f, k * 0.3f);
             cutsceneCam.transform.rotation = Quaternion.Slerp(cutsceneCam.transform.rotation, Quaternion.LookRotation(aim - cutsceneCam.transform.position), 1f - Mathf.Exp(-3f * Time.deltaTime));
-            if (titleGroup != null) titleGroup.alpha = Mathf.Clamp01((t - 3f) / 2f);
+            if (titleGroup != null) titleGroup.alpha = quietAt < 0f ? 0f : Mathf.Clamp01((t - quietAt) / 2f);
             yield return null;
         }
         yield return RevisedPlotDirector.WaitForDialogue();
@@ -674,13 +707,26 @@ public class EndingSequence : MonoBehaviour
     public float waveEvery = 10f;           // seconds between waves of shadow people (wave n brings n of them)
     public float soulFogDensity = 0.04f;    // black exp-squared fog: half faded at about 21 m
     public float kingFogDensity = 0.012f;   // eased down while he rises, so his shadow can be seen
+    public int skyEyes = 500;               // eyes in the sky by the end of the walk (Resources/VoidEyes: the MovingEyes gif as a flipbook)
+    public float aheadEvery = 10f;          // metres walked the way you are looking before a shadow person stands in your way
 
     // The first mark, on waking in hell after the prologue fall: you died on that street. You are on SoulFloor, an
     // endless textured floor under a pure black sky and black fog. Shadow people appear ahead of you and follow you
     // (never attacking: get close and it's a jumpscare), more of them every ten seconds, until a voice shouts STOP.
     // Then "???" rises: a huge shadow, never shown in colour, and marks your hands. SleepSequence calls it while the
     // screen is black; you are put back where you were afterwards.
+    // the void's voices, far apart (script, act 01): most of the sixty seconds is silence
+    IEnumerator VoidWhispers()
+    {
+        foreach (var rows in new[] { "101-102", "103-104", "105-106" })
+        {
+            yield return new WaitForSeconds(soulWalkTime * .22f);
+            if (DialogueBox.Instance != null) DialogueBox.Instance.Say(HS.S(rows));
+        }
+    }
+
     public IEnumerator DeathVision()
+
     {
         if (demon == null || demon.root == null || playerCamera == null) yield break;
         Transform you = playerMovementScript != null ? playerMovementScript.transform : playerCamera.transform.root;
@@ -751,11 +797,14 @@ public class EndingSequence : MonoBehaviour
         float whisperVol = Sounds.Volume("Ending/Shadow whispers"), bedVol = Sounds.Volume("Ending/Shadow music");
         var shades = new List<SoulFollower>();
         var king = demon;
+        var eyes = MakeSkyEyes(out var eyesMat);
+        Vector3 lastPos = you.position; float walked = 0f;
 
         // walk: the endless floor and the people who follow you
         if (fader != null) StartCoroutine(fader.FadeTo(0f, 1.5f));
         if (playerMovementScript != null) playerMovementScript.enabled = true;
-        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow("Where... is this?|Nothing. Just the floor, and the dark.");
+        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(HS.S("98-100"));
+        StartCoroutine(VoidWhispers());
         float clock = 0f, nextWave = 3f; int wave = 0; bool scared = false;
         while (clock < soulWalkTime)
         {
@@ -765,6 +814,23 @@ public class EndingSequence : MonoBehaviour
             whispers.volume = wave > 0 ? 0.9f * whisperVol * Mathf.Lerp(0.1f, 1f, swell) : 0f;   // from the first shadow, louder as it goes
             Vector3 p = you.position;
             floor.transform.position = new Vector3(Mathf.Round(p.x / tile) * tile, floorY, Mathf.Round(p.z / tile) * tile);
+            if (eyes != null) eyes.transform.position = playerCamera.transform.position;   // a sky: it goes where you go
+            // keep walking the way you look and one of them is standing there: turn, or walk into it
+            Vector3 look = playerCamera.transform.forward; look.y = 0f;
+            walked += Mathf.Max(0f, Vector3.Dot(p - lastPos, look.normalized)); lastPos = p;
+            if (walked >= aheadEvery)
+            {
+                walked = 0f;
+                if (shades.Count < 22) shades.Add(SpawnShade(template, you, floorY, 1.6f, 12f, 9f, 13f));
+                else
+                {
+                    // (all of them are out: the one furthest behind in the fog is the one in front of you now)
+                    SoulFollower far = null; float best = 0f;
+                    foreach (var s in shades) if (s != null && (s.transform.position - p).sqrMagnitude > best) { best = (s.transform.position - p).sqrMagnitude; far = s; }
+                    if (far != null) far.transform.position = AheadSpot(you, floorY, 12f, 9f, 13f, out _);
+                }
+                voidSfx.PlayOneShot(ProceduralAudio.Rumble(.8f), 0.2f);
+            }
             if (clock >= nextWave)
             {
                 nextWave += waveEvery; wave++;
@@ -791,7 +857,7 @@ public class EndingSequence : MonoBehaviour
         Sounds.OneShot(voidSfx, "Ending/Demon rises", null, 1f);
         if (DialogueBox.Instance != null)
         {
-            DialogueBox.Instance.SayNow("???: STOP!");
+            DialogueBox.Instance.SayNow(HS.S("107").Replace("The Demon King:", "???:"));
             Sounds.OneShot(voidSfx, "Ending/Demon King talking", null);
             yield return null;
             Vector3 cam0 = playerCamera.transform.localPosition;
@@ -866,6 +932,7 @@ public class EndingSequence : MonoBehaviour
         {
             float k = Mathf.SmoothStep(0f, 1f, t / rise);
             king.root.transform.position = Vector3.Lerp(sunk, standAt, k);
+            if (eyesMat != null) eyesMat.SetFloat("_Dim", Mathf.Lerp(1f, 0.35f, k));   // the sky stays, behind him, but his haze has to read
             RenderSettings.fogDensity = Mathf.Lerp(soulFogDensity, kingFogDensity, k);
             FacePlayer(king.root.transform);
             Bust(king);
@@ -901,7 +968,7 @@ public class EndingSequence : MonoBehaviour
             // the fists are held down at your sides after the fall: bring them up into the guard to look at them
             var punch = playerCamera.GetComponentInChildren<PunchController>(true);
             if (punch != null) { punch.Draw(); yield return new WaitForSeconds(1.2f); }
-            if (DialogueBox.Instance != null && !string.IsNullOrEmpty(deathBrandLine)) DialogueBox.Instance.SayNow(deathBrandLine);
+            if (DialogueBox.Instance != null && !string.IsNullOrEmpty(deathBrandLine)) DialogueBox.Instance.SayNow(deathBrandLine.Replace("The Demon King:", "???:"));
             yield return LookAtHands(arms, 0.8f);
             yield return RevisedPlotDirector.WaitForDialogue();
         }
@@ -910,6 +977,7 @@ public class EndingSequence : MonoBehaviour
         foreach (var s in shades) if (s != null) Destroy(s.gameObject);
         Destroy(voidSfx.gameObject);
         Destroy(template); Destroy(floor); Destroy(haze);
+        if (eyes != null) Destroy(eyes.gameObject); if (eyesMat != null) Destroy(eyesMat);
         Destroy(floorMat); Destroy(black); Destroy(hazeMat); Destroy(hazeTex);
         foreach (var (r, mats) in swapped) if (r != null) r.sharedMaterials = mats;
         foreach (var r in hidden) if (r != null) r.enabled = true;
@@ -976,13 +1044,67 @@ public class EndingSequence : MonoBehaviour
         return t;
     }
 
-    // one shadow person, 15 to 24 m ahead of where you're looking, walking at you
-    SoulFollower SpawnShade(GameObject template, Transform you, float floorY, float speed)
+    // The sky of the void fills with eyes: one, then a few, then faster and faster until the whole dome is looking at
+    // you. Billboard particles on a hemisphere round the camera, each playing the flipbook at its own pace
+    // (Resources/VoidEyes.png, 8 x 6 frames, drawn by HellScape/VoidEyes as a sky behind everything).
+    ParticleSystem MakeSkyEyes(out Material mat)
+    {
+        mat = null;
+        var tex = Resources.Load<Texture2D>("VoidEyes"); var shader = Shader.Find("HellScape/VoidEyes");
+        if (tex == null || shader == null) return null;
+        mat = new Material(shader) { mainTexture = tex };
+        var go = new GameObject("Void eyes");
+        go.transform.position = playerCamera.transform.position;
+        var ps = go.AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        const float life = 3600f, loop = 3.72f;   // (they never die; the gif is 3.72 s long)
+        var main = ps.main;
+        main.duration = soulWalkTime; main.loop = false; main.playOnAwake = false;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(life * .8f, life * 1.2f);   // (the flipbook runs over the lifetime: no two at the same pace)
+        main.startSpeed = 0f;
+        main.startSize = new ParticleSystem.MinMaxCurve(3f, 7.5f);
+        main.startRotation = new ParticleSystem.MinMaxCurve(-.3f, .3f);
+        main.startColor = new ParticleSystem.MinMaxGradient(new Color(.45f, .45f, .45f), Color.white);
+        main.simulationSpace = ParticleSystemSimulationSpace.Local;
+        main.maxParticles = skyEyes + 50;
+        var shape = ps.shape;
+        shape.shapeType = ParticleSystemShapeType.Hemisphere; shape.radius = 30f; shape.radiusThickness = 0f;
+        shape.rotation = new Vector3(-90f, 0f, 0f);   // the dome, over your head
+        var em = ps.emission;   // slow, then a flood: the area under this curve is skyEyes
+        float peak = (skyEyes / soulWalkTime - .5f) * 3f;
+        em.rateOverTime = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, .5f, 0f, 0f), new Keyframe(1f, .5f + peak, 2f * peak, 0f)));
+        var sheet = ps.textureSheetAnimation;
+        sheet.enabled = true; sheet.numTilesX = 8; sheet.numTilesY = 6;
+        sheet.frameOverTime = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0f, 1f, 1f));
+        sheet.startFrame = new ParticleSystem.MinMaxCurve(0f, 1f);
+        sheet.cycleCount = Mathf.RoundToInt(life / loop);
+        var col = ps.colorOverLifetime;   // each one opens out of the black
+        col.enabled = true;
+        var fade = new Gradient();
+        fade.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                     new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 2.5f / life), new GradientAlphaKey(1f, 1f) });
+        col.color = fade;
+        var r = go.GetComponent<ParticleSystemRenderer>();
+        r.sharedMaterial = mat; r.renderMode = ParticleSystemRenderMode.Billboard;
+        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        ps.Play();
+        return ps;
+    }
+
+    // a place on the floor ahead of where you're looking, within `spread` degrees and `near`..`far` metres
+    Vector3 AheadSpot(Transform you, float floorY, float spread, float near, float far, out Vector3 dir)
     {
         Vector3 fwd = playerCamera.transform.forward; fwd.y = 0f;
         fwd = fwd.sqrMagnitude > 0.01f ? fwd.normalized : Vector3.forward;
-        Vector3 dir = Quaternion.Euler(0f, Random.Range(-60f, 60f), 0f) * fwd;
-        Vector3 at = you.position + dir * Random.Range(15f, 24f); at.y = floorY;
+        dir = Quaternion.Euler(0f, Random.Range(-spread, spread), 0f) * fwd;
+        Vector3 at = you.position + dir * Random.Range(near, far); at.y = floorY;
+        return at;
+    }
+
+    // one shadow person, 15 to 24 m ahead of where you're looking (or as given), walking at you
+    SoulFollower SpawnShade(GameObject template, Transform you, float floorY, float speed, float spread = 60f, float near = 15f, float far = 24f)
+    {
+        Vector3 at = AheadSpot(you, floorY, spread, near, far, out var dir);
         var g = Instantiate(template, at, Quaternion.LookRotation(-dir));
         g.SetActive(true);
         g.transform.localScale = template.transform.localScale * Random.Range(0.95f, 1.12f);

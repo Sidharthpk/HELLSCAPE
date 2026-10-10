@@ -51,6 +51,10 @@ public class SleepSequence : MonoBehaviour
     public static bool WakeInHell;       // set by the prologue before it loads this scene
     public static Vector3? FallSpot;     // where you hit the ground, in the street anchor's space
     public static Vector3 FallFacing;    // which way to face when you get up (same space)
+    public static bool Waking { get; private set; }   // out cold (and in the death vision): CityWalkers waits for it
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatic() => Waking = false;
 
     void Start()
     {
@@ -64,6 +68,7 @@ public class SleepSequence : MonoBehaviour
     // straight into hell: flat on your back in the street, looking up at the red sky, then up on your feet
     IEnumerator WakeFromFall()
     {
+        Waking = true;
         playerMovementScript.enabled = false;
         if (punchController != null) punchController.enabled = false;
         Sounds.Apply(wakeSound, "Hell City/Wake heartbeat");
@@ -85,6 +90,7 @@ public class SleepSequence : MonoBehaviour
             if (fists != null) fists.HoldDown();
             if (fader != null) fader.fade.alpha = 1f;
         }
+        Waking = false;
 
         var cam = playerRoot.GetComponentInChildren<Camera>();
         if (wakeSound != null) wakeSound.Play();

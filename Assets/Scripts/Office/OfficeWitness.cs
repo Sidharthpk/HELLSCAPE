@@ -4,47 +4,46 @@ using UnityEngine;
 public class OfficeWitness : MonoBehaviour
 {
     GhostNPC ghost;
-    string admission, excuse, denial;
-    string[] redReplies;
+    string admission, greeting;
+    string[] questions, redReplies;
+    bool greeted;
+
+    // Rows of the script (HS): 3.2 the red-city talk, 3.3 the shared Echo questioning, 3.4 each one's three ends.
+    // HS-rows: 160,164,166,169,173,175,178,182,184,187,191,193,213-236
     public void Initialize(GhostNPC npc)
     {
         ghost = npc;
-        switch (ghost.ghostName)
+        string n = ghost.ghostName;
+        int own;   // first row of this colleague's confessed / damned / lost pairs
+        switch (n)
         {
-            case "Priya":
-                admission = "I passed the statement around. I hadn't seen a fall. I told the others it was only attendance because I wanted them to sign. That was my lie.";
-                excuse = "They needed their shifts! I kept everyone employed. I'd hand them that paper again.";
-                denial = "There wasn't a statement. I only remember the reception bell. Nothing else happened.";
-                redReplies = new[] { "I handed out forms. That's reception work. Ask whoever wrote them.", "Vane had his own office. I wasn't paid to watch his door.", "The date is on the calendar. I didn't put it there for you." }; break;
-            case "Ben":
-                admission = "I heard Tomas shouting. I shut the break-room door and turned the music up. I chose not to hear him.";
-                excuse = "One man screaming doesn't make him my responsibility. I kept the others out of trouble. I'd shut that door again.";
-                denial = "It was just the radio. We were having cake. There wasn't anyone shouting.";
-                redReplies = new[] { "That sound could have been the radio. The walls carry everything.", "Vane didn't eat with us. Whatever he did was his business.", "Try the cleaning rota. Omar wrote down everywhere he went. I stayed here." }; break;
-            case "Nadia":
-                admission = "I stamped the report without checking it. Then I filed it where nobody would ask. I made the lie official.";
-                excuse = "An unsigned report gets people fired. My stamp kept this place running. That matters more than one cleaner.";
-                denial = "That isn't my stamp. I don't remember that day. Stop putting it in front of me.";
-                redReplies = new[] { "A stamp doesn't mean I witnessed anything. It means the form arrived.", "His phone was always ringing. I didn't listen. I never listened.", "Your keys went through the slot at seven. Check your desk for what happened after. Don't ask me to explain it." }; break;
-            default:
-                admission = "I cleaned the blood before anyone could photograph it. Vane asked, but I took the bucket. I destroyed what would have proved it.";
-                excuse = "Blood on the floor shuts a business down. I made it safe. Someone had to clean up his mess.";
-                denial = "There was no blood. Just water. It was always only water.";
-                redReplies = new[] { "I clean whatever's on the floor. I don't ask how it got there.", "He signed the work orders. That's all I know about Vane.", "The rota has the camera order. Sort it by time. You can read it yourself." }; break;
+            case "Priya": own = 213; greeting = HS.S("157-159", n); Red(n, 160, "161-163", 164, "165", 166, "167"); break;
+            case "Ben": own = 219; greeting = HS.S("168", n); Red(n, 169, "170-172", 173, "174", 175, "176"); break;
+            case "Nadia": own = 225; greeting = HS.S("177", n); Red(n, 178, "179-181", 182, "183", 184, "185"); break;
+            default: own = 231; greeting = HS.S("186", n); Red(n, 187, "188-190", 191, "192", 193, "194"); break;
         }
-        ghost.answerSeconds = 18f;
+        admission = HS.T(own);
+        string confessed = HS.S(own + "-" + (own + 1), n), damned = HS.S((own + 2) + "-" + (own + 3), n), lost = HS.S((own + 4) + "-" + (own + 5), n);
+        ghost.answerSeconds = 30f;
+        ghost.opening = HS.S("195-198", n);
         ghost.Replace(new[] {
-            Node("I remember the report. Don't make me remember the rest.",
-                Choice("Tell me what you did yourself.", "I can still see my hands. I keep trying to say someone made them move.", 1),
-                Choice("Vane gave the orders. Does that excuse you?", "He did. But I was there. Ask me again before I forget.", 1),
-                Choice("We can pretend you weren't there.", denial, -1, 1)),
-            Node("If I say it, I have to live with it. What do you want from me?",
-                Choice("Your own actions. No excuses.", admission, -1, 3),
-                Choice("Tell me why it was necessary.", excuse, -1, 2),
-                Choice("Forget it. Nothing happened here.", denial, -1, 1))
+            Node(HS.T(199),
+                Choice("What did you do?", HS.S("200-201", n), 1),
+                Choice("Vane ordered you. Is that enough?", HS.S("202-203", n), 1),
+                Choice("Forget it. You were not there.", HS.S("204-206", n) + "|" + lost, -1, 1)),
+            Node("...",
+                Choice("Tell me exactly what you did.", HS.S("207-208", n) + "|" + confessed, -1, 3),
+                Choice("Tell me why you had to.", HS.S("209-210", n) + "|" + damned, -1, 2),
+                Choice("Nothing happened.", HS.S("211-212", n) + "|" + lost, -1, 1))
         });
-        ghost.afterLine = "I've told you what I can remember.";
+        ghost.afterLine = "...";
         // (no more standing at desks: they walk the office in pain, PainWalk)
+    }
+
+    void Red(string n, int q1, string a1, int q2, string a2, int q3, string a3)
+    {
+        questions = new[] { HS.T(q1), HS.T(q2), HS.T(q3), "Leave" };
+        redReplies = new[] { HS.S(a1, n), HS.S(a2, n), HS.S(a3, n) };
     }
 
     static readonly System.Collections.Generic.List<Vector3> taken = new System.Collections.Generic.List<Vector3>();
@@ -92,18 +91,25 @@ public class OfficeWitness : MonoBehaviour
     {
         if (RevisedPlotDirector.Instance == null || RevisedPlotDirector.Instance.Echo) return false;
         if (ghost.fate != GhostNPC.Fate.Undecided) { DialogueBox.Instance?.Say(ghost.ghostName + ": " + ghost.afterLine); return true; }
-        ChoiceDialogue.Instance.Show(ghost.ghostName, "Why are you still asking?", new[] { "What did you do that night?", "What do you know about Vane?", "Where should I look?", "Leave" }, i =>
-        {
-            if (i < redReplies.Length) DialogueBox.Instance?.Say(ghost.ghostName + ": " + redReplies[i]);
-        }, transform);
+        if (greeted) Ask();
+        else { greeted = true; DialogueBox.Instance?.Say(greeting); StartCoroutine(AskAfter()); }
         return true;
     }
 
+    System.Collections.IEnumerator AskAfter()
+    {
+        yield return RevisedPlotDirector.WaitForDialogue();
+        if (RevisedPlotDirector.Instance != null && !RevisedPlotDirector.Instance.Echo && !ChoiceDialogue.Instance.Open) Ask();
+    }
+
+    void Ask() => ChoiceDialogue.Instance.Show(ghost.ghostName, "...", questions, i =>
+    {
+        if (i < redReplies.Length) DialogueBox.Instance?.Say(redReplies[i]);
+    }, transform);
+
     public void Resolved(GhostNPC.Fate fate)
     {
-        ghost.afterLine = fate == GhostNPC.Fate.Confessed ? "I did it. Remember my words, not his version."
-            : fate == GhostNPC.Fate.Damned ? "I'd do it again. Stop looking at me like that."
-            : fate == GhostNPC.Fate.Gone ? "Only ash remains. The memory is gone." : "I can't remember my name. There was only the bell...";
+        ghost.afterLine = fate == GhostNPC.Fate.Confessed ? HS.T(237) : fate == GhostNPC.Fate.Damned ? HS.T(238) : fate == GhostNPC.Fate.Gone ? "..." : HS.T(239);
         if (fate == GhostNPC.Fate.Confessed) EvidenceJournal.Record(ghost.ghostName + " testimony", admission);
         FindFirstObjectByType<OfficeHorrorDirector>()?.WitnessResolved(fate);
     }

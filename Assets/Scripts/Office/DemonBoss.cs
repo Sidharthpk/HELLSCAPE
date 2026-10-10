@@ -1297,6 +1297,7 @@ public class DemonBoss : MonoBehaviour
         Destroy(ring);
     }
 
+    bool chargeCalled;
     IEnumerator Charge(int times)
     {
         busy = true;
@@ -1305,6 +1306,7 @@ public class DemonBoss : MonoBehaviour
             Locomote(0f);
             Play(roarState);
             Roar(0.6f);
+            if (!chargeCalled && DialogueBox.Instance != null) { chargeCalled = true; DialogueBox.Instance.Say(HS.S("526")); }   // the first one only
             float windup = chargeWindup * (n > 0 ? 0.7f : 1f);
             for (float t = 0f; t < windup; t += Time.deltaTime) { FaceToward(Tgt.position, 8f); yield return null; }
 
@@ -1342,7 +1344,7 @@ public class DemonBoss : MonoBehaviour
     {
         stunned = true;
         Play(stunState);
-        if (DialogueBox.Instance != null && Random.value < 0.35f) DialogueBox.Instance.Say("Its heart. Shoot the heart.");
+        if (DialogueBox.Instance != null && Random.value < 0.35f) DialogueBox.Instance.Say(HS.S("525"));
         Transform m = model != null ? model : transform;
         Quaternion r0 = m.localRotation;
         for (float t = 0f; t < time; t += Time.deltaTime)

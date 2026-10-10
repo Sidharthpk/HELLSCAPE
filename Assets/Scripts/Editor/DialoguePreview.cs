@@ -87,7 +87,7 @@ public static class DialoguePreview
                 {
                     "I changed the statement.", "Derek said it was an accident.",
                     "Let Maya and Sam go. This is between us.", "..."
-                }, DialoguePresentation.Gold, i => selected = i);
+                }, DialoguePresentation.Blood, i => selected = i);
                 var buttons = owner.GetComponentsInChildren<Button>();
                 for (int i = 0; i < buttons.Length; i++)
                 {

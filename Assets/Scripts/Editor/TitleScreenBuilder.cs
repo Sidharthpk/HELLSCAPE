@@ -56,14 +56,12 @@ public static class TitleScreenBuilder
             ts.core = anim;
         }
 
-        // slow dollies through the city, each cut through black
+        // one long ride down the bridge: from out over the blood sea, through the truss, into the red city
         ts.shots = new[]
         {
-            Shot(new Vector3(-84f, 0f, -89f), new Vector3(-93f, 0.6f, -122f), new Vector3(-104f, -1f, -175f), new Vector3(-107f, -1f, -205f), 11f),   // down the lamp-lit street
-            Shot(new Vector3(143f, 15f, -196f), new Vector3(150f, 24f, -170f), new Vector3(250f, 10f, 10f), new Vector3(245f, 6f, 20f), 11f),      // crane up the east side, towards the bridge
-            Shot(new Vector3(12f, 24f, 62f), new Vector3(0f, 28f, 44f), new Vector3(-40f, 0f, -80f), new Vector3(-50f, 0f, -90f), 10f),          // over the rooftops from home
-            Shot(new Vector3(102f, 60f, -302f), new Vector3(82f, 54f, -280f), new Vector3(60f, 0f, -100f), new Vector3(40f, 0f, -100f), 11f),     // the whole city from above
+            Shot(new Vector3(429.5f, 4f, 142.2f), new Vector3(192.1f, -1.5f, -41.1f), new Vector3(41.7f, 8f, -157.2f), new Vector3(41.7f, 8f, -157.2f), 40f),
         };
+        ts.menuFogDensity = 0.0035f;   // thin enough to see the city from the far end
 
         // ------------------------------------------------------------------ UI
         var canvasGo = new GameObject("TitleCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));

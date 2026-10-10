@@ -53,10 +53,29 @@ public class KillerCutscenes : MonoBehaviour
 
     public bool Playing { get; private set; }
 
+    private Vector3 headHome;
+
     void Awake()
     {
         if (cam != null) cam.enabled = false;
+        if (playerHead != null) headHome = playerHead.localPosition;
         SetBars(0f);
+    }
+
+    // a checkpoint respawn in the middle of one of these (or of KesslerChase's door cutscenes, which borrow
+    // Begin/End): out of it, the picture and the controls handed back. Whoever owns the scene resets its actors
+    public void Abort()
+    {
+        if (!Playing && (cam == null || !cam.enabled)) return;
+        StopAllCoroutines();
+        if (cam != null) cam.enabled = false;
+        if (key != null) key.enabled = false;
+        if (hidden != null) foreach (var r in hidden) if (r != null) r.enabled = true;
+        hidden = null;
+        SetBars(0f);
+        if (wasOn != null) for (int i = 0; i < lockDuring.Length && i < wasOn.Length; i++) if (lockDuring[i] != null && wasOn[i]) lockDuring[i].enabled = true;
+        if (playerHead != null) playerHead.localPosition = headHome;
+        Playing = false;
     }
 
     // ---------------------------------------------------------------- the reveal

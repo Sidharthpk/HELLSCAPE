@@ -12,7 +12,9 @@ public class WitnessLook : MonoBehaviour
 
     SkinnedMeshRenderer[] skins;
     Material ghostMat, burnt, intact;
-    public bool Echo { get; set; }
+    bool echo;
+    // (applied at once: a witness hidden by OfficeColleagues gets no LateUpdate of its own to change its skin back)
+    public bool Echo { get => echo; set { echo = value; if (skins != null && skins.Length > 0) LateUpdate(); } }
     MaterialPropertyBlock block;
     ParticleSystem ash, embers, smoke;
     Transform body;
@@ -36,6 +38,7 @@ public class WitnessLook : MonoBehaviour
         ash = Emitter("ash", new Color(.55f, .55f, .55f, 1f), .045f, 1.8f, .05f, .12f, 0f);
         embers = Emitter("embers", new Color(1f, .35f, .05f, 1f), .035f, 1.1f, .6f, -.15f, 0f);
         Apply(true);
+        LateUpdate();   // burnt from the start, also for one that is switched off before its first frame (OfficeColleagues hides them)
     }
 
     public void Set(Mode m) { mode = m; }

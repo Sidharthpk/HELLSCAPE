@@ -496,6 +496,7 @@ public static class ModernUIBuilder
 
         menu.titleScene = "MainGameScene";
         root.SetAsLastSibling();
+        menu.ApplyTypography();
         EditorUtility.SetDirty(menu);
     }
 }

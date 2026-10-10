@@ -54,6 +54,7 @@ public class TitleScreen : MonoBehaviour
     private Vector2 titleHome;
     private bool[] hudWasOn;
     private TMPro.TMP_Text hint;               // "PRESS ANY BUTTON", fading in and out
+    private float hintAt = -1f;                // when the title finished appearing: no prompt (and no start) before that
 
     void Awake()
     {
@@ -109,6 +110,7 @@ public class TitleScreen : MonoBehaviour
         }
         StartCoroutine(core != null ? CoreRide() : Shots());
         if (title != null) StartCoroutine(TitleLetters(1.4f, 0.28f, 0.7f));
+        else hintAt = Time.unscaledTime;
         yield return new WaitForSeconds(1.2f);
         yield return Fade(ui, 1f, 2f);
         if (ui != null) ui.interactable = true;
@@ -202,7 +204,7 @@ public class TitleScreen : MonoBehaviour
                 }
                 tx.UpdateVertexData(TMPro.TMP_VertexDataUpdateFlags.Colors32);
             }
-            if (done) yield break;
+            if (done) { hintAt = Time.unscaledTime; yield break; }
             yield return null;
         }
     }
@@ -221,10 +223,10 @@ public class TitleScreen : MonoBehaviour
             titleGroup.alpha = glitch && Random.value < 0.4f ? 0.35f : 1f;
         }
 
-        // the prompt breathes: fades in and out, forever
-        if (hint != null) hint.alpha = Mathf.Lerp(0.12f, 1f, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 2.4f));
+        // the prompt breathes: fades in and out, forever (from nothing, once the whole title is up)
+        if (hint != null) hint.alpha = hintAt < 0f ? 0f : Mathf.Lerp(0.12f, 1f, 0.5f - 0.5f * Mathf.Cos((Time.unscaledTime - hintAt) * 2.4f)) * Mathf.Clamp01(Time.unscaledTime - hintAt);
 
-        if (ui != null && ui.interactable && Input.anyKeyDown && !Input.GetKeyDown(KeyCode.Escape))
+        if (ui != null && ui.interactable && hintAt >= 0f && Input.anyKeyDown && !Input.GetKeyDown(KeyCode.Escape))
             StartGame();
     }
 
