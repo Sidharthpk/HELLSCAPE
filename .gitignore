@@ -114,3 +114,7 @@ GeneratedAssets/
 Tools/__pycache__/
 *.csproj
 *.sln
+
+# Source archives
+*.rar
+*.rar.meta
