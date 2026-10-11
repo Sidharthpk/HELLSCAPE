@@ -232,7 +232,7 @@ Other sources:
 
 - **Animations:** [Mixamo](https://www.mixamo.com) (Adobe), including the Scary Zombie Pack character and animations.
 - **Unity Asset Store:** Apartment Kit and Basic Assets by Brick Project Studio; PROMETEO Car Controller.
-- **Source to be confirmed:** the walking man and woman pedestrians.
+- **Free-to-use models:** the walking man and woman pedestrians.
 
 The Kessler & Vane office was built from scratch for HELLSCAPE, as were the K&V Logistics logo, the fuse box, the blood orb, the Sci-fi Core, Shadowchain and the Confessors.
 
