@@ -187,7 +187,6 @@ Models from [Sketchfab](https://sketchfab.com), used under the licence shown. CC
 |---|---|---|
 | [Characters_psx (pedestrians, Elias)](https://sketchfab.com/models/d940162487c3493b9e203d624fdd763a) | Elbolillo | CC BY |
 | [High School Character \| PS1 PSX](https://sketchfab.com/models/d96f74f0dc6f49559083c110fef37e2f) | crimsongcat | CC BY |
-| [Jason Manhattan No Mask](https://sketchfab.com/models/4b685f84dc8145ae92d7937ab55951e7) | JasonKills | CC BY |
 | [Jason Voorhees Machete Stab Animation](https://sketchfab.com/models/98c47191eaa64d7c907d474af8c251a4) | JasonKills | CC BY |
 | [Tommy Jarvis Multiple Stab Animation](https://sketchfab.com/models/7417773a94104a62a0ca157db0cb788f) | JasonKills | CC BY |
 | [Tillagemon Boss Skeleton](https://sketchfab.com/models/5c83cdeb86404e63900c1d04f8b391fb) | Vasian-Digital3D | CC BY |
@@ -219,7 +218,6 @@ Models from [Sketchfab](https://sketchfab.com), used under the licence shown. CC
 | [Body Bag](https://sketchfab.com/models/bf0523a2f4c24ed9ad936c40de1b7ae5) | AlienKat | CC BY-NC |
 | [Blood Pool Location](https://sketchfab.com/models/cc522076671a436a990d680d42417aa1) | Veterock | CC BY |
 | [blood decals psx](https://sketchfab.com/models/d036a3b7b3d24e2d84b06905f3d301fe) | dohnjoe | CC BY |
-| [deer dead body](https://sketchfab.com/models/832225752ec84608b9fa7643b764d79c) | nicefilms.ua | CC BY |
 | [Bridge_ Metal_10_MB](https://sketchfab.com/models/5933ffc71ca5427da825715660fa16d8) | Mehdi Shahsavan | CC BY |
 | [Old Modular Bridge](https://sketchfab.com/models/7118bbbcc66b407b80047c3c051a1d39) | CGMeller | CC BY |
 | [Tunnel Road](https://sketchfab.com/models/9022ca0e48924aad96123389d5322a7d) | Low poly 3d Models | CC BY |
