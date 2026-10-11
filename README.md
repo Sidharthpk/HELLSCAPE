@@ -194,7 +194,6 @@ Models from [Sketchfab](https://sketchfab.com), used under the licence shown. CC
 | [HellDemon Reborn](https://sketchfab.com/models/43e163c12f304a35b1f85476ca2549f6) | ArtistForge16 | CC BY |
 | [Cursed Rune Demon](https://sketchfab.com/models/0d2348598de9425b95e3a9a1cb915b79) | PolyGoreStudio | CC BY |
 | [Vision Monster](https://sketchfab.com/models/fe7ee29fadd14c76856df469d46e9570) | Christian (cristianrm650) | CC BY-SA |
-| [Angel](https://sketchfab.com/models/17d22525b4124088a8827d9c45a2627f) | Just8 | Free Standard |
 | [Animated Zombie Cop Running Loop](https://sketchfab.com/models/cd221e2b23b14798abf3afb2f31c123b) | LasquetiSpice | CC BY |
 | [Polyart Zombies with Animations Free Pack](https://sketchfab.com/models/d9bcfdd88f5348549bc947226af7c314) | Denys Almaral | Free Standard |
 | [PSX First Person Arms](https://sketchfab.com/models/efd731f559a14ab48e29c8a200d71788) | Drillimpact | Free Standard |
