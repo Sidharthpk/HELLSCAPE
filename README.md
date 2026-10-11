@@ -224,13 +224,14 @@ Models from [Sketchfab](https://sketchfab.com), used under the licence shown. CC
 | [Bridge_ Metal_10_MB](https://sketchfab.com/models/5933ffc71ca5427da825715660fa16d8) | Mehdi Shahsavan | CC BY |
 | [Old Modular Bridge](https://sketchfab.com/models/7118bbbcc66b407b80047c3c051a1d39) | CGMeller | CC BY |
 | [Tunnel Road](https://sketchfab.com/models/9022ca0e48924aad96123389d5322a7d) | Low poly 3d Models | CC BY |
+| [Tunnel](https://skfb.ly/6RBvx) | Helsingr | CC BY |
 | [Birthday Cake](https://skfb.ly/opxsU) | Sakthivel G | CC BY |
 
 Other sources:
 
 - **Animations:** [Mixamo](https://www.mixamo.com) (Adobe), including the Scary Zombie Pack character and animations.
 - **Unity Asset Store:** Apartment Kit and Basic Assets by Brick Project Studio; PROMETEO Car Controller.
-- **Source to be confirmed:** the walking man and woman pedestrians, `AIT01W2W7`, `bed83h` and the service tunnel.
+- **Source to be confirmed:** the walking man and woman pedestrians, `AIT01W2W7` and `bed83h`.
 
 The Kessler & Vane office was built from scratch for HELLSCAPE, as were the K&V Logistics logo, the fuse box, the blood orb, the Sci-fi Core, Shadowchain and the Confessors.
 
