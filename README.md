@@ -225,7 +225,7 @@ Models from [Sketchfab](https://sketchfab.com), used under the licence shown. CC
 | [Bridge_ Metal_10_MB](https://sketchfab.com/models/5933ffc71ca5427da825715660fa16d8) | Mehdi Shahsavan | CC BY |
 | [Old Modular Bridge](https://sketchfab.com/models/7118bbbcc66b407b80047c3c051a1d39) | CGMeller | CC BY |
 | [Tunnel Road](https://sketchfab.com/models/9022ca0e48924aad96123389d5322a7d) | Low poly 3d Models | CC BY |
-| Birthday Cake | *author to be confirmed* | |
+| [Birthday Cake](https://skfb.ly/opxsU) | Sakthivel G | CC BY |
 
 Other sources:
 
