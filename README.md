@@ -220,7 +220,6 @@ Models from [Sketchfab](https://sketchfab.com), used under the licence shown. CC
 | [Body Bag](https://sketchfab.com/models/bf0523a2f4c24ed9ad936c40de1b7ae5) | AlienKat | CC BY-NC |
 | [Blood Pool Location](https://sketchfab.com/models/cc522076671a436a990d680d42417aa1) | Veterock | CC BY |
 | [blood decals psx](https://sketchfab.com/models/d036a3b7b3d24e2d84b06905f3d301fe) | dohnjoe | CC BY |
-| [PSX Bed With Blood](https://sketchfab.com/models/e267490baf044c9ba338b3f93bb4ef76) | Arimantos | CC BY |
 | [deer dead body](https://sketchfab.com/models/832225752ec84608b9fa7643b764d79c) | nicefilms.ua | CC BY |
 | [Bridge_ Metal_10_MB](https://sketchfab.com/models/5933ffc71ca5427da825715660fa16d8) | Mehdi Shahsavan | CC BY |
 | [Old Modular Bridge](https://sketchfab.com/models/7118bbbcc66b407b80047c3c051a1d39) | CGMeller | CC BY |
@@ -231,8 +230,8 @@ Other sources:
 
 - **Animations:** [Mixamo](https://www.mixamo.com) (Adobe), including the Scary Zombie Pack character and animations.
 - **Unity Asset Store:** Apartment Kit and Basic Assets by Brick Project Studio; PROMETEO Car Controller.
-- **Source to be confirmed:** the walking man and woman pedestrians, `AIT01W2W7`, `bed83h`, the service tunnel and the ground-floor office export.
+- **Source to be confirmed:** the walking man and woman pedestrians, `AIT01W2W7`, `bed83h` and the service tunnel.
 
-The Kessler & Vane office, the K&V Logistics logo, the fuse box, the blood orb, the Sci-fi Core, Shadowchain and the Confessors were made for HELLSCAPE.
+The Kessler & Vane office was built from scratch for HELLSCAPE, as were the K&V Logistics logo, the fuse box, the blood orb, the Sci-fi Core, Shadowchain and the Confessors.
 
 Third-party audio belongs to its respective authors.
