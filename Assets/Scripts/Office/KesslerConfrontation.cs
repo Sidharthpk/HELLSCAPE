@@ -318,7 +318,7 @@ public class KesslerConfrontation : MonoBehaviour
         shoutCanvas = canvas.gameObject;
         var t = new GameObject("text").AddComponent<TextMeshProUGUI>();
         t.transform.SetParent(canvas.transform, false);
-        t.font = Resources.Load<TMP_FontAsset>("NotePixelFont") ?? t.font;
+        t.font = GameFont.Main ?? t.font;
         t.raycastTarget = false; t.text = text; t.fontSize = 64f; t.alignment = TextAlignmentOptions.Center; t.color = new Color(.95f, .05f, .03f);
         t.enableAutoSizing = true; t.fontSizeMax = 110f; t.fontSizeMin = 40f;
         var rt = t.rectTransform; rt.anchorMin = new Vector2(.08f, .12f); rt.anchorMax = new Vector2(.92f, .29f); rt.offsetMin = rt.offsetMax = Vector2.zero;

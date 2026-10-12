@@ -69,7 +69,7 @@ public class OfficeFlashback : MonoBehaviour
         data.renderPostProcessing = false;   // the cutscene camera is plain: no post-processing
 
         // a title over black, then the picture comes up on the office door
-        var cardFont = Resources.Load<TMPro.TMP_FontAsset>("SourceSans3-Semibold SDF");
+        var cardFont = GameFont.Main;
         if (cardFont != null) { d.titleCard.font = cardFont; d.titleCard.fontSharedMaterial = cardFont.material; }
         d.titleCard.text = timeCard;
         d.titleCard.alpha = 0f;

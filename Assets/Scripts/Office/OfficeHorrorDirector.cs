@@ -275,7 +275,7 @@ public class OfficeHorrorDirector : MonoBehaviour
         var go = new GameObject("text");
         go.transform.SetParent(parent, false); go.transform.localPosition = local;
         var t = go.AddComponent<TextMeshPro>();
-        var pixel = Resources.Load<TMP_FontAsset>("NotePixelFont");
+        var pixel = GameFont.Main;
         if (pixel != null) t.font = pixel;
         t.text = text; t.fontSize = size * 10f; t.color = c; t.alignment = TextAlignmentOptions.Center; t.textWrappingMode = TextWrappingModes.NoWrap;
         t.rectTransform.sizeDelta = new Vector2(2f, .4f);

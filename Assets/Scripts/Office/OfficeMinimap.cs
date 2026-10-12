@@ -59,7 +59,7 @@ public class OfficeMinimap : MonoBehaviour
         var paper = Make<RawImage>("Paper", full.transform, FullWidth * new Vector2(1f, aspect) + new Vector2(170f, 150f)); paper.texture = Paper();
         paper.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -1.5f);   // lying a little crooked, like the notes
         var whole = Make<RawImage>("Plan", paper.transform, FullWidth * new Vector2(1f, aspect)); whole.texture = plan; whole.color = Drawn;
-        var font = Resources.Load<TMP_FontAsset>("NotePixelFont");
+        var font = GameFont.Main;
         foreach (var (name, x, z) in Rooms)
         {
             // (a dark plate under each name: the plan is pale floor and black wall, no one colour reads on both)

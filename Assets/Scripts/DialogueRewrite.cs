@@ -10,8 +10,6 @@ public static class DialogueRewrite
 {
     static readonly Dictionary<string, string> Fields = new Dictionary<string, string>
     {
-        { "DeerCutscene.feedLine", "Where am I?" },
-        { "DeerCutscene.afterLine", "None of them look at me." },
         { "GateCutscene.line", "Something's moving down there." },
         { "GateButton.openedLine", "Where am I?" },
         { "Elevator.notInsideLine", "I need to be inside first." },

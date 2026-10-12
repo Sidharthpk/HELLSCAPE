@@ -118,7 +118,7 @@ public class TapLock : MonoBehaviour
     void Build()
     {
         if (rounded == null) rounded = Rounded();
-        var font = Resources.Load<TMP_FontAsset>("NotePixelFont");
+        var font = GameFont.Main;
         canvas = new GameObject("Knob puzzle", typeof(Canvas), typeof(CanvasScaler));
         var c = canvas.GetComponent<Canvas>(); c.renderMode = RenderMode.ScreenSpaceOverlay; c.sortingOrder = 500;
         var sc = canvas.GetComponent<CanvasScaler>(); sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; sc.referenceResolution = new Vector2(1920f, 1080f);

@@ -81,10 +81,10 @@ public class OfficeLurkers : MonoBehaviour
         if (busy) return;
         timer -= Time.deltaTime;
         if (timer > 0f) return;
-        timer = UnityEngine.Random.Range(18f, 38f);
+        timer = UnityEngine.Random.Range(9f, 20f);   // (the Damned are gone from the office: it is all shadows now)
         float r = UnityEngine.Random.value;
-        if (r < .25f) dir.LurkSteps();
-        else if (r < .5f) StartCoroutine(Lurk());
+        if (r < .15f) dir.LurkSteps();
+        else if (r < .55f) StartCoroutine(Lurk());
         else StartCoroutine(Rush());
     }
 
@@ -102,22 +102,40 @@ public class OfficeLurkers : MonoBehaviour
         if (d.sqrMagnitude > .01f) shade.transform.rotation = Quaternion.LookRotation(d);
     }
 
-    // stands there; gone once you look at it or come close
+    // one to three of them stand there, all facing you; all gone once you look at one of them or come close
     IEnumerator Lurk()
     {
-        if (!finder.TryFind(UnityEngine.Random.Range(6f, 9f), true, out var at)) yield break;
-        busy = true; Show(at, 0f, 1f); Face();
-        sfx.pitch = UnityEngine.Random.Range(.6f, .8f); sfx.PlayOneShot(ProceduralAudio.Rumble(1.2f), .6f);
-        float seen = 0f;
-        for (float t = 0f; t < 7f && canAct(); t += Time.deltaTime)
+        var figures = new System.Collections.Generic.List<Transform>();
+        int want = UnityEngine.Random.value < .4f ? 1 : UnityEngine.Random.Range(2, 4);
+        for (int i = 0; i < want; i++)
         {
-            Face();
-            bool looked = Vector3.Angle(cam.transform.forward, at + Vector3.up * 1.2f - cam.transform.position) < 28f;
+            if (!finder.TryFind(UnityEngine.Random.Range(6f, 10f), true, out var spot)) continue;
+            var f = i == 0 ? shade : Instantiate(shade, transform);   // (a copy of the one prepared: its backlight too)
+            f.SetActive(true); f.transform.position = spot;
+            var a = f.GetComponentInChildren<Animator>();
+            if (a != null) { a.SetFloat("Speed", 0f); a.speed = 1f; }
+            figures.Add(f.transform);
+        }
+        if (figures.Count == 0) yield break;
+        busy = true;
+        sfx.transform.position = figures[0].position;
+        sfx.pitch = UnityEngine.Random.Range(.6f, .8f); sfx.PlayOneShot(ProceduralAudio.Rumble(1.2f), .6f);
+        float seen = 0f; bool close = false;
+        for (float t = 0f; t < 7f && canAct() && !close; t += Time.deltaTime)
+        {
+            bool looked = false;
+            foreach (var f in figures)
+            {
+                Vector3 d = player.position - f.position; d.y = 0f;
+                if (d.sqrMagnitude > .01f) f.rotation = Quaternion.LookRotation(d);
+                looked |= Vector3.Angle(cam.transform.forward, f.position + Vector3.up * 1.2f - cam.transform.position) < 28f;
+                close |= d.magnitude < 3.5f;
+            }
             seen = looked ? seen + Time.deltaTime : Mathf.Max(0f, seen - Time.deltaTime);
-            Vector3 d = player.position - at; d.y = 0f;
-            if (seen > .8f || d.magnitude < 3.5f) break;
+            if (seen > .8f) break;
             yield return null;
         }
+        for (int i = 1; i < figures.Count; i++) Destroy(figures[i].gameObject);
         Hide();
     }
 

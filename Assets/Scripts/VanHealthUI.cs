@@ -34,7 +34,7 @@ public class VanHealthUI : MonoBehaviour
             rt.sizeDelta = new Vector2(120f, 36f);
             rt.anchoredPosition = home + new Vector2(icon.rect.width * (1f - icon.pivot.x) + 8f, 0f);
             percent = rt.gameObject.AddComponent<TextMeshProUGUI>();
-            var font = Resources.Load<TMP_FontAsset>("NotePixelFont");
+            var font = GameFont.Main;
             if (font != null) percent.font = font;
             percent.fontSize = 24f; percent.alignment = TextAlignmentOptions.MidlineLeft; percent.raycastTarget = false; percent.textWrappingMode = TextWrappingModes.NoWrap;
         }

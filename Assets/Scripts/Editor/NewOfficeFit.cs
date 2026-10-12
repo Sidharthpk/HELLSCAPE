@@ -35,7 +35,6 @@ public static partial class NewOfficeFit
     const string OldModelName = "Sketchfab_2023_11_11_16_15_44";
     const string DoorModel = "4bfaca4c4a794e9393a413e88dd5611a.fbx";
     const string GenDir = "Assets/Generated/Office";
-    const string DamnedPrefab = "Assets/Enemies/Scary Zombie Pack/PrimeZombie.prefab";
     const float Floor = 3.4f;
 
     static Transform model, act, office;
@@ -59,14 +58,6 @@ public static partial class NewOfficeFit
         new Vector2(38f, 13.2f), new Vector2(47f, 16f),                                                     // return hall
         new Vector2(55f, 18.5f), new Vector2(65f, 18.5f), new Vector2(74f, 19f),                            // service corridor
         new Vector2(64f, 32f), new Vector2(70f, 38f), new Vector2(74f, 31f),                                // Vane's office
-    };
-
-    // where the Damned turn up, and from which stage of the act (2 = two fuses in, 4 = Vane's door is open)
-    static readonly (float x, float z, int stage)[] DamnedPoints =
-    {
-        (12f, 28.3f, 2), (-12f, 18f, 2),
-        (22f, 13.5f, 3), (20f, 48f, 3), (29f, 40f, 3),
-        (50f, 45f, 4), (41f, 24f, 4), (62f, 19f, 4),
     };
 
     [MenuItem("HellScape/Office/Fit To New Office")]
@@ -765,20 +756,10 @@ public static partial class NewOfficeFit
         var closet = Leaf("D13");
         if (closet != null) Inter(closet.gameObject, "Try the door", "PLANT ROOM. Locked, and the lock has run in the heat.", once: false);
 
-        // ---- THE DAMNED
+        // ---- Vane's door cuts the navmesh while it is shut (no Damned in the office any more: OfficeDamned is only this)
         var node = Node(office, "Damned spawners");
         var od = node.GetComponent<OfficeDamned>();
         if (od == null) od = node.gameObject.AddComponent<OfficeDamned>();
-        od.prefab = AssetDatabase.LoadAssetAtPath<GameObject>(DamnedPrefab);
-        var fpc = Object.FindFirstObjectByType<FirstPersonController>(FindObjectsInactive.Include);
-        od.player = fpc != null ? fpc.transform : null;
-        od.points = new OfficeDamned.Point[DamnedPoints.Length];
-        for (int i = 0; i < DamnedPoints.Length; i++)
-        {
-            var p = Node(node, "Spawn " + (i + 1) + " (stage " + DamnedPoints[i].stage + ")");
-            p.position = P(DamnedPoints[i].x, Floor, DamnedPoints[i].z);
-            od.points[i] = new OfficeDamned.Point { at = p, stage = DamnedPoints[i].stage };
-        }
         var blocker = office.Find("KesslerDoor/DoorBlocker");
         if (blocker != null)
         {

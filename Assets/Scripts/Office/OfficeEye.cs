@@ -17,8 +17,8 @@ public partial class OfficeEye : MonoBehaviour
     public float sightRange = 15f, sightAngle = 40f;        // the beam: what it sees in front of it
     public float senseRange = 3f;                           // this close it knows, whichever way it looks
     public float loseAfter = 2.5f;                          // seconds out of its sight before it gives up the chase
-    public float leaveAfterTalk = 6f;                       // seconds of talking before the far glow goes out
-    public float returnAfter = 10f;                         // ...and until it is back, on its round
+    public float leaveAfterTalk = 1.5f;                     // seconds of talking before the far glow goes out
+    public float returnAfter = 3f;                          // ...and until it is back, on its round (once the talk is over)
     public float glowPower = 1.5f;                          // the red light round it ("not too much")
 
     enum S { Waiting, Watching, Leaving, Away, Patrol, Chase, Search, Blind, Capture }

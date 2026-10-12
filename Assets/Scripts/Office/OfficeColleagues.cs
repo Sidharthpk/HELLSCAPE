@@ -5,8 +5,9 @@ using UnityEngine;
 
 // Your four dead colleagues do not walk the office. Each has a desk with their name on it ("Desk sign - <name>" in
 // OfficeAct/Office: move the sign and the scare moves with it), and nobody at it. Come near one and, after a
-// moment, footsteps walk up behind you. You look back: nothing. You look front again and their burnt body is
-// standing right there. From then on they stay where they appeared, to be questioned. In the Echo every one of them
+// moment either they run at you down the room and stop a pace away, or footsteps walk up behind you and, when you
+// look back, their burnt body is standing in front of you. Either way the view pans to their face (no more effects
+// than that). From then on they stay where they appeared, to be questioned. In the Echo every one of them
 // is there as a soul, scare or no scare. A player who never looks round gets them standing at their desk instead.
 public class OfficeColleagues : MonoBehaviour
 {
@@ -79,6 +80,13 @@ public class OfficeColleagues : MonoBehaviour
         yield return new WaitForSeconds(UnityEngine.Random.Range(1.5f, 5f));
         if (!canAct() || !Near(c)) { busy = false; yield break; }
 
+        // half the time they run at you down the room instead: no warning, one pace from you, then the view goes to their face
+        if (UnityEngine.Random.value < .5f)
+        {
+            yield return RunAt(c);
+            if (c.shown) { timer = UnityEngine.Random.Range(10f, 20f); busy = false; yield break; }
+        }
+
         // footsteps, coming up behind you
         Vector3 fwd = Flat(cam.transform.forward).normalized;
         for (int i = 0; i < 5; i++)
@@ -103,15 +111,76 @@ public class OfficeColleagues : MonoBehaviour
             yield break;
         }
 
-        // ...and you look front again
-        for (float t = 0f; t < 8f && !InView30(c.g.transform.position); t += Time.deltaTime) yield return null;
-        sfx.transform.position = c.g.transform.position;
-        sfx.pitch = 1.3f; sfx.PlayOneShot(Sounds.Clip("Office/Auditor sting", null) ?? sting, 1f);
-        if (c.look != null) c.look.Flash();
+        // ...and there they are, in front of you: the view goes to their face
+        Sting(c);
+        yield return PanTo(c.g.transform.position + Vector3.up * FaceHeight);
         timer = UnityEngine.Random.Range(10f, 20f); busy = false;
     }
 
-    bool InView30(Vector3 p) => Vector3.Angle(cam.transform.forward, p + Vector3.up * 1.4f - cam.transform.position) < 30f;
+    const float FaceHeight = 1.55f;
+
+    void Sting(C c)
+    {
+        sfx.transform.position = c.g.transform.position;
+        sfx.pitch = 1.3f; sfx.PlayOneShot(Sounds.Clip("Office/Auditor sting", null) ?? sting, 1f);
+        if (c.look != null) c.look.Flash();
+    }
+
+    // from the far end of the room in front of you, running, to a pace away
+    IEnumerator RunAt(C c)
+    {
+        Vector3 from = default; bool found = false;
+        for (int i = 0; i < 40 && !found && canAct(); i++)
+        {
+            found = finder.TryFind(UnityEngine.Random.Range(9f, 13f), false, out from)
+                && Vector3.Angle(cam.transform.forward, from - cam.transform.position) < 45f
+                && finder.Clear(cam.transform.position, from + Vector3.up * 1.4f);
+            if (!found) yield return null;
+        }
+        if (!found) yield break;
+        var t = c.g.transform; var anim = c.g.animator;
+        Place(c, from);
+        Sting(c);
+        for (float time = 0f; time < 6f && canAct(); time += Time.deltaTime)
+        {
+            Vector3 to = Flat(player.position - t.position); float d = to.magnitude;
+            if (d < 1.8f) break;
+            Vector3 dir = to / d; float len = 7f * Time.deltaTime;
+            if (Physics.SphereCast(t.position + Vector3.up * .9f, .3f, dir, out var h, len + .3f, ~0, QueryTriggerInteraction.Ignore)
+                && !h.transform.IsChildOf(player.root) && !h.transform.IsChildOf(t)) break;
+            t.SetPositionAndRotation(t.position + dir * len, Quaternion.LookRotation(dir));
+            if (anim != null) { anim.SetFloat("Speed", 1.3f); anim.speed = 2.6f; }   // (after GhostNPC's own Update has set it to idle)
+            yield return null;
+        }
+        if (anim != null) { anim.SetFloat("Speed", 0f); anim.speed = 1f; }
+        yield return PanTo(t.position + Vector3.up * FaceHeight);
+    }
+
+    // the look turns to a point over about a second (yaw on the body, pitch on the camera, as the controller keeps them)
+    IEnumerator PanTo(Vector3 target)
+    {
+        var fpc = player.GetComponent<FirstPersonController>();
+        if (fpc == null || !fpc.enabled || GhostNPC.Conversing) yield break;
+        var camT = cam.transform;
+        Vector3 to = target - camT.position;
+        float yaw1 = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+        float pitch1 = Mathf.Clamp(-Mathf.Atan2(to.y, new Vector2(to.x, to.z).magnitude) * Mathf.Rad2Deg, -fpc.maxLookAngle, fpc.maxLookAngle);
+        float yaw0 = player.eulerAngles.y, pitch0 = Mathf.DeltaAngle(0f, camT.localEulerAngles.x);
+        fpc.cameraCanMove = false;
+        const float seconds = .9f;
+        for (float t = 0f; t < seconds; t += Time.deltaTime)
+        {
+            float k = Mathf.SmoothStep(0f, 1f, t / seconds);
+            player.rotation = Quaternion.Euler(0f, Mathf.LerpAngle(yaw0, yaw1, k), 0f);
+            camT.localEulerAngles = new Vector3(Mathf.Lerp(pitch0, pitch1, k), 0f, 0f);
+            yield return null;
+        }
+        player.rotation = Quaternion.Euler(0f, yaw1, 0f);
+        camT.localEulerAngles = new Vector3(pitch1, 0f, 0f);
+        fpc.SetPitch(pitch1);
+        yield return new WaitForSeconds(.6f);   // a moment on the face before the look is yours again
+        fpc.cameraCanMove = true;
+    }
 
     // free floor a step or two in front of where you were facing, with nothing between it and you
     bool Spot(Vector3 fwd, out Vector3 spot)

@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 // Shared by runtime and editor builders, so existing scenes adopt the dialogue design on Play.
 // Only presentation is rebuilt: dialogue queues, choices and story callbacks remain with their owners.
-// Smooth Source Sans typography, charcoal panels and restrained red accents.
+// The pixel font (GameFont), charcoal panels and restrained red accents.
 [AddComponentMenu("")]
 public class DialoguePresentation : MonoBehaviour
 {
@@ -43,8 +43,8 @@ public class DialoguePresentation : MonoBehaviour
     int count;
     float lastWidth = -1f, lastHeight = -1f;
 
-    static TMP_FontAsset BodyFont => Resources.Load<TMP_FontAsset>("SourceSans3-Regular SDF") ?? TMP_Settings.defaultFontAsset;
-    static TMP_FontAsset HeadFont => Resources.Load<TMP_FontAsset>("SourceSans3-Semibold SDF") ?? BodyFont;
+    static TMP_FontAsset BodyFont => GameFont.Main;
+    public static TMP_FontAsset HeadFont => GameFont.Main;
 
     public static DialoguePresentation Subtitle(DialogueBox dialogue)
     {
@@ -230,9 +230,10 @@ public class DialoguePresentation : MonoBehaviour
             // the name (a square of the speaker's colour beside it), the words under it, the key in the corner
             float height = bodyHeight + (narration ? 28f : 92f);
             root.sizeDelta = new Vector2(width, height);
-            Place(rule, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(pad, -22f), new Vector2(12f, 12f));
-            rule.pivot = new Vector2(0f, 1f);
-            Place(speaker.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(pad + 24f, -16f), new Vector2(textWidth - 24f, 30f));
+            // a bar down the box's left edge in the speaker's colour
+            Place(rule, new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, 0f), new Vector2(5f, -20f));
+            rule.pivot = new Vector2(0f, .5f);
+            Place(speaker.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(pad, -16f), new Vector2(textWidth, 32f));
             speaker.rectTransform.pivot = new Vector2(0f, 1f);
             Place(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(pad, narration ? -14f : -56f), new Vector2(textWidth, bodyHeight));
             body.rectTransform.pivot = new Vector2(0f, 1f);

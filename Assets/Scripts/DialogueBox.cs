@@ -280,7 +280,7 @@ public class DialogueBox : MonoBehaviour
         running = false;
     }
 
-    bool Pressed() => !PauseMenu.Paused && !(ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open) && (Input.GetKeyDown(advanceKey)
+    bool Pressed() => !PauseMenu.Paused && !(ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open) && (Input.GetKeyDown(advanceKey) || CutsceneSkip.Skipping
                       || (text.maxVisibleCharacters > 9999 && Time.unscaledTime - lineShownAt > (AutoAdvanceAfter > 0f ? AutoAdvanceAfter : InEcho ? 10f : 3f)));   // no key needed: a line stays 3 s (10 s in the Echo realm)
 
     static bool InEcho => RevisedPlotDirector.Instance != null && RevisedPlotDirector.Instance.Echo;

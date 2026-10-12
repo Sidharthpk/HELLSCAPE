@@ -120,7 +120,7 @@ public class NoteViewer : MonoBehaviour
         v.group = go.AddComponent<CanvasGroup>();
         v.group.alpha = 0f;
         v.group.blocksRaycasts = false;
-        v.font = Resources.Load<TMP_FontAsset>("NotePixelFont");
+        v.font = GameFont.Main;
         v.dot = MakeCircle(64, 0f);
         v.ring = MakeCircle(64, 0.16f);
 

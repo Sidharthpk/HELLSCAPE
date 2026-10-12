@@ -53,7 +53,7 @@ public class PauseMenu : MonoBehaviour
 
     public void ApplyTypography()
     {
-        var font = Resources.Load<TMPro.TMP_FontAsset>("SourceSans3-Semibold SDF");
+        var font = GameFont.Main;
         if (font == null) return;
         foreach (var text in GetComponentsInChildren<TMPro.TMP_Text>(true))
         {

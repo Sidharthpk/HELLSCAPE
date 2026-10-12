@@ -224,8 +224,78 @@ public class RevisedPlotDirector : MonoBehaviour
         if (player == null) yield break;
         GameObject guide = tomas != null ? Visual(tomas.body != null ? tomas.body : tomas.transform, "Tomas finds the marked driver", player.position + player.forward * 3f - Vector3.up) : null;
         if (guide != null) { guide.transform.LookAt(new Vector3(player.position.x, guide.transform.position.y, player.position.z)); guide.AddComponent<SoulConviction>().Exert(.3f); }
-        yield return Speak(HS.S("129-147") + "|*In the office: [V] opens the Echo. [J] is your evidence.*");
-        if (guide != null) Destroy(guide);
+        const string hint = "*In the office: [V] opens the Echo. [J] is your evidence.*";
+        var cuts = RevisedPlot.All<KillerCutscenes>(gameObject.scene).FirstOrDefault(k => k.isActiveAndEnabled && k.cam != null && !k.Playing);
+        if (guide == null || cuts == null) { yield return Speak(HS.S("129-147") + "|" + hint); if (guide != null) Destroy(guide); yield break; }
+
+        // A cutscene on the silo's cutscene camera (its letterbox, player lock, hold-SPACE skip; a checkpoint retry
+        // aborts it, and every shot below stops when it has):
+        //   129      his voice, off screen, while you stare at the nearest Lost Soul: "Don't stare at them."
+        //   130-145  round to Tomas, a slow push in on him
+        //   146-147  the depot's door down the street, and the objective comes up over it
+        Transform ct = cuts.cam.transform, head = cuts.playerHead != null ? cuts.playerHead : player;
+        Vector3 eye = head.position;
+        Bounds body = new Bounds(guide.transform.position + Vector3.up, Vector3.one);
+        foreach (var r in guide.GetComponentsInChildren<Renderer>()) body.Encapsulate(r.bounds);
+        Vector3 face = new Vector3(guide.transform.position.x, body.max.y - .2f, guide.transform.position.z);
+        var soul = RevisedPlot.All<LostSoul>(gameObject.scene).Where(s => s.isActiveAndEnabled && (s.transform.position - eye).magnitude < 60f)
+            .OrderBy(s => (s.transform.position - eye).magnitude).FirstOrDefault();
+        var fader = RevisedPlot.All<SleepSequence>(gameObject.scene).Select(s => s.fader).FirstOrDefault(f => f != null);
+        var door = RevisedPlot.All<Transform>(gameObject.scene).FirstOrDefault(t => t.name == "OfficeEntrance (City)");
+
+        cuts.Begin();
+        CutsceneHUD.Hide(true);
+        ct.SetPositionAndRotation(eye, head.rotation);
+        // (each shot runs until its lines are read; `move` gets the seconds it has been up)
+        IEnumerator Shot(string lines, Action<float> move)
+        {
+            Say(lines);
+            yield return null;
+            for (float t = 0f; cuts.Playing && DialogueBox.Instance != null && DialogueBox.Instance.Busy; t += Time.deltaTime) { move(t); yield return null; }
+        }
+        void Turn(Vector3 to, float speed) => ct.rotation = Quaternion.Slerp(ct.rotation, Quaternion.LookRotation(to - ct.position), 1f - Mathf.Exp(-speed * Time.deltaTime));
+
+        if (soul != null) yield return Shot(HS.S("129"), t => Turn(soul.transform.position + Vector3.up * 1.2f, 1.5f));
+        else yield return Shot(HS.S("129"), t => { });
+        Vector3 side = Vector3.Cross(Vector3.up, face - eye).normalized * .45f;
+        if (cuts.Playing) yield return Shot(HS.S("130-145"), t =>
+        {
+            ct.position = Vector3.Lerp(eye, Vector3.Lerp(eye, face, .45f) + side, 1f - Mathf.Exp(-t * .2f));
+            Turn(face, 6f);
+        });
+
+        if (cuts.Playing && door != null)
+        {
+            if (fader != null) yield return fader.FadeTo(1f, .4f);
+            // from out in the street, above head height, looking back at the door and its sign (never from inside a wall)
+            Vector3 sign = door.TransformPoint(0f, 4.5f, 0f), from = door.TransformPoint(5f, 5.5f, 20f);
+            if (Physics.Linecast(sign + door.forward * .6f, from, out RaycastHit wall, ~0, QueryTriggerInteraction.Ignore)) from = wall.point - (from - sign).normalized * .5f;
+            ct.SetPositionAndRotation(from, Quaternion.LookRotation(sign - from));
+            if (fader != null) StartCoroutine(fader.FadeTo(0f, .5f));
+            Vector3 push = (sign - from).normalized * .3f;
+            yield return Shot(HS.S("146-147"), t => ct.position = from + push * Mathf.Min(t, 6f));
+            ObjectiveUI.OverCutscene = true;   // "Go to the depot" is announced over the picture of it
+            for (float t = 0f; t < 3.6f && cuts.Playing; t += Time.deltaTime) { ct.position += push * Time.deltaTime; yield return null; }
+            if (cuts.Playing && fader != null) yield return fader.FadeTo(1f, .4f);
+        }
+        else if (cuts.Playing) yield return Shot(HS.S("146-147"), t => Turn(face, 6f));
+
+        bool finished = cuts.Playing;   // (false: a retry took the camera back already and put you at the checkpoint)
+        ObjectiveUI.OverCutscene = false;
+        CutsceneHUD.Hide(false);
+        Destroy(guide);
+        if (!finished) yield break;
+        if (door != null)
+        {
+            // back in your own eyes, facing the way to the depot
+            Vector3 way = door.position - player.position; way.y = 0f;
+            if (way.sqrMagnitude > 1f) player.rotation = Quaternion.LookRotation(way);
+            var fpc = player.GetComponent<FirstPersonController>();
+            if (fpc != null) fpc.SetPitch(0f);
+        }
+        cuts.End();
+        if (fader != null) StartCoroutine(fader.FadeTo(0f, .6f));
+        Say(hint);
     }
 
     bool journalOpen;
@@ -483,6 +553,7 @@ public class RevisedPlotDirector : MonoBehaviour
     {
         var go = new GameObject("Label"); go.transform.SetParent(parent, false); go.transform.localPosition = local;
         var text = go.AddComponent<TextMesh>(); text.text = value; text.characterSize = size; text.fontSize = 42; text.transform.localScale = Vector3.one * .15f; text.anchor = TextAnchor.MiddleCenter; text.color = Color.black;
+        if (GameFont.Ttf != null) { text.font = GameFont.Ttf; go.GetComponent<MeshRenderer>().sharedMaterial = GameFont.Ttf.material; }
     }
     void Loop(GameObject owner, AudioClip clip, float volume, float range)
     {

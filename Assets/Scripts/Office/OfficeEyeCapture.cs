@@ -107,7 +107,7 @@ public partial class OfficeEye
     {
         var t = new GameObject(name, typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
         t.transform.SetParent(parent, false);
-        var font = Resources.Load<TMP_FontAsset>("NotePixelFont");
+        var font = GameFont.Main;
         if (font != null) t.font = font;
         t.fontSize = size; t.color = colour; t.alignment = TextAlignmentOptions.Center; t.raycastTarget = false;
         t.rectTransform.sizeDelta = new Vector2(1100f, 80f); t.rectTransform.anchoredPosition = at;

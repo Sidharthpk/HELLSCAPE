@@ -38,7 +38,7 @@ public class GameOverScreen : MonoBehaviour
     public void ApplyTypography()
     {
         if (panel == null) return;
-        var font = Resources.Load<TMPro.TMP_FontAsset>("SourceSans3-Semibold SDF");
+        var font = GameFont.Main;
         if (font == null) return;
         foreach (var text in panel.GetComponentsInChildren<TMPro.TMP_Text>(true))
         {

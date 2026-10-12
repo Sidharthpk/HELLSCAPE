@@ -233,7 +233,7 @@ public class PrologueDirector : MonoBehaviour
         fader.fade.alpha = 1f;
         if (titleCard != null)
         {
-            var cardFont = Resources.Load<TMPro.TMP_FontAsset>("SourceSans3-Semibold SDF");
+            var cardFont = GameFont.Main;
             if (cardFont != null) { titleCard.font = cardFont; titleCard.fontSharedMaterial = cardFont.material; }
             titleCard.text = timeCard;
             titleCard.alpha = 0f;

@@ -193,6 +193,6 @@ public class GunController : MonoBehaviour
 
     void UpdateAmmo()
     {
-        if (ammoText != null) ammoText.text = ammo + " / " + (limited ? "MAG x" + spare : "∞");
+        if (ammoText != null) ammoText.text = ammo + " / " + (limited ? "MAG x" + spare : "INF");
     }
 }

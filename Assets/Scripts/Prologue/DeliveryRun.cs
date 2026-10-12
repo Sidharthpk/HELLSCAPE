@@ -104,7 +104,7 @@ public class DeliveryRun : MonoBehaviour
         }
         if (titleCard != null)
         {
-            var cardFont = Resources.Load<TMPro.TMP_FontAsset>("SourceSans3-Semibold SDF");
+            var cardFont = GameFont.Main;
             if (cardFont != null) { titleCard.font = cardFont; titleCard.fontSharedMaterial = cardFont.material; }
             titleCard.text = clockOutCard;
             for (float t = 0f; t < 1f; t += Time.deltaTime) { titleCard.alpha = t; yield return null; }

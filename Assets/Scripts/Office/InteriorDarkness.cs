@@ -36,6 +36,11 @@ public class InteriorDarkness : MonoBehaviour
     private VolumeProfile noHazeProfile;
     private ParticleSystemRenderer[] mist = new ParticleSystemRenderer[0];
 
+    // the office (the blackout zone) is darker still than its saved dim/lightDim, but never black: ambient and every
+    // lamp are scaled by this (the emergency red before the fuses is left as it was). Raise it to lighten the office.
+    const float OfficeGloom = 0.65f;
+    float Gloom => blackoutUntilPowered ? OfficeGloom : 1f;
+
     private bool inside, powered;
     private bool blackNow;                  // this zone is blacked out and you're in it
     private readonly System.Collections.Generic.List<Light> switchedOff = new System.Collections.Generic.List<Light>();
@@ -86,13 +91,14 @@ public class InteriorDarkness : MonoBehaviour
             haze.fogDensity.value = 0f; haze.noiseStrength.value = 0f; haze.fogColor.value = Color.black;
             mist = System.Array.ConvertAll(FindObjectsByType<FogFollow>(FindObjectsInactive.Include, FindObjectsSortMode.None), f => f.GetComponent<ParticleSystemRenderer>());
         }
-        if (Mathf.Approximately(lightDim, 1f)) return;
+        float lamps = lightDim * Gloom;
+        if (Mathf.Approximately(lamps, 1f)) return;
         foreach (var l in FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
             if (l.type == LightType.Directional || !zone.Contains(l.transform.position)) continue;
             if (player != null && l.transform.IsChildOf(player)) continue;   // not a light carried with the player
-            if (l.TryGetComponent(out LightFlicker f)) f.ScaleBase(lightDim);
-            else l.intensity *= lightDim;
+            if (l.TryGetComponent(out LightFlicker f)) f.ScaleBase(lamps);
+            else l.intensity *= lamps;
         }
     }
 
@@ -165,7 +171,7 @@ public class InteriorDarkness : MonoBehaviour
         if (sun != null) sun.intensity = Mathf.Lerp(sunIntensity, 0f, k);
         RenderSettings.ambientMode = k > 0f ? AmbientMode.Flat : ambientMode;
         bool blackedOut = blackoutUntilPowered && !powered;
-        RenderSettings.ambientLight = Color.Lerp(ambient, blackedOut ? emergencyAmbient : (powered ? poweredAmbient : darkAmbient) * dim, k);
+        RenderSettings.ambientLight = Color.Lerp(ambient, blackedOut ? emergencyAmbient : (powered ? poweredAmbient : darkAmbient) * dim * Gloom, k);
         RenderSettings.fogColor = Color.Lerp(fog, blackedOut || fogOfWar ? blackFog : darkFog, k);
         if (noHaze != null) noHaze.weight = k;
         foreach (var m in mist) if (m != null) m.enabled = k <= 0f;

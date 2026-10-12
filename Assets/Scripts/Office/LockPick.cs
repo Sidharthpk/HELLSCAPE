@@ -109,7 +109,7 @@ public class LockPick : MonoBehaviour
         GUI.matrix = m;
         GUI.color = Color.white;
 
-        var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.RoundToInt(s * 0.09f) };
+        var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Mathf.RoundToInt(s * 0.09f), font = GameFont.Ttf };
         style.normal.textColor = new Color(1f, 0.8f, 0.3f);
         GUI.Label(new Rect(0, cy - s * 0.95f, Screen.width, s * 0.2f), "LOCKPICK   -   picks: " + picks, style);
         style.fontSize = Mathf.RoundToInt(s * (0.2f + 0.04f * pulse * panic));

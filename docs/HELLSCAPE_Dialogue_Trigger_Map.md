@@ -46,7 +46,7 @@ Check that nothing is missing or unwired: **HellScape > Tests > Dialogue CSV** (
 | 122 | [screams] cue: the brand | no line; see Missing Assets |
 | 123-125 | After the brand | RP > `deathBrandLine` |
 | 126-128 | Waking on the street | RP > `SleepSequence.fallWakeLine` |
-| 129-147 | Tomas appears in front of you | RPD `OpeningMark` |
+| 129-147 | Cutscene: 129 over the Lost Souls, 130-145 on Tomas, 146-147 over the depot's door (the objective comes up there) | RPD `OpeningMark` |
 | 146 | Trying the locked van | RP > `CarInteract.noKeysLine` |
 
 ## Office
