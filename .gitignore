@@ -118,3 +118,7 @@ Tools/__pycache__/
 # Source archives
 *.rar
 *.rar.meta
+
+# Unity crash-recovery scenes (160 MB)
+/Assets/_Recovery/
+/Assets/_Recovery.meta
