@@ -920536,18 +920536,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2134436474415339205
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5868616378580408632}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb3d60d0a5b854d4e9b92f9c4686a1d3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &2135015176731780574
 GameObject:
   m_ObjectHideFlags: 0
@@ -927485,18 +927473,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6244794979427728777}
   m_Mesh: {fileID: -833983734225898761, guid: 6f65220918e3231438dfa98833cb4899, type: 3}
---- !u!114 &4357086641206314095
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8113782413370919826}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb3d60d0a5b854d4e9b92f9c4686a1d3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!4 &4369187827293174822
 Transform:
   m_ObjectHideFlags: 0
@@ -931902,8 +931878,6 @@ GameObject:
   - component: {fileID: 1284744973453253828}
   - component: {fileID: 3941936701888831261}
   - component: {fileID: 7318472570217630125}
-  - component: {fileID: 6416435712080226211}
-  - component: {fileID: 2134436474415339205}
   m_Layer: 5
   m_Name: QuitButton
   m_TagString: Untagged
@@ -933497,18 +933471,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &6416435712080226211
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5868616378580408632}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6e98312f1e4b93149b201693be3e115c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!4 &6417369503948424807
 Transform:
   m_ObjectHideFlags: 0
@@ -938692,8 +938654,6 @@ GameObject:
   - component: {fileID: 3475693840721792622}
   - component: {fileID: 1683470046618357175}
   - component: {fileID: 4933695153188182791}
-  - component: {fileID: 8711003834949186825}
-  - component: {fileID: 4357086641206314095}
   m_Layer: 5
   m_Name: RestartButton
   m_TagString: Untagged
@@ -940190,18 +940150,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &8711003834949186825
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8113782413370919826}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6e98312f1e4b93149b201693be3e115c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &8713427553354975515
 GameObject:
   m_ObjectHideFlags: 0
