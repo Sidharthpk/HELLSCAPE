@@ -16,6 +16,7 @@ public class PauseMenu : MonoBehaviour
     public Button resumeButton, restartButton, controlsButton, titleButton, quitButton;
     public Slider volume, sensitivity;
     public string titleScene = "MainGameScene";
+    private GameObject settingsPanel;
 
     private readonly List<Behaviour> stopped = new List<Behaviour>();
     private float timeScale0 = 1f;
@@ -25,6 +26,80 @@ public class PauseMenu : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatic() => Paused = false;
 
+    // ---- display & accessibility: saved in PlayerPrefs, applied at start-up so they hold over the title too
+    static UnityEngine.Rendering.Universal.ColorAdjustments exposure;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void BootDisplay()
+    {
+        var go = new GameObject("Brightness");
+        DontDestroyOnLoad(go);
+        var v = go.AddComponent<UnityEngine.Rendering.Volume>();
+        v.isGlobal = true; v.priority = 10f;
+        var p = ScriptableObject.CreateInstance<UnityEngine.Rendering.VolumeProfile>();
+        exposure = p.Add<UnityEngine.Rendering.Universal.ColorAdjustments>(true);
+        v.sharedProfile = p;
+        SetBrightness(PlayerPrefs.GetFloat("hs.brightness", 0f));
+        if (PlayerPrefs.HasKey("hs.fullscreen")) SetFullscreen(PlayerPrefs.GetInt("hs.fullscreen") == 1);
+    }
+
+    static void SetBrightness(float stops) => exposure.postExposure.Override(stops);
+
+    static void SetFullscreen(bool on)
+    {
+        if (on) Screen.fullScreenMode = FullScreenMode.FullScreenWindow;
+        else Screen.SetResolution(1280, 720, FullScreenMode.Windowed);
+    }
+
+    // a settings button that flips an option and shows its state
+    void BuildSettings()
+    {
+        if (controlsPanel == null || controlsButton == null || volume == null) return;
+        var parent = controlsPanel.transform.parent;
+        var src = (RectTransform)controlsPanel.transform;
+        var panel = Instantiate(controlsPanel, parent);
+        panel.name = "Settings";
+        foreach (Transform c in panel.transform) Destroy(c.gameObject);   // keep the panel look, drop the controls text
+        settingsPanel = panel;
+        var label = volume.transform.parent.Find(volume.name + " label");
+
+        void Place(RectTransform rt, float y) { rt.SetParent(panel.transform, false); rt.anchoredPosition = new Vector2(48f, y); }
+        TMPro.TMP_Text Label(string text, float y)
+        {
+            var t = Instantiate(label.gameObject).GetComponent<TMPro.TMP_Text>();
+            Place((RectTransform)t.transform, y); t.text = text; return t;
+        }
+        void Toggle(string name, float y, bool on, System.Action<bool> apply)
+        {
+            var b = Instantiate(controlsButton);
+            Place((RectTransform)b.transform, y);
+            var t = b.GetComponentInChildren<TMPro.TMP_Text>();
+            void Refresh() => t.text = name + ":  " + (on ? "ON" : "OFF");
+            Refresh();
+            b.onClick.RemoveAllListeners();
+            b.onClick.AddListener(() => { on = !on; apply(on); Refresh(); });
+        }
+
+        Label("DISPLAY & ACCESSIBILITY", -40f);
+        Toggle("FULLSCREEN", -100f, Screen.fullScreen, on => { SetFullscreen(on); PlayerPrefs.SetInt("hs.fullscreen", on ? 1 : 0); });
+        Toggle("FILM GRAIN", -170f, PlayerPrefs.GetInt("hs.grain", 1) == 1, on => { RetroLook.SetGrain(on); PlayerPrefs.SetInt("hs.grain", on ? 1 : 0); });
+        Toggle("INVERT LOOK Y", -240f, PlayerPrefs.GetInt("hs.invertY", 0) == 1, on => { ApplyInvert(on); PlayerPrefs.SetInt("hs.invertY", on ? 1 : 0); });
+
+        Label("BRIGHTNESS", -330f);
+        var s = Instantiate(volume);
+        Place((RectTransform)s.transform, -366f);
+        s.minValue = -1f; s.maxValue = 2f;
+        s.SetValueWithoutNotify(PlayerPrefs.GetFloat("hs.brightness", 0f));
+        s.onValueChanged.RemoveAllListeners();
+        s.onValueChanged.AddListener(v => { SetBrightness(v); PlayerPrefs.SetFloat("hs.brightness", v); });
+        panel.SetActive(false);
+    }
+
+    static void ApplyInvert(bool on)
+    {
+        foreach (var f in FindObjectsByType<FirstPersonController>(FindObjectsInactive.Include, FindObjectsSortMode.None)) f.invertCamera = on;
+    }
+
     void Awake()
     {
         Paused = false;
@@ -32,9 +107,16 @@ public class PauseMenu : MonoBehaviour
         Show(false);
         if (resumeButton != null) resumeButton.onClick.AddListener(Resume);
         if (restartButton != null) restartButton.onClick.AddListener(Restart);
-        if (controlsButton != null) controlsButton.onClick.AddListener(() => controlsPanel.SetActive(!controlsPanel.activeSelf));
+        BuildSettings();
+        if (controlsButton != null) controlsButton.onClick.AddListener(() =>
+        {
+            controlsPanel.SetActive(!controlsPanel.activeSelf);
+            if (settingsPanel != null) settingsPanel.SetActive(false);
+        });
         if (titleButton != null) titleButton.onClick.AddListener(ToTitle);
         if (quitButton != null) quitButton.onClick.AddListener(Quit);
+        MakeRoomForSettings();
+        ApplyInvert(PlayerPrefs.GetInt("hs.invertY", 0) == 1);
 
         AudioListener.volume = PlayerPrefs.GetFloat("hs.volume", 1f);
         if (volume != null)
@@ -49,6 +131,27 @@ public class PauseMenu : MonoBehaviour
             sensitivity.SetValueWithoutNotify(sens);
             sensitivity.onValueChanged.AddListener(v => { ApplySensitivity(v); PlayerPrefs.SetFloat("hs.sensitivity", v); });
         }
+    }
+
+    // a SETTINGS button after CONTROLS: the buttons below it and the two sliders move down one row
+    void MakeRoomForSettings()
+    {
+        if (settingsPanel == null || titleButton == null || quitButton == null) return;
+        var sb = Instantiate(controlsButton, controlsButton.transform.parent);
+        sb.name = "SETTINGS";
+        sb.GetComponentInChildren<TMPro.TMP_Text>().text = "SETTINGS";
+        sb.onClick.RemoveAllListeners();
+        sb.onClick.AddListener(() =>
+        {
+            settingsPanel.SetActive(!settingsPanel.activeSelf);
+            controlsPanel.SetActive(false);
+        });
+        var rt = (RectTransform)sb.transform;
+        var drop = new Vector2(0f, -64f);
+        rt.anchoredPosition = ((RectTransform)controlsButton.transform).anchoredPosition + drop;
+        foreach (Transform t in new[] { titleButton.transform, quitButton.transform, volume.transform, sensitivity.transform,
+            volume.transform.parent.Find(volume.name + " label"), sensitivity.transform.parent.Find(sensitivity.name + " label") })
+            if (t != null) ((RectTransform)t).anchoredPosition += drop;
     }
 
     public void ApplyTypography()
@@ -110,6 +213,7 @@ public class PauseMenu : MonoBehaviour
             es.transform.SetParent(transform.root, false);
         }
         if (controlsPanel != null) controlsPanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(false);
         Show(true);
         if (resumeButton != null) EventSystem.current.SetSelectedGameObject(resumeButton.gameObject);
     }

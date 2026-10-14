@@ -12,6 +12,13 @@ public class RetroLook : MonoBehaviour
     const float Grain = 0.35f;
 
     static readonly HashSet<Object> done = new HashSet<Object>();
+    static FilmGrain grain;
+
+    // pause menu accessibility option: the grain off is a calmer picture
+    public static void SetGrain(bool on)
+    {
+        if (grain != null) grain.intensity.Override(on ? Grain : 0f);
+    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot()
@@ -22,9 +29,9 @@ public class RetroLook : MonoBehaviour
         var v = go.AddComponent<Volume>();
         v.isGlobal = true; v.priority = -10f;
         var p = ScriptableObject.CreateInstance<VolumeProfile>();
-        var g = p.Add<FilmGrain>(true);
+        var g = grain = p.Add<FilmGrain>(true);
         g.type.Override(FilmGrainLookup.Thin1);
-        g.intensity.Override(Grain);
+        g.intensity.Override(PlayerPrefs.GetInt("hs.grain", 1) == 1 ? Grain : 0f);
         g.response.Override(0.8f);
         v.sharedProfile = p;
         go.AddComponent<RetroLook>();

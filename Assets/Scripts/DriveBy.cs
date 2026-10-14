@@ -74,11 +74,21 @@ public class DriveBy : MonoBehaviour
         ShowUI(false);
     }
 
-    bool CanAim => car != null && car.InCar && (!needsRifle || GunController.Equipped) && !TitleScreen.Showing && Time.timeScale > 0f
+    bool CanAim => car != null && car.InCar && DemonBoss.InFight && (!needsRifle || GunController.Equipped) && !TitleScreen.Showing && Time.timeScale > 0f
                    && carCamera != null && carCamera.enabled;
+
+    bool hinted;
 
     void Update()
     {
+        if (!hinted && CanAim && DialogueBox.Instance != null)
+        {
+            hinted = true;   // once: the controls, the moment the fight can be shot back at
+            DialogueBox.Instance.ShowCard("SHOOTING BACK",
+                "<color=#C70D0A>[RIGHT CLICK]</color>  aim\n" +
+                "<color=#C70D0A>[LEFT CLICK]</color>  shoot\n" +
+                "<color=#C70D0A>[MIDDLE CLICK]</color>  lock on to the enemy");
+        }
         UpdateLock();
         // nothing may leave the chase camera switched off while you're just driving
         if (car != null && car.InCar && !Aiming && LockTarget == null && follow != null && !follow.enabled && !FixedCameras.Active) follow.enabled = true;
@@ -104,7 +114,7 @@ public class DriveBy : MonoBehaviour
     void UpdateLock()
     {
         bool driving = car != null && car.InCar;
-        if (driving && Input.GetMouseButtonDown(2))
+        if (driving && DemonBoss.InFight && Input.GetMouseButtonDown(2))
         {
             if (LockTarget != null) Unlock();
             else

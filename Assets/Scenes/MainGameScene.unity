@@ -42576,6 +42576,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &102376048
 GameObject:
   m_ObjectHideFlags: 0
@@ -91543,6 +91545,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &242790644
 GameObject:
   m_ObjectHideFlags: 0
@@ -115519,6 +115523,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &301288392
 GameObject:
   m_ObjectHideFlags: 0
@@ -156437,6 +156443,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &378090412
 GameObject:
   m_ObjectHideFlags: 0
@@ -157393,6 +157401,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &385485177
 GameObject:
   m_ObjectHideFlags: 0
@@ -176218,6 +176228,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &447697216
 GameObject:
   m_ObjectHideFlags: 0
@@ -192597,7 +192609,7 @@ MonoBehaviour:
   priority: 0
   blendDistance: 0
   weight: 1
-  sharedProfile: {fileID: 11400000, guid: 7bbe35cdf5d69e14abbb03eccedaa5bd, type: 2}
+  sharedProfile: {fileID: 0}
 --- !u!4 &505131334
 Transform:
   m_ObjectHideFlags: 0
@@ -212093,6 +212105,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &539451091
 GameObject:
   m_ObjectHideFlags: 0
@@ -276229,6 +276243,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &621132587
 GameObject:
   m_ObjectHideFlags: 0
@@ -283908,6 +283924,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &640336974
 GameObject:
   m_ObjectHideFlags: 0
@@ -286147,6 +286165,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &661245814
 GameObject:
   m_ObjectHideFlags: 0
@@ -286555,6 +286575,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &665559942
 GameObject:
   m_ObjectHideFlags: 0
@@ -322763,6 +322785,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &766539458
 GameObject:
   m_ObjectHideFlags: 0
@@ -325314,6 +325338,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &783583487
 GameObject:
   m_ObjectHideFlags: 0
@@ -342980,6 +343006,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &836673920
 GameObject:
   m_ObjectHideFlags: 0
@@ -350565,6 +350593,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &856291283
 GameObject:
   m_ObjectHideFlags: 0
@@ -356578,59 +356608,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1129999413580534391, guid: edb02028d59ccac4ca6641a183fa7346, type: 3}
   m_PrefabInstance: {fileID: 864032895}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &864169037
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 864169038}
-  - component: {fileID: 864169039}
-  m_Layer: 0
-  m_Name: Bag collider
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &864169038
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 864169037}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.48970696, y: -0.5100854, z: -0.48970705, w: 0.5100854}
-  m_LocalPosition: {x: 0.000626948, y: 1.5977532, z: 0.049589776}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1426076927}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &864169039
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 864169037}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 2.8267446, y: 0.76987535, z: 1.0604692}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &864736565
 GameObject:
   m_ObjectHideFlags: 0
@@ -367804,6 +367781,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &911878175
 GameObject:
   m_ObjectHideFlags: 0
@@ -384088,8 +384067,6 @@ Transform:
   - {fileID: 1239711400}
   - {fileID: 410929895}
   - {fileID: 249534551}
-  - {fileID: 1426076927}
-  - {fileID: 2015881465}
   - {fileID: 181640336}
   - {fileID: 2100684399}
   - {fileID: 1278022832}
@@ -467799,6 +467776,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1131647113
 GameObject:
   m_ObjectHideFlags: 0
@@ -482423,6 +482402,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1197434792
 GameObject:
   m_ObjectHideFlags: 0
@@ -488726,6 +488707,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1001 &1238191840
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -503765,6 +503748,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1308728465
 GameObject:
   m_ObjectHideFlags: 0
@@ -504194,6 +504179,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1312754700
 GameObject:
   m_ObjectHideFlags: 0
@@ -517513,6 +517500,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1339097875
 GameObject:
   m_ObjectHideFlags: 0
@@ -517600,6 +517589,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1340569772 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -1063203228461421988, guid: af6cf151550546749a88ccfe54d2ae7c, type: 3}
@@ -537201,6 +537192,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1411187741
 GameObject:
   m_ObjectHideFlags: 0
@@ -537570,6 +537563,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1413867673
 GameObject:
   m_ObjectHideFlags: 0
@@ -544842,86 +544837,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!1001 &1426076926
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 966258357}
-    m_Modifications:
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.58451
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 0.58451
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.58451
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1002.4
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 3.511
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 931.6
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.5100854
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0.48970696
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0.5100854
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0.48970705
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      propertyPath: m_Name
-      value: Body bag (boardroom)
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 864169038}
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2092037889}
-  m_SourcePrefab: {fileID: 100100000, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
---- !u!4 &1426076927 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-  m_PrefabInstance: {fileID: 1426076926}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1426488962
 GameObject:
   m_ObjectHideFlags: 0
@@ -563402,6 +563317,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1453328167
 GameObject:
   m_ObjectHideFlags: 0
@@ -569243,6 +569160,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1463835229
 GameObject:
   m_ObjectHideFlags: 0
@@ -575082,6 +575001,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!64 &1495483916
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -583386,6 +583307,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1517336432
 GameObject:
   m_ObjectHideFlags: 0
@@ -597302,6 +597225,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1542110898
 GameObject:
   m_ObjectHideFlags: 0
@@ -605358,6 +605283,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1565893325 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -8961359253771211100, guid: af6cf151550546749a88ccfe54d2ae7c, type: 3}
@@ -631717,6 +631644,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1001 &1618674108
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -632470,6 +632399,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1624364904
 GameObject:
   m_ObjectHideFlags: 0
@@ -652562,6 +652493,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1666794002
 GameObject:
   m_ObjectHideFlags: 0
@@ -653758,6 +653691,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1674026101
 GameObject:
   m_ObjectHideFlags: 0
@@ -696545,6 +696480,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1733185112
 GameObject:
   m_ObjectHideFlags: 0
@@ -709535,6 +709472,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1757423100
 GameObject:
   m_ObjectHideFlags: 0
@@ -710183,6 +710122,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1763226230
 GameObject:
   m_ObjectHideFlags: 0
@@ -710530,6 +710471,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1765774996
 GameObject:
   m_ObjectHideFlags: 0
@@ -773479,6 +773422,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1859848649
 GameObject:
   m_ObjectHideFlags: 0
@@ -792468,6 +792413,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1927583105
 GameObject:
   m_ObjectHideFlags: 0
@@ -793096,6 +793043,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1931837175 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 8d377885a87648840ba1c92f6edcf15d, type: 3}
@@ -806731,6 +806680,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &1956690534
 GameObject:
   m_ObjectHideFlags: 0
@@ -833249,96 +833200,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1129999413580534391, guid: edb02028d59ccac4ca6641a183fa7346, type: 3}
   m_PrefabInstance: {fileID: 2015798213}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &2015881464
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2015881465}
-  - component: {fileID: 2015881467}
-  - component: {fileID: 2015881466}
-  m_Layer: 0
-  m_Name: Body bag (boardroom) blood
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2015881465
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2015881464}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1002.4, y: 3.41, z: 931.6}
-  m_LocalScale: {x: 1.3, y: 0.005, z: 1.04}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 966258357}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!23 &2015881466
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2015881464}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 01980d384171b77428c8cb8f9f89c58f, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 1
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &2015881467
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2015881464}
-  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &2015946886
 GameObject:
   m_ObjectHideFlags: 0
@@ -841246,6 +841107,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &2039450591
 GameObject:
   m_ObjectHideFlags: 0
@@ -848420,6 +848283,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &2055269535
 GameObject:
   m_ObjectHideFlags: 0
@@ -867103,6 +866968,8 @@ MonoBehaviour:
   pushers:
   - {fileID: 392070928}
   - {fileID: 6636183756688641485}
+  physical: 1
+  mass: 45
 --- !u!1 &2089350605
 GameObject:
   m_ObjectHideFlags: 0
@@ -867365,43 +867232,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.16003162, y: 0.0661881, z: 0.1805151}
   m_Center: {x: 0.040100098, y: 0.34143066, z: -0.24963379}
---- !u!1 &2092037888 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-  m_PrefabInstance: {fileID: 1426076926}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &2092037889
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2092037888}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb9a8f435acce644f8a14746ccf3abaf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BodyBagScare
-  clip: {fileID: -5621902137093762401, guid: e73e0c3ed2bb6ad4c94dd443c802a97f, type: 3}
-  big: 1
-  triggerDistance: 2.6
-  clipSpeed: 1.35
-  thrashTime: 1.2
-  twitchTime: 0.6
-  player: {fileID: 392070928}
-  playerCam: {fileID: 436781895}
-  lockDuring:
-  - {fileID: 392070927}
-  - {fileID: 919132149480061463}
-  - {fileID: 436781898}
-  - {fileID: 436781896}
-  hideDuring:
-  - {fileID: 919132149480061461}
-  - {fileID: 803723781}
-  lightRadius: 14
-  afterLine: It MOVED. Something's still-- something's in there.|...no. No. It's
-    just a body. It's just a body.
-  twitchLine: ...did that one just move too?
 --- !u!1 &2092876088
 GameObject:
   m_ObjectHideFlags: 0

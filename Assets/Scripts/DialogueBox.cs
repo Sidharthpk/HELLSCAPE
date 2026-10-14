@@ -296,6 +296,17 @@ public class DialogueBox : MonoBehaviour
     IEnumerator Tutorial()
     {
         tutorialShown = true;
+        yield return Card("TALKING TO THE DEAD",
+                 "<color=#C70D0A>[E]</color>  next line\n" +
+                 "<color=#C70D0A>[1-4]</color>  choose your answer\n\n" +
+                 "Some of them won't wait for you.", false);
+    }
+
+    // the same card for the boss fight's controls (gameplay frozen behind it until E)
+    public void ShowCard(string title, string body) => StartCoroutine(Card(title, body, true));
+
+    IEnumerator Card(string title, string body, bool freeze)
+    {
         var parent = transform.parent;
         if (parent == null || AutoAdvanceAfter > 0f) yield break;
         var panel = tutorialCard = new GameObject("DialogueTutorial", typeof(RectTransform), typeof(UnityEngine.UI.Image));
@@ -307,15 +318,14 @@ public class DialogueBox : MonoBehaviour
         t.transform.SetParent(panel.transform, false);
         t.font = text.font; t.fontSize = 30f; t.alignment = TextAlignmentOptions.Center; t.raycastTarget = false;
         t.color = DialoguePresentation.Bone; t.lineSpacing = 14f;
-        t.text = "<size=150%><color=#C70D0A>TALKING TO THE DEAD</color></size>\n\n" +
-                 "<color=#C70D0A>[E]</color>  next line\n" +
-                 "<color=#C70D0A>[1-4]</color>  choose your answer\n\n" +
-                 "Some of them won't wait for you.\n\n" +
-                 "<alpha=#88>[E] to go on";
+        t.text = "<size=150%><color=#C70D0A>" + title + "</color></size>\n\n" + body + "\n\n<alpha=#88>[E] to go on";
         var trt = t.rectTransform; trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one; trt.offsetMin = new Vector2(160f, 0f); trt.offsetMax = new Vector2(-160f, 0f);
         panel.transform.SetAsLastSibling();
+        float scale = Time.timeScale;
+        if (freeze) Time.timeScale = 0f;
         yield return null;
         while (!Input.GetKeyDown(advanceKey)) yield return null;
+        if (freeze && Time.timeScale == 0f) Time.timeScale = scale > 0f ? scale : 1f;
         Destroy(panel);
         yield return null;
     }

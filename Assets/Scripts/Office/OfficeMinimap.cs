@@ -134,8 +134,8 @@ public class OfficeMinimap : MonoBehaviour
 
         string now = RoomAt(player.position);
         if (now != null && now != room) { room = now; roomShown = Time.unscaledTime; roomText.text = room; }
-        // bright for a few seconds on entering a room, dim after
-        var ink = Ink; ink.a = Time.unscaledTime - roomShown < 4f ? 1f : .45f;
+        // full for 3 seconds on entering a room, then fades out over 1.5s
+        var ink = Ink; ink.a = Mathf.Clamp01(1f - (Time.unscaledTime - roomShown - 3f) / 1.5f);
         roomText.color = ink;
         roomText.gameObject.SetActive(!open && room != null);
 

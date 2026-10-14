@@ -240,6 +240,7 @@ public class DemonBoss : MonoBehaviour
     class Drowned { public Zombie z; public Transform t; public Animator a; public float hitAt; public float climb; public Vector3 climbFrom, climbTo; }
 
     public bool Defeated => defeated;
+    public static bool InFight => Active != null && Active.fighting && !Active.chasing && !Active.defeated;   // the boss fight itself, not the run from it
 
     void Awake()
     {
