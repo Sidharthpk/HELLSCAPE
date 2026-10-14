@@ -22,8 +22,9 @@ public class OfficeCctvMemory : MonoBehaviour
         panel = GameObject.CreatePrimitive(PrimitiveType.Quad); panel.name = "Impossible CCTV feed";
         Destroy(panel.GetComponent<Collider>());
         panel.transform.SetParent(tapes[0].transform, false);
-        panel.transform.localPosition = new Vector3(0f, 1.58f, -.105f);
-        panel.transform.localScale = new Vector3(1.02f, .57f, 1f);
+        // the Screen cube spans local z -.13..+.03 and y 1.28..2.70: sit just in front of its face, centred on it
+        panel.transform.localPosition = new Vector3(0f, 1.99f, -.14f);
+        panel.transform.localScale = new Vector3(1.9f, 1.07f, 1f);
         panel.GetComponent<Renderer>().sharedMaterial = screen;
         panel.SetActive(false);
     }
@@ -63,7 +64,7 @@ public class OfficeCctvMemory : MonoBehaviour
         if (tapes[0].display != null)
         {
             // Keep captions below the image instead of obscuring the impossible feed.
-            tapes[0].display.transform.localPosition = new Vector3(0f, 1.22f, -.11f);
+            tapes[0].display.transform.localPosition = new Vector3(0f, 1.36f, -.14f);
             tapes[0].display.fontSize = .38f;
             tapes[0].display.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
         }

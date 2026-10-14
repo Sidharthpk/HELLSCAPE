@@ -2,12 +2,13 @@ using UnityEngine;
 
 public class CarHealth : MonoBehaviour
 {
-    public float maxHealth = 100f;
+    public float maxHealth = 300f;
     public float currentHealth;
 
     [Header("Damage Tuning")]
     public float minImpactToDamage = 3f;   // ignore gentle bumps
     public float damageMultiplier = 2f;
+    public float damageScale = 1f;   // the Demon King's chase turns this down: fleeing him is meant to be survivable
     public float maxSingleHitDamage = 25f;
     public float obstacleFullDamageSpeed = 10f; // impact speed at which an obstacle deals its listed damage
 
@@ -22,6 +23,7 @@ public class CarHealth : MonoBehaviour
 
     void Start()
     {
+        maxHealth = Mathf.Max(maxHealth, 300f);   // (the scene still stores the old 100)
         currentHealth = maxHealth;
         if (destroyedMessage != null) destroyedMessage.SetActive(false);
         if (carInteract == null) carInteract = FindFirstObjectByType<CarInteract>();
@@ -61,7 +63,7 @@ public class CarHealth : MonoBehaviour
     {
         if (isDead) return;
 
-        currentHealth = Mathf.Max(0f, currentHealth - dmg);
+        currentHealth = Mathf.Max(0f, currentHealth - dmg * damageScale);
 
         if (vignette != null)
             vignette.SetDamage(1f - (currentHealth / maxHealth));

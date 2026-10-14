@@ -159,6 +159,20 @@ MonoBehaviour:
     before: {fileID: 2100000, guid: 840912e16947fd6459f941371ade166c, type: 2}
   - burnt: {fileID: 2100000, guid: b9361aba8834ab8478e4b1756376595f, type: 2}
     before: {fileID: 2100000, guid: fc5244a69bf94734688f547342a6fefc, type: 2}
+  - burnt: {fileID: 2100000, guid: bacf94eafa90cdc4f956b6306c264e83, type: 2}
+    before: {fileID: 2100000, guid: da9386029e126404783c5f8e0118849a, type: 2}
+  - burnt: {fileID: 2100000, guid: 4bd0024b509d8af44989504026dac86b, type: 2}
+    before: {fileID: 2100000, guid: 4cef8eb1b13977f499919013da2073cc, type: 2}
+  - burnt: {fileID: 2100000, guid: 6d48bd54562379c42869c5ab36a2cc52, type: 2}
+    before: {fileID: 2100000, guid: 37ade409695fc1342bad997e62479810, type: 2}
+  - burnt: {fileID: 2100000, guid: 0faca52484b179946938e60d2fc7f13a, type: 2}
+    before: {fileID: 2100000, guid: 8dc73c2d7a66e3649bb23103ea7f1360, type: 2}
+  - burnt: {fileID: 2100000, guid: fb9c943681cb9124ea87a842c4bbf065, type: 2}
+    before: {fileID: 2100000, guid: 7bea9892097d6094f8a52d0fec6836a2, type: 2}
+  - burnt: {fileID: 2100000, guid: aa0a18840da4dbf4c89286e35b37d961, type: 2}
+    before: {fileID: 2100000, guid: da07c21fa8f3c0740a773fc370e5ea10, type: 2}
+  - burnt: {fileID: 2100000, guid: 0f125e405e561454fbf61653c0b982ab, type: 2}
+    before: {fileID: 2100000, guid: 6ccd7dcbd1507d543955e96fbd730fa1, type: 2}
   transitionSeconds: 0.85
   exposure: 0.85
   tint: {r: 0.68, g: 0.83, b: 1, a: 1}

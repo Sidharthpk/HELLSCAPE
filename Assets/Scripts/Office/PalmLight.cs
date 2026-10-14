@@ -53,6 +53,7 @@ public class PalmLight : MonoBehaviour
 
     // the Damned a flash is holding, and until when
     static readonly Dictionary<ZombieAI, float> stunned = new Dictionary<ZombieAI, float>();
+    public static float FlashedAt = -99f;   // when the last flash went off (the shadow figures vanish on it)
     public static bool Stunned(ZombieAI ai) => ai != null && stunned.ContainsKey(ai);
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatic() => stunned.Clear();
@@ -243,6 +244,7 @@ public class PalmLight : MonoBehaviour
     void Stun()
     {
         Vector3 eye = cam.position;
+        FlashedAt = Time.time;
         foreach (var ai in FindObjectsByType<ZombieAI>(FindObjectsSortMode.None))
         {
             if (!ai.TryGetComponent(out Zombie z) || z.IsDead) continue;
@@ -305,7 +307,8 @@ public class PalmLight : MonoBehaviour
         arms.transform.localPosition += shake - tremble; tremble = shake;
         if (phase != Phase.Held) return;
         // the beam leaves the palm and goes where you look; the palms glow
-        Vector3 from = (palmR != null ? palmR.position : cam.position + cam.forward * 0.5f) + cam.forward * 0.12f;
+        Vector3 from = (palmR != null ? palmR.position : cam.position + cam.forward * 0.5f) + cam.forward * 0.12f
+            - cam.up * 0.07f + cam.right * 0.08f;   // a touch lower and to the right
         beam.transform.SetPositionAndRotation(from, Quaternion.LookRotation(cam.forward));
         if (palmR != null) glowR.transform.position = palmR.position;
         if (palmL != null) glowL.transform.position = palmL.position;

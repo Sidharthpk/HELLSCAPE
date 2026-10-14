@@ -306,7 +306,7 @@ public class PrologueDirector : MonoBehaviour
         float fov0 = playerCam.fieldOfView;
         ct.SetPositionAndRotation(c0, r0);
         cine.fieldOfView = fov0;
-        // a clean picture for this one shot: no grade, no PSX pixelation/dither (the roof wants them back)
+        // a clean picture for this one shot: no grade, no pixelation/dither (the roof wants them back)
         var cineData = cine.GetUniversalAdditionalCameraData();
         bool post0 = cineData.renderPostProcessing;
         cineData.renderPostProcessing = false;

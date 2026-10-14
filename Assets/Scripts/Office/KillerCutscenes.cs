@@ -52,6 +52,7 @@ public class KillerCutscenes : MonoBehaviour
     private Renderer[] hidden;
 
     public bool Playing { get; private set; }
+    public bool ScareSeen => scareSeen;   // Elias has shoved you down (the objective changes then)
 
     private Vector3 headHome;
 

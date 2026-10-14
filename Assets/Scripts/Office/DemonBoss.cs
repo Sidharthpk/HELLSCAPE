@@ -149,6 +149,7 @@ public class DemonBoss : MonoBehaviour
     public float orbDamage = 28f;            // to the van
     public float rollOrbSpeed = 17f;
     public float orbEvery = 4.5f;
+    public float chaseVanDamage = 0.5f;      // everything it throws at the van while you drive away is halved
     public float vanDamageScale = 1.3f;      // its slams and charges hurt the van this much more than they'd hurt you
     public float ramMinSpeed = 7f;           // m/s: ram it faster than this and it hurts
     public float ramDamagePerMs = 9f;
@@ -297,6 +298,7 @@ public class DemonBoss : MonoBehaviour
     IEnumerator BurstOut()
     {
         var carCtl = carInteract != null ? carInteract.carController : null;
+        CutsceneSkip.Extra++;   // hold SPACE: skip the walk out and the change
         bool hadControl = carCtl != null && carCtl.enabled;
         if (carCtl != null) carCtl.enabled = false;
         if (carRb != null) { carRb.linearVelocity = Vector3.zero; carRb.angularVelocity = Vector3.zero; carRb.isKinematic = true; }
@@ -490,6 +492,8 @@ public class DemonBoss : MonoBehaviour
         if (healthBar != null) healthBar.SetActive(true);
         if (bossName != null) bossName.text = displayName;
         UpdateBar();
+        CutsceneSkip.Extra--;
+        VanFragility(chaseVanDamage);
         chasing = true;
     }
 
@@ -738,6 +742,12 @@ public class DemonBoss : MonoBehaviour
         }
     }
 
+    void VanFragility(float scale)
+    {
+        var hp = carRb != null ? carRb.GetComponent<CarHealth>() : null;
+        if (hp != null) hp.damageScale = scale;
+    }
+
     // the trigger at the far end of the bridge: the van dies at the dead end and it catches up
     public void ArriveAtBridgeEnd()
     {
@@ -745,6 +755,7 @@ public class DemonBoss : MonoBehaviour
         if (begun) return;
         begun = true;
         chasing = false;
+        VanFragility(1f);
         StartCoroutine(Arrive());
     }
 
@@ -906,6 +917,8 @@ public class DemonBoss : MonoBehaviour
     {
         if (begun) return;
         StopAllCoroutines();
+        CutsceneSkip.Extra = 0;
+        VanFragility(1f);
         chasing = false;
         chaseBegun = false;
         tunnelState = 0;

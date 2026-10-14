@@ -10,9 +10,10 @@ using UnityEngine.UI;
 public class CutsceneSkip : MonoBehaviour
 {
     const float Speed = 20f, HoldTime = 2f, FadeOut = .35f, FadeIn = .6f;
+    public static int Extra;   // cutscenes that are not a class of their own (a delivery customer walking home, the Tomas change) hold this above 0 while they run
     public static bool Skipping { get; private set; }   // (DialogueBox lets its lines through)
     bool ours;
-    float held, black, volume;
+    float held, black, volume, idle;
     CanvasGroup prompt;
     RectTransform fill;
     Image curtain;
@@ -22,7 +23,7 @@ public class CutsceneSkip : MonoBehaviour
 
     static bool InCutscene()
     {
-        if (EndingSequence.Playing || OfficeFlashback.Playing) return true;
+        if (Extra > 0 || EndingSequence.Playing || OfficeFlashback.Playing) return true;
         foreach (var k in FindObjectsByType<KillerCutscenes>(FindObjectsSortMode.None)) if (k.Playing) return true;
         foreach (var s in FindObjectsByType<StabCutscene>(FindObjectsSortMode.None)) if (s.Playing) return true;
         foreach (var t in FindObjectsByType<TurningCutscene>(FindObjectsSortMode.None)) if (t.Playing) return true;
@@ -47,7 +48,11 @@ public class CutsceneSkip : MonoBehaviour
         if (Skipping && black >= 1f && !ours && Time.timeScale == 1f) { volume = AudioListener.volume; AudioListener.volume = 0f; Time.timeScale = Speed; ours = true; }
 
         curtain.color = new Color(0f, 0f, 0f, black);
-        prompt.alpha = !can || choosing || Skipping || Time.timeScale != 1f ? 0f : held > 0f ? 1f : .45f;
+        // shown when a cutscene starts and whenever SPACE is touched; fades away after two untouched seconds
+        idle = !can || Input.GetKey(KeyCode.Space) ? 0f : idle + Time.unscaledDeltaTime;
+        if (!can) idle = 0f;
+        float want = !can || choosing || Skipping || Time.timeScale != 1f || idle > 2f ? 0f : held > 0f ? 1f : .45f;
+        prompt.alpha = Mathf.MoveTowards(prompt.alpha, want, Time.unscaledDeltaTime * 2.5f);
         fill.anchorMax = new Vector2(Mathf.Clamp01(held / HoldTime), 1f);
     }
 

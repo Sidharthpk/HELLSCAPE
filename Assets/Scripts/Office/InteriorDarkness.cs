@@ -32,8 +32,6 @@ public class InteriorDarkness : MonoBehaviour
 
     [Header("Fog of war (the office)")]
     public bool fogOfWar;                   // black distance fog, powered or not; the noisy screen fog and the drifting fog particles are off inside
-    private Volume noHaze;
-    private VolumeProfile noHazeProfile;
     private ParticleSystemRenderer[] mist = new ParticleSystemRenderer[0];
 
     // the office (the blackout zone) is darker still than its saved dim/lightDim, but never black: ambient and every
@@ -81,14 +79,7 @@ public class InteriorDarkness : MonoBehaviour
         }
         if (fogOfWar)
         {
-            // the city's screen fog (grey, noisy) is overridden to nothing while you're inside: RenderSettings' fog does the fading
-            noHaze = new GameObject("No haze inside").AddComponent<Volume>();
-            noHaze.transform.SetParent(transform, false);
-            noHaze.isGlobal = true; noHaze.priority = 900f; noHaze.weight = 0f;   // (under the Echo's 1000)
-            noHazeProfile = ScriptableObject.CreateInstance<VolumeProfile>();
-            noHaze.sharedProfile = noHazeProfile;
-            var haze = noHazeProfile.Add<PSX.Fog>(true);
-            haze.fogDensity.value = 0f; haze.noiseStrength.value = 0f; haze.fogColor.value = Color.black;
+            fogDensity = Mathf.Max(fogDensity, 0.09f);   // depth: nothing far ahead shows through the dark
             mist = System.Array.ConvertAll(FindObjectsByType<FogFollow>(FindObjectsInactive.Include, FindObjectsSortMode.None), f => f.GetComponent<ParticleSystemRenderer>());
         }
         float lamps = lightDim * Gloom;
@@ -173,16 +164,8 @@ public class InteriorDarkness : MonoBehaviour
         bool blackedOut = blackoutUntilPowered && !powered;
         RenderSettings.ambientLight = Color.Lerp(ambient, blackedOut ? emergencyAmbient : (powered ? poweredAmbient : darkAmbient) * dim * Gloom, k);
         RenderSettings.fogColor = Color.Lerp(fog, blackedOut || fogOfWar ? blackFog : darkFog, k);
-        if (noHaze != null) noHaze.weight = k;
         foreach (var m in mist) if (m != null) m.enabled = k <= 0f;
         if (fogDensity >= 0f) RenderSettings.fogDensity = Mathf.Lerp(density, fogDensity, k);
         RenderSettings.reflectionIntensity = Mathf.Lerp(reflection, 0.05f, k);
-    }
-
-    void OnDestroy()
-    {
-        if (noHazeProfile == null) return;
-        foreach (var c in noHazeProfile.components) if (c != null) Destroy(c);
-        Destroy(noHazeProfile);
     }
 }

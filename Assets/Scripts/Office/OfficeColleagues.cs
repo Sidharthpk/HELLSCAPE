@@ -3,15 +3,24 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// Your four dead colleagues do not walk the office. Each has a desk with their name on it ("Desk sign - <name>" in
-// OfficeAct/Office: move the sign and the scare moves with it), and nobody at it. Come near one and, after a
-// moment either they run at you down the room and stop a pace away, or footsteps walk up behind you and, when you
+// Your four dead colleagues do not walk the office. Each has a desk (no name tags: you only feel that someone is
+// there; a "Desk sign - <name>" in OfficeAct/Office still moves the desk if one is put back), and nobody at it.
+// Come near one and a line says you feel a presence; after a moment either they run at you down the room and stop a pace away, or footsteps walk up behind you and, when you
 // look back, their burnt body is standing in front of you. Either way the view pans to their face (no more effects
 // than that). From then on they stay where they appeared, to be questioned. In the Echo every one of them
 // is there as a soul, scare or no scare. A player who never looks round gets them standing at their desk instead.
 public class OfficeColleagues : MonoBehaviour
 {
     public float vicinity = 7f;             // how near their desk the footsteps can start
+
+    static readonly string[] feel =
+    {
+        "I feel something weird in here. A presence.",
+        "I'm not alone at this desk. I can feel it.",
+        "Something is here. Something that used to sit here.",
+        "The air is wrong. Someone is watching me.",
+    };
+    int felt;
 
     class C { public GhostNPC g; public WitnessLook look; public Vector3 desk, home; public bool shown; public int tries; }
     readonly List<C> all = new List<C>();
@@ -79,6 +88,16 @@ public class OfficeColleagues : MonoBehaviour
         busy = true;
         yield return new WaitForSeconds(UnityEngine.Random.Range(1.5f, 5f));
         if (!canAct() || !Near(c)) { busy = false; yield break; }
+
+        // no name plate to tell you whose desk it is: only the feeling (and wait for the line before anything happens)
+        if (DialogueBox.Instance != null)
+        {
+            DialogueBox.Instance.Say(feel[felt++ % feel.Length]);
+            yield return null;
+            while (DialogueBox.Instance != null && DialogueBox.Instance.Busy) yield return null;
+            yield return new WaitForSeconds(.6f);
+            if (!canAct() || !Near(c)) { busy = false; yield break; }
+        }
 
         // half the time they run at you down the room instead: no warning, one pace from you, then the view goes to their face
         if (UnityEngine.Random.value < .5f)

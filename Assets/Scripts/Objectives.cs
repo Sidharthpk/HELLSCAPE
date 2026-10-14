@@ -115,7 +115,7 @@ public class ObjectiveUI : MonoBehaviour
 // carry) rather than set from each beat: nothing to keep in step when a beat is rewritten. Added by RevisedPlotDirector.
 public class StoryObjectives : MonoBehaviour
 {
-    OfficeHorrorDirector office; KesslerConfrontation vane; CarInteract van; DemonBoss boss;
+    OfficeHorrorDirector office; KesslerConfrontation vane; CarInteract van; DemonBoss boss; KillerCutscenes killer;
 
     void Start()
     {
@@ -123,6 +123,7 @@ public class StoryObjectives : MonoBehaviour
         vane = FindFirstObjectByType<KesslerConfrontation>(FindObjectsInactive.Include);
         van = FindFirstObjectByType<CarInteract>(FindObjectsInactive.Include);
         boss = FindFirstObjectByType<DemonBoss>(FindObjectsInactive.Include);
+        killer = FindFirstObjectByType<KillerCutscenes>(FindObjectsInactive.Include);
     }
 
     void Update() => ObjectiveUI.Set(Now());
@@ -139,7 +140,7 @@ public class StoryObjectives : MonoBehaviour
                 int stage = office != null ? office.Stage : 0;
                 return stage < 3 ? "Find the three fuses" : stage == 3 ? "Find the code for Vane's door" : "Play the security tape";
             case "Kessler tunnel": return "RUN - get to the silo";
-            case "Silo complex": return "Get away from Elias";
+            case "Silo complex": return killer != null && killer.ScareSeen ? "Get away from Elias" : "RUN - get to the silo";   // (until he shoves you down)
             case "Lower bridge": return "Down the tower stairs";
             case "Silo floor": return BloodFlood.Swimming ? "Swim - get out of the silo" : Inventory.Has("CarKeys") ? "Get back to the van" : "Survive Elias";
             case "Escape": return van != null && van.InCar ? "Drive - get to the bridge" : "Get in the van";

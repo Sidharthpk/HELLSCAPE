@@ -2,14 +2,14 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-// Random scares in the office: a black shadow figure that appears a few metres away and is gone when you look at it,
-// one that RUNS at you and vanishes, footsteps lurking about, and one of the body bags dropping from the ceiling onto
-// you (once). Only while the office act is calm (canAct), never during dialogue or cutscenes.
+// Random scares in the office: black shadow figures that appear a few metres away (look at them and they are gone;
+// look away too long and they run at you, grab you for a little damage; a palm flash makes them vanish), one that
+// RUNS at you and vanishes, and footsteps lurking about. Only while the office act is calm (canAct), never during dialogue or cutscenes.
 public class OfficeLurkers : MonoBehaviour
 {
     OfficeHorrorDirector dir; OfficeStalker finder; Transform player; Camera cam; PlayerHealth health; Func<bool> canAct;
     GameObject shade, runner; Animator anim, runAnim; Material black; AudioSource sfx; AudioClip stomp;
-    BodyBagScare bag; bool dropped, busy;
+    bool busy;
     float timer = 20f;
 
     public void Init(OfficeHorrorDirector director, OfficeStalker stalker, Transform body, Camera camera, PlayerHealth hp, Transform template, GameObject runTemplate, Func<bool> act)
@@ -51,10 +51,8 @@ public class OfficeLurkers : MonoBehaviour
             if (runAnim.HasState(0, Animator.StringToHash("Run"))) { Backlight(runner.transform); runner.SetActive(false); }
             else { Destroy(runner); runner = null; runAnim = null; }
         }
-        // the bag that falls: the westmost one, so the other keeps its own jump scare
-        foreach (var b in RevisedPlot.All<BodyBagScare>(gameObject.scene))
-            if (bag == null || b.transform.position.x < bag.transform.position.x) bag = b;
-        if (bag != null) bag.enabled = false;
+        // the body bags are gone from the office: shadows stand where they lay
+        foreach (var b in RevisedPlot.All<BodyBagScare>(gameObject.scene)) Destroy(b.gameObject);
     }
 
     void OnDestroy() { if (black != null) Destroy(black); if (stomp != null) Destroy(stomp); }
@@ -73,11 +71,6 @@ public class OfficeLurkers : MonoBehaviour
     {
         if (player == null) return;
         if (!canAct()) { timer = Mathf.Max(timer, 10f); return; }   // only once things have gone quiet again
-        if (!dropped && bag != null && !busy)
-        {
-            Vector3 d = player.position - bag.transform.position; d.y = 0f;
-            if (d.magnitude < 4.5f) { dropped = true; StartCoroutine(DropBag()); return; }
-        }
         if (busy) return;
         timer -= Time.deltaTime;
         if (timer > 0f) return;
@@ -109,7 +102,7 @@ public class OfficeLurkers : MonoBehaviour
         int want = UnityEngine.Random.value < .4f ? 1 : UnityEngine.Random.Range(2, 4);
         for (int i = 0; i < want; i++)
         {
-            if (!finder.TryFind(UnityEngine.Random.Range(6f, 10f), true, out var spot)) continue;
+            if (!finder.TryFind(UnityEngine.Random.Range(11f, 14f), true, out var spot)) continue;
             var f = i == 0 ? shade : Instantiate(shade, transform);   // (a copy of the one prepared: its backlight too)
             f.SetActive(true); f.transform.position = spot;
             var a = f.GetComponentInChildren<Animator>();
@@ -120,22 +113,89 @@ public class OfficeLurkers : MonoBehaviour
         busy = true;
         sfx.transform.position = figures[0].position;
         sfx.pitch = UnityEngine.Random.Range(.6f, .8f); sfx.PlayOneShot(ProceduralAudio.Rumble(1.2f), .6f);
-        float seen = 0f; bool close = false;
-        for (float t = 0f; t < 7f && canAct() && !close; t += Time.deltaTime)
+        // three chances: they stand far off, then (unseen) stand closer, then closer still; the third time unseen they run
+        float seen = 0f; bool charge = false;
+        for (int stage = 0; stage < 3 && !charge; stage++)
         {
-            bool looked = false;
-            foreach (var f in figures)
+            if (stage > 0)
             {
-                Vector3 d = player.position - f.position; d.y = 0f;
-                if (d.sqrMagnitude > .01f) f.rotation = Quaternion.LookRotation(d);
-                looked |= Vector3.Angle(cam.transform.forward, f.position + Vector3.up * 1.2f - cam.transform.position) < 28f;
-                close |= d.magnitude < 3.5f;
+                foreach (var f in figures)
+                    if (finder.TryFind(stage == 1 ? UnityEngine.Random.Range(7f, 9f) : UnityEngine.Random.Range(4.5f, 6f), true, out var near)) f.position = near;
+                sfx.transform.position = figures[0].position;
+                sfx.pitch = UnityEngine.Random.Range(.5f, .7f); sfx.PlayOneShot(ProceduralAudio.Rumble(1f), .7f);
+                seen = 0f;
             }
-            seen = looked ? seen + Time.deltaTime : Mathf.Max(0f, seen - Time.deltaTime);
-            if (seen > .8f) break;
+            for (float t = 0f; t < 4f && canAct() && !charge; t += Time.deltaTime)
+            {
+                bool looked = false;
+                foreach (var f in figures)
+                {
+                    Vector3 d = player.position - f.position; d.y = 0f;
+                    if (d.sqrMagnitude > .01f) f.rotation = Quaternion.LookRotation(d);
+                    looked |= Vector3.Angle(cam.transform.forward, f.position + Vector3.up * 1.2f - cam.transform.position) < 28f;
+                    charge |= d.magnitude < 3f;
+                }
+                seen = looked ? seen + Time.deltaTime : Mathf.Max(0f, seen - Time.deltaTime);
+                if (seen > .8f) { Cleanup(figures); yield break; }   // you looked: they are gone
+                yield return null;
+            }
+            if (!canAct()) break;
+        }
+        // you never looked (or they were on you): they run at you, grab you, and are gone. A flash makes them vanish.
+        float since = Time.time;
+        foreach (var f in figures) { var a = f.GetComponentInChildren<Animator>(); if (a != null) { a.SetFloat("Speed", 1.3f); a.speed = 2.6f; } }
+        sfx.pitch = .6f; sfx.PlayOneShot(ProceduralAudio.Rumble(1f), .8f);
+        float step = 0f;
+        for (float t = 0f; t < 5f && figures.Count > 0 && canAct() && PalmLight.FlashedAt < since; t += Time.deltaTime)
+        {
+            step -= Time.deltaTime;
+            if (step <= 0f) { step = .24f; sfx.pitch = UnityEngine.Random.Range(.9f, 1.1f); sfx.PlayOneShot(stomp ??= ProceduralAudio.Stomp(), .8f); }
+            for (int i = figures.Count - 1; i >= 0; i--)
+            {
+                var f = figures[i];
+                Vector3 to = player.position - f.position; to.y = 0f;
+                if (to.magnitude < 1.2f)
+                {
+                    foreach (var o in figures) if (o != f && o != shade.transform) Destroy(o.gameObject);
+                    var keep = f; figures.Clear(); figures.Add(keep);
+                    yield return Grab(keep);
+                    Cleanup(figures);
+                    yield break;
+                }
+                f.position += to.normalized * 7.5f * Time.deltaTime;
+                f.rotation = Quaternion.LookRotation(to);
+            }
             yield return null;
         }
-        for (int i = 1; i < figures.Count; i++) Destroy(figures[i].gameObject);
+        Cleanup(figures);
+    }
+
+    // it has you: your head is wrenched round onto it, held, shaking, then it lets go (and some of your health goes with it)
+    IEnumerator Grab(Transform f)
+    {
+        var fpc = player.GetComponentInChildren<FirstPersonController>();
+        bool was = fpc != null && fpc.enabled; if (was) fpc.enabled = false;
+        Transform c = cam.transform; Quaternion q0 = c.localRotation;
+        float dmg = health != null && !health.IsDead ? Mathf.Min(6f, health.currentHealth - 12f) : 0f;
+        if (dmg > 0f) health.TakeDamage(dmg);
+        sfx.transform.position = f.position; sfx.pitch = .8f; sfx.PlayOneShot(ProceduralAudio.Thud(), 1f);
+        Vector3 away = f.position - player.position; away.y = 0f;
+        f.position = player.position + away.normalized * .9f;
+        const float hold = 1.1f;
+        for (float t = 0f; t < hold; t += Time.deltaTime)
+        {
+            Quaternion look = Quaternion.LookRotation(f.position + Vector3.up * 1.3f - c.position);
+            float k = 3.5f * (1f - t / hold) + .5f;
+            c.rotation = Quaternion.Slerp(c.rotation, look, 12f * Time.deltaTime) * Quaternion.Euler(UnityEngine.Random.Range(-k, k), UnityEngine.Random.Range(-k, k), UnityEngine.Random.Range(-k, k));
+            yield return null;
+        }
+        if (was && fpc != null) fpc.enabled = true;   // (its look code takes the camera back from here)
+        else c.localRotation = q0;
+    }
+
+    void Cleanup(System.Collections.Generic.List<Transform> figures)
+    {
+        foreach (var f in figures) if (f != null && f != shade.transform) Destroy(f.gameObject);
         Hide();
     }
 
@@ -177,42 +237,5 @@ public class OfficeLurkers : MonoBehaviour
         sfx.pitch = .7f; sfx.PlayOneShot(stomp, 1f);
         Hide();
         shade = swap; anim = swapAnim;
-    }
-
-    // one body bag comes down off the ceiling right where you're standing
-    IEnumerator DropBag()
-    {
-        busy = true;
-        var t = bag.transform;
-        var cols = t.GetComponentsInChildren<Collider>(); foreach (var c in cols) c.enabled = false;
-        Quaternion rest = t.rotation; float floorY = t.position.y;
-        float ceil = player.position.y + 3f;
-        if (Physics.Raycast(cam.transform.position, Vector3.up, out var up, 6f, ~0, QueryTriggerInteraction.Ignore) && !up.transform.IsChildOf(player.root)) ceil = up.point.y - .4f;
-        Vector3 fwd = cam.transform.forward; fwd.y = 0f; fwd = fwd.sqrMagnitude > .01f ? fwd.normalized : Vector3.forward;
-        Vector3 xz = player.position + fwd * .4f;
-        t.position = new Vector3(xz.x, ceil, xz.z);
-        var spin = UnityEngine.Random.onUnitSphere * 140f;
-        float v = 0f;
-        while (t.position.y > floorY)
-        {
-            v += 22f * Time.deltaTime;
-            Vector3 p = t.position; p.y -= v * Time.deltaTime;
-            Vector3 target = player.position + fwd * .4f;
-            p.x = Mathf.MoveTowards(p.x, target.x, 6f * Time.deltaTime); p.z = Mathf.MoveTowards(p.z, target.z, 6f * Time.deltaTime);
-            t.position = p; t.Rotate(spin * Time.deltaTime, Space.World);
-            yield return null;
-        }
-        t.position = new Vector3(t.position.x, floorY, t.position.z);
-        t.rotation = rest * Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
-        foreach (var c in cols) if (c != null) c.enabled = true;
-        sfx.transform.position = t.position; sfx.pitch = .8f; sfx.PlayOneShot(ProceduralAudio.Thud(), 1f);
-        Vector3 off = player.position - t.position; off.y = 0f;
-        if (off.magnitude < 1.5f && health != null && !health.IsDead)
-        {
-            float dmg = Mathf.Min(10f, health.currentHealth - 12f);
-            if (dmg > 0f) health.TakeDamage(dmg);
-        }
-        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(HS.S("383"));
-        busy = false;
     }
 }

@@ -197,9 +197,9 @@ public partial class OfficeEye
             Release(2);
             return;
         }
+        if (!panel.activeSelf) panel.SetActive(true);   // the sign is up from the first frame it has you
         if (capT < hold) return;
 
-        if (!panel.activeSelf) panel.SetActive(true);
         if (Input.GetKeyDown(KeyCode.F) || pressNow)
         {
             pressNow = false;

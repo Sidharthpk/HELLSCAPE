@@ -49,7 +49,7 @@ public class DeliveryRun : MonoBehaviour
         van.Enter();
         // each customer's own door, in the wall behind them (see Leave)
         foreach (var s in stops)
-            if (s.customer != null && s.door == null) s.door = StopDoor.Build(s.customer.transform, s.bay.position);
+            if (s.customer != null && s.door == null) s.door = StopDoor.Build(s.customer.transform, s.bay.position, s.handOverLines.Contains("Okafor"));
     }
 
     public IEnumerator Run()
@@ -154,7 +154,9 @@ public class DeliveryRun : MonoBehaviour
         Say(s.handOverLines);
         yield return WaitForLines();
         yield return new WaitForSeconds(0.4f);
+        CutsceneSkip.Extra++;   // (hold SPACE to skip the walk home)
         yield return Leave(s, ct, cam, npc);   // they walk back to their door and go in
+        CutsceneSkip.Extra--;
 
         Vector3 camNow = ct.position; Quaternion rotNow = ct.rotation; float fovNow = cam.fieldOfView;
         yield return Blend(1f, k =>

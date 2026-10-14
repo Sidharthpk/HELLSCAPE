@@ -28,9 +28,9 @@ public class EchoOfficeMemory : MonoBehaviour
             foreach (var r in root.GetComponentsInChildren<Renderer>(true))
             {
                 // Scope swaps to the authored office, including its inactive children.
-                bool inOffice = doorRoots.Exists(t => r.transform.IsChildOf(t));
+                bool inOffice = doorRoots.Exists(t => r.transform.IsChildOf(t));   // (the fuse box model is a scene root of its own: "Fuse")
                 for (var p = r.transform; p != null; p = p.parent)
-                    if (p.name == "Office Ground Floor" ||
+                    if (p.name == "Office Ground Floor" || p.name == "Fuse" && p.parent == null ||
                         p.name == "Office" && p.parent != null && p.parent.name == "OfficeAct") { inOffice = true; break; }
                 if (!inOffice) continue;
                 var before = r.sharedMaterials;
@@ -64,12 +64,6 @@ public class EchoOfficeMemory : MonoBehaviour
         vignette.intensity.value = .22f; vignette.smoothness.value = .7f;
         var lift = profile.Add<LiftGammaGain>(true);
         lift.lift.value = new Vector4(.88f, .94f, 1f, .07f);
-        // Suppress the city fog pass while the blue lifted shadows supply the memory haze.
-        var haze = profile.Add<PSX.Fog>(true);
-        haze.fogColor.value = new Color(.56f, .73f, .94f);
-        haze.ambientColor.value = Color.white;
-        haze.fogDensity.value = 0f; haze.fogNear.value = 2f; haze.fogFar.value = 35f;
-        haze.noiseStrength.value = 0f;
     }
 
     public void SetEcho(bool on)

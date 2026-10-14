@@ -13,12 +13,12 @@ public class StopDoor : MonoBehaviour
     // local space: +z out into the street, +x to the door's right (as it faces the street); the hinge is on -x
     public Vector3 Stand => transform.TransformPoint(new Vector3(0.85f, 0f, 0.75f));    // where they wait while it's opened (clear of the swing)
     public Vector3 Doorway => transform.TransformPoint(new Vector3(0f, 0f, 0.7f));      // in front of the opening
-    public Vector3 Inside => transform.TransformPoint(new Vector3(0f, 0f, -0.35f));     // through the black
+    public Vector3 Inside => transform.TransformPoint(new Vector3(0f, 0f, -0.35f));     // in through the doorway
 
     AudioClip creak, thud;
 
     // finds a flat stretch of building wall behind `customer` (away from the bay) and puts a door on it; null if there isn't one
-    public static StopDoor Build(Transform customer, Vector3 bay)
+    public static StopDoor Build(Transform customer, Vector3 bay, bool cosyInside = false)
     {
         Vector3 origin = customer.position + Vector3.up * 1.2f;
         Vector3 back = customer.position - bay; back.y = 0f; back.Normalize();
@@ -53,11 +53,11 @@ public class StopDoor : MonoBehaviour
         var root = new GameObject("Door (" + customer.name + ")");
         root.transform.SetPositionAndRotation(new Vector3(bestPoint.x, y, bestPoint.z), Quaternion.LookRotation(bestNormal));
         var door = root.AddComponent<StopDoor>();
-        door.Make();
+        door.Make(cosyInside);
         return door;
     }
 
-    void Make()
+    void Make(bool cosyInside)
     {
         var unlit = Shader.Find("Universal Render Pipeline/Unlit");
         var lit = Shader.Find("Universal Render Pipeline/Lit");
@@ -73,9 +73,20 @@ public class StopDoor : MonoBehaviour
             return p.transform;
         }
 
-        // the dark inside: a black rectangle on the wall, bigger than the door so no wall shows round it
-        var black = M(unlit, Color.black);
-        var quad = Part("Dark inside", PrimitiveType.Quad, new Vector3(0f, 1.1f, 0.03f), new Vector3(1.15f, 2.25f, 1f), black);
+        // the inside: black, or (Ms Okafor only) the cosy Scandi room, on a rectangle in the wall bigger than the door
+        // so no wall shows round it
+        var inside = M(unlit, Color.black);
+        var room = cosyInside ? Resources.Load<Texture2D>("ScandiRoom") : null;
+        if (room != null)
+        {
+            inside.SetColor("_BaseColor", Color.white);
+            inside.SetTexture("_BaseMap", room);
+            // centre-crop the picture to the door's shape instead of squashing it
+            float k = (1.15f / 2.25f) / ((float)room.width / room.height);
+            inside.SetTextureScale("_BaseMap", new Vector2(k, 1f));
+            inside.SetTextureOffset("_BaseMap", new Vector2((1f - k) * 0.5f, 0f));
+        }
+        var quad = Part("Inside", PrimitiveType.Quad, new Vector3(0f, 1.1f, 0.03f), new Vector3(1.15f, 2.25f, 1f), inside);
         quad.localRotation = Quaternion.Euler(0f, 180f, 0f);   // a quad faces -z: turn it out into the street
 
         var frame = M(lit, new Color(0.17f, 0.12f, 0.09f));

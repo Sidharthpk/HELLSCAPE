@@ -94,7 +94,7 @@ public class RevisedPlotDirector : MonoBehaviour
             note.body = "HARLOW CLINIC\nKEEP COLD\n\nReturn sealed to Kessler & Vane depot.\nApproval: V-0500\nLinked disposal account: T. ROURKE\n05:00 collection instruction.";
             note.afterLine = HS.S("305-306") + "|*Evidence recorded. [J] to review.*";
             AddEvidence(item, EvidenceJournal.Invoice);
-            Vector3 phoneAt = vane.transform.position + vane.transform.right * 1.3f + Vector3.up * .85f;
+            Vector3 phoneAt = vane.transform.position + vane.transform.right * 1.3f - vane.transform.forward * 2.4f + Vector3.up * .85f;   // along the wall, clear of Kessler's doorway
             var phone = Box("Vane's Echo telephone", phoneAt, new Vector3(.42f, .16f, .28f), Color.black);
             Label(phone.transform, "05:00 / REPLAY", new Vector3(0f, .05f, -.505f), .02f);
             var use = phone.AddComponent<Interactable>(); use.once = false; use.prompt = "Replay Vane's call in the Echo";
