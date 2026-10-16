@@ -375,11 +375,6 @@ MonoBehaviour:
     ambience: {fileID: 0}
     ambienceVolume: 0.5
     sounds:
-    - name: Angel choir
-      note: 'The angel descending (now: AngelChoir).'
-      clips:
-      - {fileID: 8300000, guid: 6827eda149303b640888a87fcb05174c, type: 3}
-      volume: 1
     - name: Demon rises
       note: 'The demon rising (now: DemonRise).'
       clips:

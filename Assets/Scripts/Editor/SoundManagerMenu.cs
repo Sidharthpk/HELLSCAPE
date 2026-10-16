@@ -84,7 +84,6 @@ static class SoundManagerMenu
         ("Demon Fight", "Boss scream", "Kessler's demon form roaring (every roar in the chase and the bridge fight; built-in: a zombie scream pitched down)."),
         ("Demon Fight", "Boss dragged under", "The drowned dragging it into the water when it dies (built-in: rumble)."),
 
-        ("Ending", "Angel choir", "The angel descending (now: AngelChoir)."),
         ("Ending", "Shadow whispers", "Evil whispers as the shadow people close in; they swell the longer it goes, and stop when the Demon King comes (now: Evil Whisper)."),
         ("Ending", "Shadow music", "Tense horror bed under the shadow walk: a very long fade in, louder as they gather, gone when the Demon King comes."),
         ("Ending", "Shadow scream", "Nightmare yelling when a shadow person catches you."),
