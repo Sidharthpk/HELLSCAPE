@@ -1,13 +1,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
-// The damned on the streets. Each one is a little different: some walk, some drag themselves along the ground,
-// some are knelt over a body eating. Most start out lost: shambling slowly round the spot they were left in,
-// standing dormant, or feeding, until they see you (in range, clear line of sight, in front of them), hear you
-// right beside them, or get hit. Then the ones on their feet stop, turn and SCREAM, and run you down; crawlers
-// just come, faster than you'd like. The scream drags the others nearby in. Lose them for long enough and they
-// drift off again. While you drive, the car is the target.
+// The damned wander with Sad Walk or Sneak Walk at individual speeds. Alert enemies stalk from farther away,
+// then run inside runDistance and keep running until beyond runReleaseDistance. While driving, the car is the target.
 // Animation: DamnedController (HellScape > Build Damned Animator), driven by state name; each zombie plays
 // its clips at its own pace, from its own point in the cycle.
 public class ZombieAI : MonoBehaviour
@@ -20,12 +17,10 @@ public class ZombieAI : MonoBehaviour
     [Header("Speeds (randomized per zombie)")]
     public Vector2 walkSpeedRange = new Vector2(0.18f, 0.32f);   // lost: a slow, dragging shamble
     public Vector2 runSpeedRange = new Vector2(2.6f, 4.2f);
-    public Vector2 crawlSpeedRange = new Vector2(0.18f, 0.3f);
-    public Vector2 crawlChaseRange = new Vector2(1.1f, 1.7f);
+    [FormerlySerializedAs("crawlSpeedRange")] public Vector2 sneakSpeedRange = new Vector2(0.35f, 0.8f);
 
     [Header("Kinds")]
-    [Range(0f, 1f)] public float crawlerChance = 0.2f;
-    [Range(0f, 1f)] public float feederChance = 0.25f;         // of the ones on their feet: knelt over a body
+    [FormerlySerializedAs("crawlerChance"), Range(0f, 1f)] public float sneakChance = 0.55f;
     [Range(0f, 1f)] public float dormantChance = 0.25f;        // of the rest: stands swaying until something gets close
     public Vector2 animVariation = new Vector2(0.85f, 1.18f);  // each zombie's own playback pace
 
@@ -37,12 +32,13 @@ public class ZombieAI : MonoBehaviour
     public float giveUpAfter = 7f;          // seconds out of sight (and far enough away) before it drifts off
     public float giveUpDistance = 28f;
     public float wanderRadius = 7f;
+    public float runDistance = 8f;
+    public float runReleaseDistance = 10f;
 
     [Header("Animation (in-place clips: m/s their feet cover at 1x)")]
     public float walkClipSpeed = 0.41f;
     public float runClipSpeed = 3.67f;
-    public float crawlClipSpeed = 0.52f;
-    public float crawlRunClipSpeed = 2.67f;
+    public float sneakClipSpeed = 0.7f;
     public float screamLength = 2.8f;
 
     [Header("Attack")]
@@ -50,12 +46,12 @@ public class ZombieAI : MonoBehaviour
     public float attackCooldown = 1.6f;
     public int attackDamage = 10;
 
-    enum Mode { Wander, Dormant, Feed, Scream, Chase }
+    enum Mode { Wander, Dormant, Scream, Chase }
 
     static readonly List<ZombieAI> all = new List<ZombieAI>();
 
     private Mode mode;
-    private bool crawler;
+    private bool sneaking, running;
     private float pace;                     // this one's animation playback multiplier
     private float walkSpeed, runSpeed;
     private float attackTimer, repathTimer, senseTimer, lostTimer, wanderPause, busyUntil, hitAt = -1f, screamEnds;
@@ -64,7 +60,7 @@ public class ZombieAI : MonoBehaviour
     private string state = "";
 
     public bool Chasing => mode == Mode.Chase || mode == Mode.Scream;
-    public bool Crawler => crawler;
+    public bool Running => running;
 
     void OnEnable() => all.Add(this);
     void OnDisable() => all.Remove(this);
@@ -80,28 +76,15 @@ public class ZombieAI : MonoBehaviour
         // one city-sized navmesh: give the pathfinder enough work per frame that long paths actually finish
         NavMesh.pathfindingIterationsPerFrame = Mathf.Max(NavMesh.pathfindingIterationsPerFrame, 2000);
 
-        crawler = Random.value < crawlerChance;
+        sneaking = Random.value < sneakChance;
         pace = Random.Range(animVariation.x, animVariation.y);
-        walkSpeed = crawler ? Random.Range(crawlSpeedRange.x, crawlSpeedRange.y) : Random.Range(walkSpeedRange.x, walkSpeedRange.y);
-        runSpeed = crawler ? Random.Range(crawlChaseRange.x, crawlChaseRange.y) : Random.Range(runSpeedRange.x, runSpeedRange.y);
+        walkSpeed = sneaking ? Random.Range(sneakSpeedRange.x, sneakSpeedRange.y) : Random.Range(walkSpeedRange.x, walkSpeedRange.y);
+        runSpeed = Random.Range(runSpeedRange.x, runSpeedRange.y);
         home = transform.position;
         wanderPause = Random.Range(0f, 4f);
         senseTimer = Random.Range(0f, 0.25f);   // spread the line-of-sight checks over frames
 
-        if (crawler)
-        {
-            mode = Mode.Wander;
-            // low to the ground: fists and bullets should find it down there
-            if (TryGetComponent(out Zombie z) && z.mainCollider is CapsuleCollider cap)
-            {
-                cap.direction = 2;              // lying along its length
-                cap.height = 1.7f;
-                cap.center = new Vector3(0f, 0.3f, 0.1f);
-                cap.radius = 0.3f;
-            }
-        }
-        else if (Random.value < feederChance) mode = Mode.Feed;
-        else mode = Random.value < dormantChance ? Mode.Dormant : Mode.Wander;
+        mode = Random.value < dormantChance ? Mode.Dormant : Mode.Wander;
 
         if (player == null)
         {
@@ -110,7 +93,7 @@ public class ZombieAI : MonoBehaviour
         }
 
         // start somewhere in the cycle, not in step with the one beside it
-        Go(mode == Mode.Feed ? "Feed" : crawler ? "Crawl" : "Upright", 0f, Random.value);
+        Go(sneaking ? "Sneak" : "Upright", 0f, Random.value);
     }
 
     // hit, shot at, or dragged in by another's scream
@@ -119,14 +102,16 @@ public class ZombieAI : MonoBehaviour
         if (Chasing || !enabled) return;
         lostTimer = 0f;
         repathTimer = 0f;
-        if (crawler) { mode = Mode.Chase; }
+        target = PickTarget();
+        if (target != null && Flat(target.position - transform.position).magnitude <= runDistance)
+        { mode = Mode.Chase; running = true; }
         else
         {
             // stop, turn to face it, and scream
             mode = Mode.Scream;
             agent.isStopped = true;
             float rate = pace * Random.Range(0.95f, 1.15f);
-            Go("Scream", 0.3f);
+            Go("Scream", 0.3f, 0f);
             animator.speed = rate;
             screamEnds = Time.time + screamLength * 0.85f / rate;   // off before the last beat of the clip
             if (TryGetComponent(out Zombie z)) z.Scream();
@@ -140,6 +125,9 @@ public class ZombieAI : MonoBehaviour
     {
         if (agent == null || !agent.enabled || !agent.isOnNavMesh) return;
         target = PickTarget();
+        // Proximity interrupts the scream so nearby enemies start pursuing immediately.
+        if (target != null && mode != Mode.Chase && Flat(target.position - transform.position).magnitude <= runDistance && Notices(target))
+        { mode = Mode.Chase; running = true; }
 
         senseTimer -= Time.deltaTime;
         if (senseTimer <= 0f)
@@ -151,7 +139,7 @@ public class ZombieAI : MonoBehaviour
             {
                 lostTimer = noticed ? 0f : lostTimer + 0.25f;
                 float d = target != null ? Vector3.Distance(transform.position, target.position) : float.MaxValue;
-                if (lostTimer > giveUpAfter && d > giveUpDistance) { mode = Mode.Wander; home = transform.position; }
+                if (lostTimer > giveUpAfter && d > giveUpDistance) { mode = Mode.Wander; running = false; home = transform.position; }
             }
         }
 
@@ -163,7 +151,7 @@ public class ZombieAI : MonoBehaviour
                 break;
             case Mode.Chase: Chase(); break;
             case Mode.Wander: Wander(); break;
-            default: agent.isStopped = true; break;   // dormant, feeding
+            default: agent.isStopped = true; break;   // dormant
         }
 
         // the swing lands (or whiffs) partway through
@@ -184,12 +172,12 @@ public class ZombieAI : MonoBehaviour
     {
         Vector3 to = t.position - transform.position;
         float d = to.magnitude;
-        float hear = mode == Mode.Feed ? hearRange * 0.7f : hearRange;          // busy eating
+        float hear = hearRange;
         if (d <= hear) return true;
-        float sight = mode == Mode.Feed ? sightRange * 0.5f : sightRange;
+        float sight = sightRange;
         if (d > sight) return false;
         if (t == player && Vector3.Angle(transform.forward, Flat(to)) > sightAngle) return false;
-        Vector3 eye = transform.position + Vector3.up * (crawler ? 0.5f : 1.6f);
+        Vector3 eye = transform.position + Vector3.up * 1.6f;
         Vector3 aim = t.position + Vector3.up * 0.5f;
         foreach (var h in Physics.RaycastAll(eye, aim - eye, Vector3.Distance(eye, aim), ~0, QueryTriggerInteraction.Ignore))
         {
@@ -208,7 +196,8 @@ public class ZombieAI : MonoBehaviour
         if (dist <= attackRange) { Attack(); return; }
 
         agent.isStopped = false;
-        agent.speed = runSpeed;
+        running = dist <= (running ? Mathf.Max(runDistance, runReleaseDistance) : runDistance);
+        agent.speed = running ? runSpeed : walkSpeed;
         // re-path a few times a second, and only when the target has actually moved: a path request every
         // frame never finishes on a navmesh this size and the zombie just stands there
         repathTimer -= Time.deltaTime;
@@ -246,13 +235,9 @@ public class ZombieAI : MonoBehaviour
         attackTimer -= Time.deltaTime;
         if (attackTimer > 0f) return;
 
-        // a swipe, a lunge for the neck, or (crawlers) a bite at your legs
-        bool neck = !crawler && Random.value < 0.3f;
-        string move = crawler ? "CrawlBite" : neck ? "NeckBite" : "Attack";
-        float rate = pace * (neck ? 1.7f : crawler ? 1.4f : 1.25f);
-        float lands = neck ? 1.1f : crawler ? 0.5f : 0.6f;       // seconds into the clip at 1x
-        float hold = neck ? 2.4f : crawler ? 1.3f : 1.9f;
-        Go(move, 0.12f, 0f);
+        float rate = pace * 1.25f;
+        float lands = 0.6f, hold = 1.9f;
+        Go("Attack", 0.12f, 0f);
         animator.speed = rate;
         hitAt = Time.time + lands / rate;
         busyUntil = Time.time + hold / rate;
@@ -264,26 +249,32 @@ public class ZombieAI : MonoBehaviour
     {
         if (animator == null || mode == Mode.Scream) return;
         if (Time.time < busyUntil) return;      // an attack is playing out
-        if (mode == Mode.Feed) { Go("Feed", 0.3f); animator.speed = pace; return; }
-
-        string posture = crawler ? "Crawl" : "Upright";
+        string posture = mode == Mode.Chase || sneaking ? "Sneak" : "Upright";
         Go(posture, 0.3f);
         float v = agent.isStopped ? 0f : agent.velocity.magnitude;
-        float slow = crawler ? crawlClipSpeed : walkClipSpeed, fast = crawler ? crawlRunClipSpeed : runClipSpeed;
+        float slow = posture == "Sneak" ? sneakClipSpeed : walkClipSpeed, fast = runClipSpeed;
         float param, rate;
-        if (v < 0.05f) { param = 0f; rate = crawler ? 0.25f * pace : pace; }             // crawlers barely twitch when still
-        else if (v < (slow + fast) * 0.3f) { param = slow; rate = Mathf.Clamp(v / slow, 0.35f, 1.3f) * pace; }
+        if (v < 0.05f) { param = 0f; rate = pace; }
+        else if (!running) { param = slow; rate = Mathf.Clamp(v / slow, 0.25f, 1.5f); }
         else { param = fast; rate = Mathf.Clamp(v / fast, 0.6f, 1.3f) * pace; }
         animator.SetFloat("Speed", param, 0.15f, Time.deltaTime);
         animator.speed = rate;
     }
 
+    // at < 0: a loop, joined somewhere in its cycle (a crowd that changes state together mustn't step in time)
     void Go(string next, float fade, float at = -1f)
     {
         if (animator == null || (state == next && at < 0f)) return;
         state = next;
         if (at >= 0f && fade <= 0f) animator.Play(next, 0, at);
-        else animator.CrossFadeInFixedTime(next, fade, 0, at >= 0f ? at : 0f);
+        else FadeTo(animator, next, fade, at >= 0f ? at : Random.value);
+    }
+
+    // CrossFade with the start point normalized (CrossFadeInFixedTime's offset is in seconds)
+    public static void FadeTo(Animator a, string next, float fade, float at)
+    {
+        float len = Mathf.Max(a.GetCurrentAnimatorStateInfo(0).length, 0.01f);
+        a.CrossFade(next, fade / len, 0, at);
     }
 
     void Face(Transform t, float rate)

@@ -1619,7 +1619,7 @@ public class DemonBoss : MonoBehaviour
             {
                 d.climb += Time.deltaTime / 1.2f;
                 d.t.position = Vector3.Lerp(d.climbFrom, d.climbTo, Mathf.SmoothStep(0f, 1f, d.climb));
-                if (d.a != null) d.a.CrossFadeInFixedTime("Crawl", 0.1f);
+                if (d.a != null && !d.a.GetCurrentAnimatorStateInfo(0).IsName("Crawl") && !d.a.IsInTransition(0)) ZombieAI.FadeTo(d.a, "Crawl", 0.1f, Random.value);
                 continue;
             }
             if (player == null || defeated) continue;
@@ -1643,7 +1643,7 @@ public class DemonBoss : MonoBehaviour
     {
         if (a == null) return;
         var info = a.GetCurrentAnimatorStateInfo(0);
-        if (!info.IsName(state)) a.CrossFadeInFixedTime(state, 0.15f);
+        if (!info.IsName(state) && !a.IsInTransition(0)) ZombieAI.FadeTo(a, state, 0.15f, state == "Attack" ? 0f : Random.value);
         else if (state == "Attack" && info.normalizedTime > 0.95f) a.Play("Attack", 0, 0f);
         if (state == "Upright") { a.SetFloat("Speed", speed > 0.1f ? 3.67f : 0f); a.speed = speed > 0.1f ? Mathf.Clamp(speed / 3.67f, 0.8f, 1.6f) : 1f; }
     }

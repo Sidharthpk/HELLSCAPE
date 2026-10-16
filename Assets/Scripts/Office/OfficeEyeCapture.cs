@@ -82,6 +82,11 @@ public partial class OfficeEye
         whisperText.alpha = 0f;
         panel = new GameObject("Struggle", typeof(RectTransform));
         panel.transform.SetParent(canvas.transform, false);
+        // at the top of the screen on a dark plate: the Eye hangs in the middle of your view and its glow drowned the prompt
+        var prt = (RectTransform)panel.transform; prt.anchorMin = prt.anchorMax = new Vector2(.5f, 1f); prt.anchoredPosition = new Vector2(0f, 40f);
+        var plate = new GameObject("Plate", typeof(RectTransform)).AddComponent<Image>();
+        plate.transform.SetParent(panel.transform, false); plate.raycastTarget = false; plate.color = new Color(0f, 0f, 0f, .75f);
+        plate.rectTransform.sizeDelta = new Vector2(900f, 230f); plate.rectTransform.anchoredPosition = new Vector2(0f, -170f);
         Text("Title", panel.transform, 54f, new Color(.95f, .12f, .08f), new Vector2(0f, -130f)).text = "BREAK ITS GAZE";
         Text("Keys", panel.transform, 28f, new Color(.9f, .86f, .74f), new Vector2(0f, -190f)).text = "PRESS [F] REPEATEDLY";
         bar = BloodBar.Make(panel.transform, "Resistance", new Vector2(420f, 30f));

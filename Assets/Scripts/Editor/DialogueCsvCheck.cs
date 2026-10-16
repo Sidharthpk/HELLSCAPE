@@ -10,7 +10,7 @@ using UnityEngine;
 // numbers are worked out in code. Result in Library/DialogueCsvCheck.result.
 public static class DialogueCsvCheck
 {
-    const int Expected = 651;
+    const int Expected = 652;
 
     [MenuItem("HellScape/Tests/Dialogue CSV")]
     public static string Run()

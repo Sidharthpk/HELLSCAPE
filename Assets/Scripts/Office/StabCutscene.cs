@@ -141,7 +141,15 @@ public class StabCutscene : MonoBehaviour
 
         if (cam != null) yield return Fade(1f, 0.4f);
         actors.SetActive(true);
-        animator.Play(state, 0, 0f);
+        // Replacement actors have their own Animator. Restart every participant on the
+        // same frame, including replays, instead of relying on OnEnable's default state.
+        foreach (var actor in actors.GetComponentsInChildren<Animator>())
+        {
+            if (actor.runtimeAnimatorController == null || !actor.HasState(0, Animator.StringToHash(state))) continue;
+            actor.speed = 1f;
+            actor.Play(state, 0, 0f);
+            actor.Update(0f);
+        }
         StartSound();
         if (cam != null)
         {

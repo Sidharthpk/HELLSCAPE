@@ -2,7 +2,7 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 
-// Six seconds of visible Echo time per visit; the clock waits while a line is spoken or a question is open. Vane owns his conversation until the last reply ends.
+// Six seconds of visible Echo time per visit; the clock waits while someone else's line is spoken (not your own) or a question is open. Vane owns his conversation until the last reply ends.
 public class EchoVisit : MonoBehaviour
 {
     public const float Duration = 6f;
@@ -48,7 +48,7 @@ public class EchoVisit : MonoBehaviour
     }
     public void AdvanceClock(float delta)
     {
-        if (plot == null || !plot.Echo || Returning || HeldForVane || PauseMenu.Paused || (DialogueBox.Instance != null && DialogueBox.Instance.Busy) || (ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open) || (horror != null && horror.Switching)) return;
+        if (plot == null || !plot.Echo || Returning || HeldForVane || PauseMenu.Paused || (DialogueBox.Instance != null && DialogueBox.Instance.Busy && !DialogueBox.Instance.PlayerSpeaking) || (ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open) || (horror != null && horror.Switching)) return;
         Remaining = Mathf.Max(0f, Remaining - Mathf.Max(0f, delta));
     }
     void Update()

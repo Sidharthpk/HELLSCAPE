@@ -124,7 +124,6 @@ public static class OfficeActBuilder
         BuildWaveAndCar(root, beacon);
         BuildTurningCutscene(enc, lockAll);
 
-        BuildLostSouls();
 
         BuildCheckpoints(root, ui, cityReturn, complexArrival, chase, enc);
 
@@ -152,6 +151,9 @@ public static class OfficeActBuilder
         font = dialog.text.font;
     }
 
+    // the silo shaft, the silo complex and Kessler's tunnel, all in one box (x 895-1035, y -10-110, z 1025-1205)
+    public static readonly Bounds SiloAndTunnel = new Bounds(new Vector3(965f, 50f, 1115f), new Vector3(140f, 120f, 180f));
+
     // the street spawner follows you everywhere; the office and the silo complex are off limits to it
     static void ZombieFreeInteriors()
     {
@@ -166,7 +168,7 @@ public static class OfficeActBuilder
             return b;
         }
         Undo.RecordObject(spawner, "Zombie-free interiors");
-        spawner.interiors = new[] { Around(OfficeModelName), Around(ComplexModelName) };
+        spawner.interiors = new[] { Around(OfficeModelName), Around(ComplexModelName), SiloAndTunnel };
         EditorUtility.SetDirty(spawner);
     }
 
@@ -1293,82 +1295,6 @@ public static class OfficeActBuilder
         return floatControllers[i % floatControllers.Length];
     }
 
-
-    // lost souls hanging in the air over the hell city (under HellWorld, so they only exist after you wake up)
-    [MenuItem("HellScape/Rebuild Lost Souls (city)")]
-    static void RebuildLostSouls()
-    {
-        Materials();
-        BuildLostSouls();
-        UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
-    }
-
-    static void BuildLostSouls()
-    {
-        var hell = Resources.FindObjectsOfTypeAll<GameObject>().FirstOrDefault(g => g.name == "HellWorld" && g.scene.IsValid());
-        if (hell == null) return;
-        var oldSouls = hell.transform.Find("LostSouls (City)");
-        if (oldSouls != null) Object.DestroyImmediate(oldSouls.gameObject);
-        var souls = new GameObject("LostSouls (City)").transform;
-        souls.SetParent(hell.transform, false);
-
-        // spread along the streets you actually walk and drive: the zombie spawn points and the road
-        var spots = Resources.FindObjectsOfTypeAll<Transform>()
-            .Where(t => t.gameObject.scene.IsValid() && t.parent != null && t.parent.name == "ZombieSpawnPoints")
-            .Select(t => t.position).ToList();
-        var road = Object.FindFirstObjectByType<RoadObstacleSpawner>(FindObjectsInactive.Include);
-        if (road != null) spots.AddRange(road.roadPoints.Where(r => r != null).Select(r => r.position));
-        var rnd = new System.Random(1304);
-        // a few more around each spot, so they gather in loose crowds over the streets rather than one per block
-        var around = new System.Collections.Generic.List<Vector3>();
-        foreach (var p in spots)
-            for (int k = 0; k < 3; k++)
-                around.Add(p + new Vector3((float)rnd.NextDouble() * 24f - 12f, 0f, (float)rnd.NextDouble() * 24f - 12f));
-        spots.AddRange(around);
-        var chosen = new System.Collections.Generic.List<Vector3>();
-        foreach (var p in spots.OrderBy(_ => rnd.Next()))
-        {
-            if (chosen.Any(c => Vector3.Distance(c, p) < 9f)) continue;   // spread out
-            chosen.Add(p);
-            if (chosen.Count >= 60) break;
-        }
-
-        string[] models = { "Walking", "WOMAN 128 FINAL", "Sketchfab_2020_12_11_17_17_43" };   // men, women, children
-        float[] scales = { 0.9f, 0.41f, 0.64f };
-        for (int i = 0; i < chosen.Count; i++)
-        {
-            Vector3 at = chosen[i];
-            if (Physics.Raycast(at + Vector3.up * 30f, Vector3.down, out RaycastHit hit, 60f, ~0, QueryTriggerInteraction.Ignore)) at = hit.point;
-            var root = new GameObject("Lost Soul " + (i + 1)).transform;
-            root.SetParent(souls, false);
-            root.position = at + Vector3.up * (4f + (float)rnd.NextDouble() * 14f);   // some low over your head, some high up
-            root.rotation = Quaternion.Euler(0f, (float)rnd.NextDouble() * 360f, 0f);
-            int m = i % models.Length;
-            var body = CopyOf(models[m], root, Vector3.zero, 0f);
-            if (body == null) { Object.DestroyImmediate(root.gameObject); continue; }
-            body.transform.localScale = Vector3.one * scales[m];
-            foreach (var c in body.GetComponentsInChildren<MonoBehaviour>(true)) Object.DestroyImmediate(c);   // wander scripts etc.
-            foreach (var c in body.GetComponentsInChildren<UnityEngine.AI.NavMeshAgent>(true)) Object.DestroyImmediate(c);
-            foreach (var c in body.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
-            foreach (var r in body.GetComponentsInChildren<Renderer>())
-            {
-                r.sharedMaterials = Enumerable.Repeat(mGhost, r.sharedMaterials.Length).ToArray();
-                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            }
-            var anim = body.GetComponentInChildren<Animator>();
-            var fc = FloatController(i);
-            if (anim != null && fc != null)
-            {
-                anim.runtimeAnimatorController = fc;
-                anim.applyRootMotion = false;
-            }
-            if (i % 3 == 0) Lamp(root, Vector3.up * 1.2f, new Color(0.5f, 0.85f, 1f), 1.2f, 6f);   // one in three glows: 60 lights is too many
-            var soul = root.gameObject.AddComponent<LostSoul>();
-            soul.driftRadius = 5f + (float)rnd.NextDouble() * 6f;
-            soul.driftSpeed = 0.4f + (float)rnd.NextDouble() * 0.5f;
-        }
-        floatControllers = null;
-    }
 
     static GhostNPC Ghost(Transform o, string name, string model, float scale, float x, float z, string afterLine, params GhostNode[] nodes)
     {

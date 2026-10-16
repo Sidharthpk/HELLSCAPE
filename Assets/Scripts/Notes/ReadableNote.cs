@@ -14,6 +14,7 @@ public class ReadableNote : MonoBehaviour
     [TextArea(3, 12)] public string body;
     public string footer;                    // signature / sign-off
     public string scrawl;                    // written over it in red marker (or blood)
+    public Sprite artwork;                  // shared by the physical prop and the reading view
 
     [Header("Calendar")]
     public string month = "APRIL";

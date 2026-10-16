@@ -1,94 +1,185 @@
+using System;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 
-// HellScape > Build Damned Animator: the Scary Zombie Pack clips made to play in place, and one controller with
-// every state the street zombies use. ZombieAI drives it by state name (CrossFade), the blend trees by "Speed"
-// (actual metres per second, so each clip's threshold is the speed its feet really cover).
-static class DamnedAnimatorBuilder
+// Dedicated humanoid copies leave the original generic clips available to older cutscenes.
+public static class DamnedAnimatorBuilder
 {
-    const string Dir = "Assets/Enemies/Scary Zombie Pack/";
-    const string ControllerPath = Dir + "DamnedController.controller";
-    const string Hips = "mixamorig5:Hips";
-    const float Scale = 1.16f;              // PrimeZombie's root scale: clip travel x this = world speed
+    const string Source = "Assets/Enemies/Scary Zombie Pack/";
+    const string Dir = "Assets/Enemies/Dammed/";
+    const string Model = "Assets/New Folder/Dammed.fbx";
+    const string SadWalk = "Assets/New Folder/Sad Walk (1).fbx";
+    public const float WalkSpeed = 0.7f, RunSpeed = 3.67f, SneakSpeed = 0.7f;
 
-    // travel measured off the hips curves (m per loop / loop length), before scale
-    public const float WalkSpeed = 0.35f * Scale, RunSpeed = 3.16f * Scale, CrawlSpeed = 0.45f * Scale, CrawlRunSpeed = 2.3f * Scale;
+    static void ImportHuman(string path, bool loop)
+    {
+        var imp = (ModelImporter)AssetImporter.GetAtPath(path);
+        imp.animationType = ModelImporterAnimationType.Human;
+        imp.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+        imp.optimizeGameObjects = false;
+        imp.motionNodeName = "";
+        var clips = imp.clipAnimations.Length > 0 ? imp.clipAnimations : imp.defaultClipAnimations;
+        foreach (var c in clips)
+        {
+            c.loopTime = loop;
+            c.loopPose = loop;
+            c.lockRootRotation = true;
+            c.keepOriginalOrientation = true;
+            c.lockRootHeightY = true;
+            c.heightFromFeet = true;
+            c.lockRootPositionXZ = true;
+        }
+        imp.clipAnimations = clips;
+        imp.SaveAndReimport();
+    }
+
+    static AnimationClip Clip(string name) => AssetDatabase.LoadAllAssetsAtPath(Dir + name + ".fbx")
+        .OfType<AnimationClip>().First(c => !c.name.StartsWith("__preview"));
 
     [MenuItem("HellScape/Build Damned Animator")]
-    static void Build()
+    public static void Build()
     {
-        // crawls (and the feeding/grab clips) had their forward travel left in the hips: extract it like the walk
-        foreach (var f in new[] { "zombie crawl", "running crawl", "zombie biting", "zombie biting (2)", "zombie neck bite" })
+        if (EditorApplication.isPlaying) throw new InvalidOperationException("Stop Play before rebuilding enemies.");
+        if (!AssetDatabase.IsValidFolder(Dir.TrimEnd('/'))) AssetDatabase.CreateFolder("Assets/Enemies", "Dammed");
+        ImportHuman(Model, false);
+        ImportHuman(SadWalk, true);
+        foreach (var name in new[] { "zombie idle", "zombie run", "zombie scream", "zombie attack", "Sad Walk", "Sneak Walk" })
         {
-            var imp = (ModelImporter)AssetImporter.GetAtPath(Dir + f + ".fbx");
-            if (imp.motionNodeName == Hips) continue;
-            imp.motionNodeName = Hips;
-            imp.SaveAndReimport();
+            var path = Dir + name + ".fbx";
+            if (AssetDatabase.LoadMainAssetAtPath(path) == null)
+                AssetDatabase.CopyAsset(name == "Sad Walk" ? SadWalk : Source + name + ".fbx", path);
+            ImportHuman(path, name.EndsWith("Walk") || name.Contains("idle") || name.Contains("run"));
         }
 
-        AnimationClip Clip(string file) =>
-            AssetDatabase.LoadAllAssetsAtPath(Dir + file + ".fbx").OfType<AnimationClip>().First(c => !c.name.StartsWith("__preview"));
-
-        AssetDatabase.DeleteAsset(ControllerPath);
-        var ac = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
-        ac.AddParameter("Speed", AnimatorControllerParameterType.Float);
-        ac.AddParameter("Attack", AnimatorControllerParameterType.Trigger);   // kept for old callers (Kessler, the ending)
-        var sm = ac.layers[0].stateMachine;
-
-        AnimatorState Tree(string name, Vector3 pos, params (AnimationClip clip, float at)[] kids)
+        // Preserve the controller GUID and all callers that already reference it.
+        var ac = AssetDatabase.LoadAssetAtPath<AnimatorController>(Source + "DamnedController.controller");
+        foreach (var o in AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(ac)).Where(o => o != ac).ToArray())
+            UnityEngine.Object.DestroyImmediate(o, true);
+        var sm = new AnimatorStateMachine { name = "Base Layer" };
+        AssetDatabase.AddObjectToAsset(sm, ac);
+        ac.layers = new[] { new AnimatorControllerLayer { name = "Base Layer", defaultWeight = 1f, stateMachine = sm } };
+        ac.parameters = new[] {
+            new AnimatorControllerParameter { name = "Speed", type = AnimatorControllerParameterType.Float },
+            new AnimatorControllerParameter { name = "Attack", type = AnimatorControllerParameterType.Trigger }
+        };
+        AnimatorState Tree(string name, params (AnimationClip clip, float speed)[] children)
         {
-            var st = ac.CreateBlendTreeInController(name, out BlendTree t, 0);
-            t.blendParameter = "Speed";
-            t.useAutomaticThresholds = false;
-            foreach (var (clip, at) in kids) t.AddChild(clip, at);
-            var states = sm.states;            // (CreateBlendTreeInController drops it at the origin)
-            for (int i = 0; i < states.Length; i++) if (states[i].state == st) states[i].position = pos;
-            sm.states = states;
+            var st = sm.AddState(name, new Vector3(300, name == "Upright" ? 0 : name == "Sneak" ? 180 : 360, 0));
+            var tree = new BlendTree { name = name, blendParameter = "Speed", useAutomaticThresholds = false };
+            AssetDatabase.AddObjectToAsset(tree, ac);
+            foreach (var c in children) tree.AddChild(c.clip, c.speed);
+            st.motion = tree;
+            st.iKOnFeet = true;
             return st;
         }
-
-        var upright = Tree("Upright", new Vector3(300, 0, 0), (Clip("zombie idle"), 0f), (Clip("zombie walk"), WalkSpeed), (Clip("zombie run"), RunSpeed));
-        var crawl = Tree("Crawl", new Vector3(300, 120, 0), (Clip("zombie crawl"), 0f), (Clip("zombie crawl"), CrawlSpeed), (Clip("running crawl"), CrawlRunSpeed));
+        var upright = Tree("Upright", (Clip("zombie idle"), 0), (Clip("Sad Walk"), WalkSpeed), (Clip("zombie run"), RunSpeed));
+        Tree("Sneak", (Clip("zombie idle"), 0), (Clip("Sneak Walk"), SneakSpeed), (Clip("zombie run"), RunSpeed));
+        // Older cutscenes can still call these state names without playing crawl/bite motions.
+        Tree("Crawl", (Clip("zombie idle"), 0), (Clip("Sneak Walk"), SneakSpeed), (Clip("zombie run"), RunSpeed));
         sm.defaultState = upright;
-
-        AnimatorState One(string name, AnimationClip clip, Vector3 pos)
+        int row = 0;
+        foreach (var pair in new[] { ("Feed", "Sneak Walk"), ("FeedDown", "Sneak Walk"), ("Scream", "zombie scream"), ("Attack", "zombie attack"), ("NeckBite", "zombie attack"), ("CrawlBite", "zombie attack") })
         {
-            var st = sm.AddState(name, pos);
-            st.motion = clip;
-            return st;
+            var st = sm.AddState(pair.Item1, new Vector3(600, -180 + row++ * 80, 0));
+            st.motion = Clip(pair.Item2);
+            if (pair.Item1.StartsWith("Feed")) { st.speed = pair.Item1 == "Feed" ? 0.65f : 0.9f; continue; }
+            var back = st.AddTransition(upright);
+            back.hasExitTime = true; back.exitTime = 0.95f; back.duration = 0.18f;
+            if (pair.Item1 == "Attack")
+            {
+                var any = sm.AddAnyStateTransition(st);
+                any.AddCondition(AnimatorConditionMode.If, 0, "Attack");
+                any.duration = 0.1f; any.canTransitionToSelf = false;
+            }
         }
-        One("Feed", Clip("zombie biting (2)"), new Vector3(550, -120, 0));            // kneeling over a body, eating
-        One("FeedDown", Clip("zombie biting"), new Vector3(550, -60, 0));             // stoops down onto it, then eats
-        One("Scream", Clip("zombie scream"), new Vector3(550, 0, 0));
-        var attack = One("Attack", Clip("zombie attack"), new Vector3(550, 60, 0));
-        One("NeckBite", Clip("zombie neck bite"), new Vector3(550, 120, 0));
-        One("CrawlBite", Clip("zombie biting (2)"), new Vector3(550, 180, 0));
-
-        // the old "Attack" trigger still works for anything that sets it
-        var any = sm.AddAnyStateTransition(attack);
-        any.AddCondition(AnimatorConditionMode.If, 0, "Attack");
-        any.duration = 0.1f;
-        var back = attack.AddTransition(upright);
-        back.hasExitTime = true;
-        back.exitTime = 0.9f;
-        back.duration = 0.25f;
-
         EditorUtility.SetDirty(ac);
+        var pathOld = Source + "PrimeZombie.prefab";
+        var root = PrefabUtility.LoadPrefabContents(pathOld);
+        try
+        {
+            if (!root.GetComponent<Animator>().isHuman) ReplaceModel(root, ac);
+            root.GetComponent<Animator>().runtimeAnimatorController = ac;
+            var ai = root.GetComponent<ZombieAI>();
+            ai.walkClipSpeed = WalkSpeed; ai.runClipSpeed = RunSpeed; ai.sneakClipSpeed = SneakSpeed;
+            ai.sneakChance = 0.55f; ai.sneakSpeedRange = new Vector2(0.35f, 0.8f);
+            PrefabUtility.SaveAsPrefabAsset(root, pathOld);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+        // The named prefab inherits future fixes from the compatibility prefab.
+        var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(pathOld));
+        try { instance.name = "Dammed"; instance.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity); PrefabUtility.SaveAsPrefabAsset(instance, Dir + "Dammed.prefab"); }
+        finally { UnityEngine.Object.DestroyImmediate(instance); }
         AssetDatabase.SaveAssets();
+        Debug.Log("Dammed: humanoid controller, looped locomotion, prefab and ragdoll rebuilt.");
+    }
 
-        // the street zombies use it
-        var prefabPath = Dir + "PrimeZombie.prefab";
-        var root = PrefabUtility.LoadPrefabContents(prefabPath);
-        root.GetComponentInChildren<Animator>().runtimeAnimatorController = ac;
+    public static void ReplaceModel(GameObject root, RuntimeAnimatorController controller)
+    {
+        foreach (Transform t in root.transform.Cast<Transform>().Where(t => t.GetComponentInChildren<SkinnedMeshRenderer>(true) != null || t.name.EndsWith(":Hips")).ToArray())
+            UnityEngine.Object.DestroyImmediate(t.gameObject);
+        var model = UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(Model));
+        foreach (Transform t in model.transform.Cast<Transform>().ToArray()) t.SetParent(root.transform, false);
+        var avatar = model.GetComponent<Animator>().avatar;
+        UnityEngine.Object.DestroyImmediate(model);
+        var animator = root.GetComponent<Animator>() ?? root.AddComponent<Animator>();
+        animator.avatar = avatar;
+        animator.runtimeAnimatorController = controller;
+        animator.applyRootMotion = false;
+        animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+        animator.Rebind();
+        if (!animator.isHuman || !avatar.isValid) throw new InvalidOperationException("Dammed humanoid avatar is invalid.");
         var ai = root.GetComponent<ZombieAI>();
-        ai.walkClipSpeed = WalkSpeed;
-        ai.runClipSpeed = RunSpeed;
-        ai.crawlClipSpeed = CrawlSpeed;
-        ai.crawlRunClipSpeed = CrawlRunSpeed;
-        PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
-        PrefabUtility.UnloadPrefabContents(root);
-        Debug.Log("HellScape: DamnedController built and set on PrimeZombie.");
+        if (ai != null)
+        {
+            ai.animator = animator; ai.walkClipSpeed = WalkSpeed; ai.runClipSpeed = RunSpeed;
+            ai.sneakClipSpeed = SneakSpeed;
+        }
+        BuildRagdoll(root, animator);
+    }
+
+    static void BuildRagdoll(GameObject root, Animator animator)
+    {
+        var bones = new[] { HumanBodyBones.Hips, HumanBodyBones.Spine, HumanBodyBones.Chest, HumanBodyBones.Head,
+            HumanBodyBones.LeftUpperArm, HumanBodyBones.LeftLowerArm, HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm,
+            HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg, HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg };
+        var ends = new[] { HumanBodyBones.Spine, HumanBodyBones.Chest, HumanBodyBones.Neck, HumanBodyBones.LastBone,
+            HumanBodyBones.LeftLowerArm, HumanBodyBones.LeftHand, HumanBodyBones.RightLowerArm, HumanBodyBones.RightHand,
+            HumanBodyBones.LeftLowerLeg, HumanBodyBones.LeftFoot, HumanBodyBones.RightLowerLeg, HumanBodyBones.RightFoot };
+        var bodies = new Rigidbody[bones.Length];
+        for (int i = 0; i < bones.Length; i++)
+        {
+            var t = animator.GetBoneTransform(bones[i]);
+            var rb = t.gameObject.AddComponent<Rigidbody>();
+            rb.mass = i == 0 ? 14f : i < 3 ? 10f : i == 3 ? 5f : i >= 8 ? 6f : 2.5f;
+            rb.isKinematic = true; rb.useGravity = true; rb.interpolation = RigidbodyInterpolation.Interpolate;
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            rb.solverIterations = 12; rb.solverVelocityIterations = 4;
+            bodies[i] = rb;
+            var c = t.gameObject.AddComponent<CapsuleCollider>();
+            Vector3 delta = ends[i] == HumanBodyBones.LastBone ? new Vector3(0, 0.18f, 0) : t.InverseTransformPoint(animator.GetBoneTransform(ends[i]).position);
+            var abs = new Vector3(Mathf.Abs(delta.x), Mathf.Abs(delta.y), Mathf.Abs(delta.z));
+            c.direction = abs.x > abs.y && abs.x > abs.z ? 0 : abs.z > abs.y ? 2 : 1;
+            c.center = delta * 0.5f;
+            c.radius = i == 0 ? 0.13f : i < 3 ? 0.14f : i == 3 ? 0.105f : i >= 8 ? 0.075f : 0.05f;
+            c.height = Mathf.Max(delta.magnitude, c.radius * 2);
+            c.enabled = false;
+        }
+        for (int i = 1; i < bodies.Length; i++)
+        {
+            var t = bodies[i].transform.parent;
+            while (t != null && t.GetComponent<Rigidbody>() == null) t = t.parent;
+            var j = bodies[i].gameObject.AddComponent<CharacterJoint>();
+            j.connectedBody = t.GetComponent<Rigidbody>();
+            j.axis = Vector3.right; j.swingAxis = Vector3.forward;
+            j.lowTwistLimit = new SoftJointLimit { limit = -25 };
+            j.highTwistLimit = new SoftJointLimit { limit = 25 };
+            j.swing1Limit = new SoftJointLimit { limit = 40 };
+            j.swing2Limit = new SoftJointLimit { limit = 25 };
+            j.enableProjection = true; j.enablePreprocessing = false;
+        }
+        var z = root.GetComponent<Zombie>();
+        if (z != null) { z.animator = animator; z.mainCollider = root.GetComponent<Collider>(); z.ragdollBones = bodies; }
     }
 }

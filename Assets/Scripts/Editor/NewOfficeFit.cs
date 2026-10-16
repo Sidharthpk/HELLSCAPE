@@ -87,6 +87,8 @@ public static partial class NewOfficeFit
         EditorSceneManager.MarkSceneDirty(m.scene);
         Report = log.ToString();
         Debug.Log("New office fitted.\n" + Report);
+        if (AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/OfficeDocuments/AprilCalendar.png") != null)
+            OfficeDocumentBuilder.Build();
     }
 
     // only the walk map again, after furniture has been moved by hand (nothing is re-placed)

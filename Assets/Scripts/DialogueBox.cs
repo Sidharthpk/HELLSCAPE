@@ -69,10 +69,12 @@ public class DialogueBox : MonoBehaviour
     };
     static readonly Regex speakerRx = new Regex(@"^([A-Za-z?][A-Za-z? .'&\-]{0,24}):\s+(.+)$", RegexOptions.Singleline);
 
-    struct QueuedLine { public string raw, batch; public int generation; }
+    struct QueuedLine { public string raw, batch; public int generation; public bool first; public float at; }
     private readonly Queue<QueuedLine> queue = new Queue<QueuedLine>();
     private readonly Dictionary<string, int> pendingBatches = new Dictionary<string, int>();
     private int generation;
+    public float staleAfter = 15f;         // a speech still waiting its turn after this long is about something that's over: dropped
+    private float queueResumedAt;
     private bool running;
     private bool cutCurrent;               // SayNow: drop the line on screen as well
     private bool urgent;                   // SayNow lines: no letterbox, they're shouted mid-action
@@ -80,6 +82,8 @@ public class DialogueBox : MonoBehaviour
     private float barK;
 
     public bool Busy => running;           // lines still typing or queued (cutscenes wait on this)
+    public bool PlayerSpeaking => running && speakingPlayer;   // the line up now is the driver's own (the Echo clock keeps running)
+    private bool speakingPlayer;
 
     // scripted playtests (no keyboard): lines move on by themselves after this many seconds. 0 = wait for the key.
     public static float AutoAdvanceAfter;
@@ -147,7 +151,7 @@ public class DialogueBox : MonoBehaviour
         foreach (var l in batch.Split('|')) if (l.Trim().Length > 0) parts.Add(l.Trim());
         if (parts.Count == 0) return;
         pendingBatches[batch] = parts.Count;
-        foreach (var l in parts) queue.Enqueue(new QueuedLine { raw = l, batch = batch, generation = generation });
+        for (int i = 0; i < parts.Count; i++) queue.Enqueue(new QueuedLine { raw = parts[i], batch = batch, generation = generation, first = i == 0, at = Time.time });
         Raise();   // other scripts add things to the canvas as the game runs
         if (!running) StartCoroutine(Run());
     }
@@ -227,14 +231,15 @@ public class DialogueBox : MonoBehaviour
     {
         running = true;
         if (!tutorialShown && InOffice) yield return Tutorial();
+        queueResumedAt = Time.time;   // (reading the card doesn't make the lines behind it stale)
         // (outer loop: a line that arrives while the box is fading out is still said, not left stranded in the queue)
-        while (queue.Count > 0)
+        while (DropStale() && queue.Count > 0)
         {
             bars = !urgent && Calm();
             Show(Parse(queue.Peek().raw), 0);
             yield return Fade(1f);
 
-            while (queue.Count > 0)
+            while (DropStale() && queue.Count > 0)
             {
                 cutCurrent = false;
                 var queued = queue.Dequeue();
@@ -278,6 +283,18 @@ public class DialogueBox : MonoBehaviour
             yield return Fade(0f);
         }
         running = false;
+    }
+
+    // a speech that hasn't started yet and has waited too long behind others: its moment has passed, skip all of it
+    bool DropStale()
+    {
+        while (queue.Count > 0 && queue.Peek().first && Time.time - Mathf.Max(queue.Peek().at, queueResumedAt) > staleAfter)
+        {
+            string batch = queue.Dequeue().batch;
+            while (queue.Count > 0 && !queue.Peek().first && queue.Peek().batch == batch) queue.Dequeue();
+            pendingBatches.Remove(batch);
+        }
+        return true;
     }
 
     bool Pressed() => !PauseMenu.Paused && !(ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open) && (Input.GetKeyDown(advanceKey) || CutsceneSkip.Skipping
@@ -332,6 +349,7 @@ public class DialogueBox : MonoBehaviour
 
     void Show(Line line, int visible)
     {
+        speakingPlayer = line.speaker == playerName;
         if (presentation != null) presentation.SetNarration(line.narration);
         if (nameText != null)
         {

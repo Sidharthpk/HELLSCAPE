@@ -13,6 +13,11 @@ public class EchoOfficeMemory : MonoBehaviour
     Volume volume;
     VolumeProfile profile;
     bool echo;
+    UnityEngine.UI.RawImage glow;
+    Texture2D tex;
+    Material glowMaterial;
+    float glowTime;
+    const float GlowPeriod = 3.8f;
     public int RendererCount => memory.Count;
     public float Weight => volume != null ? volume.weight : 0f;
 
@@ -48,26 +53,56 @@ public class EchoOfficeMemory : MonoBehaviour
         volume.isGlobal = true; volume.priority = 1000f; volume.weight = 0f;
         profile = ScriptableObject.CreateInstance<VolumeProfile>();
         volume.sharedProfile = profile;
-        var color = profile.Add<ColorAdjustments>(true);
-        color.postExposure.value = settings.exposure;
-        color.colorFilter.value = settings.tint;
-        color.contrast.value = -18f; color.saturation.value = -22f;
-        var bloom = profile.Add<Bloom>(true);
-        bloom.intensity.value = .85f; bloom.threshold.value = .65f;
-        bloom.scatter.value = .75f; bloom.tint.value = new Color(.7f, .85f, 1f);
-        var blur = profile.Add<DepthOfField>(true);
-        blur.mode.value = DepthOfFieldMode.Gaussian;
-        blur.gaussianStart.value = 1.5f; blur.gaussianEnd.value = 11f;
-        blur.gaussianMaxRadius.value = 1.35f; blur.highQualitySampling.value = true;
-        var vignette = profile.Add<Vignette>(true);
-        vignette.color.value = new Color(.23f, .4f, .65f);
-        vignette.intensity.value = .22f; vignette.smoothness.value = .7f;
-        var lift = profile.Add<LiftGammaGain>(true);
-        lift.lift.value = new Vector4(.88f, .94f, 1f, .07f);
+        // No colour grading, bloom or blur: the Echo is only the glowing edge (see BuildGlow); the volume just drives its fade.
+        BuildGlow();
+    }
+
+    // URP's Vignette only darkens, so the glow is a screen overlay: clear centre, bright blue edges.
+    void BuildGlow()
+    {
+        var canvasGo = new GameObject("Echo glow vignette");
+        canvasGo.transform.SetParent(transform, false);
+        var canvas = canvasGo.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = -50;   // under the HUD and dialogue
+        // A rounded rectangle follows the screen edges at any aspect ratio. The
+        // broad, continuous falloff avoids a hard circular rim or solid side bars.
+        const int size = 256;
+        tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        { name = "Echo soft blue glow", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+        var pixels = new Color[size * size];
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float u = Mathf.Abs(2f * x / (size - 1) - 1f);
+                float v = Mathf.Abs(2f * y / (size - 1) - 1f);
+                float d = Mathf.Pow(u * u * u * u + v * v * v * v, .25f);
+                float halo = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.52f, 1.12f, d));
+                float rim = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.84f, 1.2f, d));
+                Color color = Color.Lerp(new Color(.06f, .24f, 1f), new Color(.22f, .64f, 1f), rim);
+                color.a = .36f * halo * halo + .12f * rim;
+                pixels[y * size + x] = color;
+            }
+        tex.SetPixels(pixels);
+        tex.Apply(false, true);
+        glow = new GameObject("Glow").AddComponent<UnityEngine.UI.RawImage>();
+        glow.transform.SetParent(canvasGo.transform, false);
+        glow.texture = tex; glow.raycastTarget = false;
+        var shader = Resources.Load<Shader>("EchoGlow");
+        if (shader != null)
+        {
+            glowMaterial = new Material(shader) { name = "Echo additive glow" };
+            glow.material = glowMaterial;
+        }
+        var rt = glow.rectTransform; rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        glow.color = new Color(1f, 1f, 1f, 0f);
+        glow.enabled = false;
     }
 
     public void SetEcho(bool on)
     {
+        if (on && !echo && Weight <= 0f) glowTime = 0f;
         echo = on;
         foreach (var pair in on ? memory : original)
             if (pair.Key != null) pair.Key.sharedMaterials = pair.Value;
@@ -78,16 +113,30 @@ public class EchoOfficeMemory : MonoBehaviour
         if (volume == null) return;
         volume.weight = Mathf.MoveTowards(volume.weight, echo ? 1f : 0f,
             Time.unscaledDeltaTime / Mathf.Max(.1f, settings.transitionSeconds));
+        if (glow != null)
+        {
+            // Start each visit gently; keep the phase continuous during an exit or
+            // a quick reversal so toggling realms cannot flash the border.
+            glowTime = Mathf.Repeat(glowTime + Time.unscaledDeltaTime, GlowPeriod);
+            float breath = .5f - .5f * Mathf.Cos(glowTime * (2f * Mathf.PI / GlowPeriod));
+            float pulse = Mathf.Lerp(.06f, .95f, Mathf.SmoothStep(0f, 1f, breath));
+            float fade = Mathf.SmoothStep(0f, 1f, volume.weight);
+            glow.color = new Color(1f, 1f, 1f, fade * pulse);
+            glow.enabled = volume.weight > 0f;
+        }
     }
 
     void OnDisable()
     {
         SetEcho(false);
         if (volume != null) volume.weight = 0f;
+        if (glow != null) glow.enabled = false;
     }
 
     void OnDestroy()
     {
+        if (tex != null) Destroy(tex);
+        if (glowMaterial != null) Destroy(glowMaterial);
         if (profile == null) return;
         foreach (var component in profile.components) if (component != null) Destroy(component);
         Destroy(profile);

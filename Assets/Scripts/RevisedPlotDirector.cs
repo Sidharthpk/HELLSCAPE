@@ -16,7 +16,6 @@ public class RevisedPlotDirector : MonoBehaviour
     GhostNPC vane, tomas;
     KesslerConfrontation confrontation;
     Transform player, office;
-    Light echoLight;
     EchoOfficeMemory officeMemory;
     OfficeRealmPuzzles puzzles;
     OfficeHorrorDirector horror;
@@ -25,8 +24,6 @@ public class RevisedPlotDirector : MonoBehaviour
     readonly List<Behaviour> locked = new List<Behaviour>();
     readonly List<Material> materials = new List<Material>();
     readonly List<AudioClip> clips = new List<AudioClip>();
-    Color fog;
-    float density;
     bool echoVisited, phoneSeen, introDone;
     int journalPage;
 
@@ -99,8 +96,6 @@ public class RevisedPlotDirector : MonoBehaviour
             Label(phone.transform, "05:00 / REPLAY", new Vector3(0f, .05f, -.505f), .02f);
             var use = phone.AddComponent<Interactable>(); use.once = false; use.prompt = "Replay Vane's call in the Echo";
             use.onUse.AddListener(() => { if (Echo && !phoneSeen) StartCoroutine(PhoneReplay()); else if (!Echo) Say("A phone that isn't really here. Press [V] to enter the Echo."); else Say(EvidenceJournal.Account(EvidenceJournal.Phone)); });
-            var lamp = new GameObject("Echo light"); lamp.transform.SetParent(transform); lamp.transform.position = phoneAt + Vector3.up * 2f;
-            echoLight = lamp.AddComponent<Light>(); echoLight.color = new Color(.64f, .8f, 1f); echoLight.range = 45f; echoLight.intensity = 3f; echoLight.enabled = false;
             if (tomas != null)
             {
                 hallwayFigure = Visual(tomas.body != null ? tomas.body : tomas.transform, "Tomas at the end of the Echo", at + new Vector3(0f, 0f, 5f));
@@ -220,6 +215,7 @@ public class RevisedPlotDirector : MonoBehaviour
         if (ending != null && ending.markedSkin != null && player != null)
             foreach (var r in player.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 if (r.name.IndexOf("arm", StringComparison.OrdinalIgnoreCase) >= 0) r.material.mainTexture = ending.markedSkin;
+        if (!SleepSequence.FromStory) yield break;   // a debug jump (Start In Office, Play > ...): don't spoil his cutscene
         yield return WaitForDialogue();
         if (player == null) yield break;
         GameObject guide = tomas != null ? Visual(tomas.body != null ? tomas.body : tomas.transform, "Tomas finds the marked driver", player.position + player.forward * 3f - Vector3.up) : null;
@@ -325,9 +321,6 @@ public class RevisedPlotDirector : MonoBehaviour
         if (officeMemory != null) officeMemory.SetEcho(on);
         if (puzzles != null) puzzles.SetEcho(on);
         if (horror != null) horror.OnEcho(on);
-        if (on) { fog = RenderSettings.fogColor; density = RenderSettings.fogDensity; RenderSettings.fogColor = new Color(.48f, .55f, .62f); RenderSettings.fogDensity = .007f; }
-        else { RenderSettings.fogColor = fog; RenderSettings.fogDensity = density; }
-        if (echoLight != null) echoLight.enabled = on;
         foreach (var g in ghosts ?? new GhostNPC[0])
             if (g != null && g != vane)
             {
@@ -430,8 +423,9 @@ public class RevisedPlotDirector : MonoBehaviour
     // Script 8.5, after the end card: a black screen and a telephone call, nothing to see. The second voice's name plate
     // is whatever its CSV row says (UNKNOWN), so it cannot read DEREK before Kessler has said the name (CallReveal).
     // [Enter] skips the rest once the name is out. Timings are on EndingSequence, in the Inspector.
-    // HS-rows: 642-650
-    public const int CallFirst = 642, CallReveal = 648, CallLast = 650;
+    // HS-rows: 642-650,652
+    public static readonly int[] CallRows = { 642, 643, 644, 645, 646, 647, 648, 649, 650, 652 };   // (652: Derek's "What?" came last)
+    public const int CallReveal = 648;
     public const string CallVoice = "Ending/Post-credits voice ";   // + the row number: a recording replaces the mumble
     bool callPlayed;
 
@@ -473,8 +467,9 @@ public class RevisedPlotDirector : MonoBehaviour
         phone.clip = Sounds.Clip("Ending/Phone line", null); phone.volume = Sounds.Volume("Ending/Phone line"); phone.loop = true;
         if (phone.clip != null) phone.Play();
 
-        for (int id = CallFirst; id <= CallLast && !skip; id++)
+        foreach (int id in CallRows)
         {
+            if (skip) break;
             yield return Hold(id == CallReveal ? revealPause : linePause);
             if (skip) break;
             Step("line " + id);

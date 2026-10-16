@@ -9,6 +9,12 @@ public class ObjectiveUI : MonoBehaviour
     public static bool OverCutscene;   // a cutscene that shows where to go: the objective comes up over it
 
     static ObjectiveUI ui;
+    public static float TopInset(Canvas target)
+    {
+        if (ui == null || ui.all == null || ui.all.alpha <= .01f || ui.strip == null || target == null) return 0f;
+        var source = ui.GetComponent<Canvas>();
+        return ((RectTransform)ui.strip.transform).rect.height * source.scaleFactor / Mathf.Max(.01f, target.rootCanvas.scaleFactor);
+    }
     CanvasGroup all, strip;
     TextMeshProUGUI stripText, eyebrow;
     DialoguePanelGraphic panel;
@@ -35,6 +41,8 @@ public class ObjectiveUI : MonoBehaviour
 
     void Update()
     {
+        // Dock before checking dialogue, so combat chatter does not restart a centre announcement.
+        if (BossHUDLayout.AnyVisible) elapsed = Mathf.Max(elapsed, Hold + Lift);
         bool talking = elapsed < Hold + Lift && DialogueBox.Instance != null && DialogueBox.Instance.Busy;
         bool show = Current != "" && !talking && (!CutsceneHUD.Hidden || OverCutscene) &&!TitleScreen.Showing && !GameOverScreen.Open && !EndingSequence.Playing;
         all.alpha = show && elapsed >= 0f ? 1f : 0f;
@@ -135,7 +143,7 @@ public class StoryObjectives : MonoBehaviour
         {
             case "Hell city": return "Go to the depot - Kessler & Vane";
             case "Office entrance":
-                if (Inventory.Has("SiloKey")) return "RUN - the silo door";
+                if (Inventory.Has("SiloKey") || vane != null && vane.Turned) return "Head to the silo";
                 if (vane != null && vane.Armed) return "Confront Vane";
                 int stage = office != null ? office.Stage : 0;
                 return stage < 3 ? "Find the three fuses" : stage == 3 ? "Find the code for Vane's door" : "Play the security tape";

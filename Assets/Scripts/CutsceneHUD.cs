@@ -33,6 +33,8 @@ public static class CutsceneHUD
 
     public static void Hide(bool hide)
     {
+        // A delayed cleanup from an earlier beat must not restore HUD over the judgement.
+        if (!hide && EndingSequence.Playing) return;
         if (hide == Hidden) return;
         Hidden = hide;
         if (hide)

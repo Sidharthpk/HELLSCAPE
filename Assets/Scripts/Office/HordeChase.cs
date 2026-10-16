@@ -27,8 +27,10 @@ public class HordeChase : MonoBehaviour
     public float spawnInterval = 0.45f;      // one pack every this many seconds
     public Vector2Int packSize = new Vector2Int(6, 12);
     public Vector2 runSpeed = new Vector2(0.7f, 1.4f);  // m/s: walkers, a lurching shamble (the van is never outrun by them)
-    public Vector2 crawlSpeed = new Vector2(0.45f, 0.9f);
-    [Range(0f, 1f)] public float crawlerChance = 0.3f;
+    [UnityEngine.Serialization.FormerlySerializedAs("crawlSpeed")] public Vector2 sneakSpeed = new Vector2(0.45f, 0.9f);
+    [UnityEngine.Serialization.FormerlySerializedAs("crawlerChance"), Range(0f, 1f)] public float sneakChance = 0.3f;
+    public float runDistance = 8f;
+    public Vector2 nearbyRunSpeed = new Vector2(2.6f, 4.2f);
     public float noticeDistance = 30f;       // further than this they sway on the spot; closer, they lurch at you
     public float chaseFog = 0.012f;          // fog density while the chase runs (the city's own is too thick to drive in)
     public bool playIntro = false;           // the horde's own cutscene (off: Kessler bursting out of the office opens the escape)
@@ -80,9 +82,9 @@ public class HordeChase : MonoBehaviour
         public Zombie z;
         public Transform t;
         public Animator anim;
-        public float speed, side, groundY, nextGround, attackAt;
+        public float speed, sprintSpeed, side, groundY, nextGround, attackAt;
         public int seg;
-        public bool clinging, held, crawler;
+        public bool clinging, held, sneaking, running;
         public Vector3 clingLocal;
         public Vector3 holdAt;
     }
@@ -254,21 +256,18 @@ public class HordeChase : MonoBehaviour
             z = g.GetComponent<Zombie>(),
             t = g.transform,
             anim = g.GetComponentInChildren<Animator>(),
-            crawler = Random.value < crawlerChance,
+            sneaking = Random.value < sneakChance,
+            sprintSpeed = Random.Range(nearbyRunSpeed.x, nearbyRunSpeed.y),
             side = Random.Range(-roadSpread, roadSpread),
             seg = Mathf.Clamp(seg, 0, road.Length - 1),
             groundY = at.y,
             nextGround = Time.time + Random.value * 0.3f,
         };
-        r.speed = (r.crawler ? Random.Range(crawlSpeed.x, crawlSpeed.y) : Random.Range(runSpeed.x, runSpeed.y)) * speedScale;
-        if (r.crawler && r.z.mainCollider is CapsuleCollider low)
-        {
-            low.direction = 2; low.height = 1.7f; low.center = new Vector3(0f, 0.3f, 0.1f); low.radius = 0.3f;   // low to the ground
-        }
+        r.speed = (r.sneaking ? Random.Range(sneakSpeed.x, sneakSpeed.y) : Random.Range(runSpeed.x, runSpeed.y)) * speedScale;
         if (r.anim != null)
         {
             r.anim.applyRootMotion = false;
-            r.anim.Play(r.crawler ? "Crawl" : "Upright", 0, Random.value);
+            r.anim.Play(r.sneaking ? "Sneak" : "Upright", 0, Random.value);
             r.anim.SetFloat("Speed", 0f);
         }
         runners.Add(r);
@@ -356,7 +355,7 @@ public class HordeChase : MonoBehaviour
             if (r.held) { Hold(r); continue; }
 
             // grab on
-            if (!intro && !onFoot && dist < grabDistance && clingers < maxClingers && carSpeed < 4f && !r.crawler)
+            if (!intro && !onFoot && dist < grabDistance && clingers < maxClingers && carSpeed < 4f)
             {
                 Hook(r); clingers++; continue;
             }
@@ -376,7 +375,7 @@ public class HordeChase : MonoBehaviour
             }
 
             // too far to notice you: swaying where they stand
-            if (dist > noticeDistance && !stopped) { Pose(r, r.crawler ? "Crawl" : "Upright", 0f); continue; }
+            if (dist > noticeDistance && !stopped) { Pose(r, r.sneaking ? "Sneak" : "Upright", 0f); continue; }
 
             // where to go: the road's points up to where the car is, then straight at it
             Vector3 goal;
@@ -395,7 +394,8 @@ public class HordeChase : MonoBehaviour
             }
 
             Vector3 step = Flat(goal - r.t.position);
-            float spd = r.speed;
+            r.running = dist <= (r.running ? runDistance + 2f : runDistance);
+            float spd = r.running ? r.sprintSpeed : r.speed;
             if (step.magnitude < 0.6f) spd = 0f;
             Vector3 move = step.normalized * spd * Time.deltaTime;
             if (move.sqrMagnitude > step.sqrMagnitude) move = step;
@@ -404,7 +404,7 @@ public class HordeChase : MonoBehaviour
             p.y = Mathf.Lerp(p.y, r.groundY, 12f * Time.deltaTime);
             r.t.position = p;
             if (step.sqrMagnitude > 0.01f) Face(r.t, step, 4f);
-            Pose(r, r.crawler ? "Crawl" : "Upright", spd);
+            Pose(r, r.sneaking || r.running ? "Sneak" : "Upright", spd);
         }
 
         if (!intro)
@@ -504,13 +504,13 @@ public class HordeChase : MonoBehaviour
     {
         if (r.anim == null) return;
         var info = r.anim.GetCurrentAnimatorStateInfo(0);
-        if (!info.IsName(state) && !r.anim.IsInTransition(0)) r.anim.CrossFadeInFixedTime(state, 0.2f);
+        if (!info.IsName(state) && !r.anim.IsInTransition(0)) ZombieAI.FadeTo(r.anim, state, 0.2f, state == "Attack" ? 0f : Random.value);
         else if (state == "Attack" && info.normalizedTime > 0.95f) r.anim.Play("Attack", 0, 0f);   // keep clawing
-        if (state == "Upright" || state == "Crawl")
+        if (state == "Upright" || state == "Sneak")
         {
-            float clip = state == "Crawl" ? 0.52f : 0.41f;   // metres the feet cover per second at 1x
+            float clip = r.running ? 3.67f : 0.7f;
             r.anim.SetFloat("Speed", speed < 0.05f ? 0f : clip);
-            r.anim.speed = speed < 0.05f ? 1f : Mathf.Clamp(speed / clip, 0.8f, 2.6f);
+            r.anim.speed = speed < 0.05f ? 1f : Mathf.Clamp(speed / clip, 0.25f, 1.5f);
         }
         else r.anim.speed = 1.2f;
     }

@@ -9,6 +9,8 @@ using UnityEngine.AI;
 public class CityWalkers : MonoBehaviour
 {
     public GameObject zombiePrefab;          // PrimeZombie
+    public GameObject lostModel;             // Female Dynamic Pose: the Lost
+    public RuntimeAnimatorController floatController;   // holds her floating pose
     public Material ghost;                   // the Lost Soul's blue Unlit material
     public Transform player;
     public int damned = 12;
@@ -17,11 +19,8 @@ public class CityWalkers : MonoBehaviour
     public float maxDistance = 110f;
     public float calmFor = 40f;              // the Damned ignore you for this long after the city wakes
 
-    public static readonly List<Transform> Walkers = new List<Transform>();
-
     void Start()
     {
-        Walkers.Clear();
         if (zombiePrefab == null) return;
         if (player == null) { var p = GameObject.FindGameObjectWithTag("Player"); if (p != null) player = p.transform; }
         if (player == null) return;
@@ -39,16 +38,15 @@ public class CityWalkers : MonoBehaviour
         {
             bool isLost = i >= damned;
             if (!Point(isLost ? minDistance * .6f : minDistance * 1.6f, out var at)) continue;
-            var go = Instantiate(zombiePrefab, at, Quaternion.Euler(0f, Random.value * 360f, 0f), transform);
-            go.name = isLost ? "Lost (walking)" : "Damned (walking)";
-            go.SetActive(true);
-            Walkers.Add(go.transform);
-            if (isLost) MakeLost(go);
+            if (isLost) { if (lostModel != null) SpawnLost(at); }
             else
             {
+                var go = Instantiate(zombiePrefab, at, Quaternion.Euler(0f, Random.value * 360f, 0f), transform);
+                go.name = "Damned (walking)";
+                go.SetActive(true);
                 var ai = go.GetComponent<ZombieAI>();
                 if (ai == null) continue;
-                ai.crawlerChance = 0f; ai.feederChance = 0f; ai.dormantChance = 0f;
+                ai.dormantChance = 0f;
                 ai.walkSpeedRange = new Vector2(.45f, .7f);
                 ai.wanderRadius = 55f;
                 ai.sightRange = 0f; ai.hearRange = 0f;
@@ -72,68 +70,23 @@ public class CityWalkers : MonoBehaviour
         return false;
     }
 
-    void MakeLost(GameObject go)
+    // the Lost: the female floating pose in the ghost blue, drifting over the street (LostSoul drifts and flickers her)
+    void SpawnLost(Vector3 at)
     {
+        var go = Instantiate(lostModel, at + Vector3.up * Random.Range(3.5f, 11f), Quaternion.Euler(0f, Random.value * 360f, 0f), transform);
+        go.name = "Lost (floating)";
         foreach (var c in go.GetComponentsInChildren<Collider>(true)) Destroy(c);
-        var ai = go.GetComponent<ZombieAI>(); if (ai != null) DestroyImmediate(ai);
-        var z = go.GetComponent<Zombie>(); if (z != null) DestroyImmediate(z);
-        foreach (var s in go.GetComponentsInChildren<AudioSource>(true)) Destroy(s);
-        if (ghost != null)
-            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
-            {
-                var mats = r.sharedMaterials;
-                for (int k = 0; k < mats.Length; k++) mats[k] = ghost;
-                r.sharedMaterials = mats;
-            }
-        go.AddComponent<LostWalker>();
-    }
-}
-
-// A Lost soul on its feet: shambles between random points of the street, never looks at you, flickers a little.
-public class LostWalker : MonoBehaviour
-{
-    NavMeshAgent agent;
-    Animator anim;
-    Renderer[] rends;
-    MaterialPropertyBlock block;
-    float pause, seed;
-    const float ClipSpeed = 0.41f;   // the Damned walk clip: m/s its feet cover at 1x (same as ZombieAI.walkClipSpeed)
-
-    void Start()
-    {
-        agent = GetComponent<NavMeshAgent>();
-        anim = GetComponentInChildren<Animator>();
-        rends = GetComponentsInChildren<Renderer>();
-        seed = Random.value * 50f;
-        pause = Random.Range(0f, 3f);
-        if (agent != null) { agent.speed = Random.Range(.4f, .65f); agent.angularSpeed = 120f; agent.acceleration = 3f; }
-        if (anim != null) anim.CrossFadeInFixedTime("Upright", 0f, 0, Random.value);
-    }
-
-    void Update()
-    {
-        if (agent == null || !agent.isOnNavMesh) return;
-        if (!agent.pathPending && (!agent.hasPath || agent.remainingDistance <= agent.stoppingDistance + .3f))
+        foreach (var r in go.GetComponentsInChildren<Renderer>(true))
         {
-            pause -= Time.deltaTime;
-            if (pause <= 0f)
-            {
-                pause = Random.Range(1f, 5f);
-                Vector2 r = Random.insideUnitCircle * 45f;
-                if (NavMesh.SamplePosition(transform.position + new Vector3(r.x, 0f, r.y), out var hit, 4f, NavMesh.AllAreas)) agent.SetDestination(hit.position);
-            }
+            if (ghost != null) { var mats = r.sharedMaterials; for (int k = 0; k < mats.Length; k++) mats[k] = ghost; r.sharedMaterials = mats; }
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
-        if (anim != null) anim.speed = Mathf.Max(.25f, agent.velocity.magnitude / ClipSpeed);
-
-        if (block == null) block = new MaterialPropertyBlock();
-        float a = Mathf.Lerp(.18f, .5f, Mathf.PerlinNoise(seed, Time.time * 1.2f));
-        foreach (var r in rends)
-        {
-            if (r == null) continue;
-            r.GetPropertyBlock(block);
-            var c = r.sharedMaterial.GetColor("_BaseColor"); c.a = a;
-            block.SetColor("_BaseColor", c);
-            r.SetPropertyBlock(block);
-        }
+        var anim = go.GetComponentInChildren<Animator>();
+        if (anim == null) anim = go.AddComponent<Animator>();
+        anim.runtimeAnimatorController = floatController;
+        anim.applyRootMotion = false;
+        var soul = go.AddComponent<LostSoul>();
+        soul.driftRadius = Random.Range(4f, 9f);
+        soul.driftSpeed = Random.Range(.4f, .8f);
     }
 }

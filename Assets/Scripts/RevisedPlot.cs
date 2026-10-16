@@ -44,7 +44,8 @@ public static class RevisedPlot
     public static string Migrate(string value)
     {
         if (string.IsNullOrEmpty(value)) return value;
-        return value.Replace("Kessler & Vane", "{COMPANY}")
+        return value
+            .Replace("Kessler & Vane", "{COMPANY}")
             .Replace("KESSLER & VANE", "{COMPANY_UPPER}")
             .Replace("Arthur Kessler", "Vane").Replace("Kessler", "Vane").Replace("KESSLER", "VANE")
             .Replace("{COMPANY}", "Kessler & Vane").Replace("{COMPANY_UPPER}", "KESSLER & VANE");
@@ -273,7 +274,7 @@ public static class RevisedPlot
             case "Derek's phone": n.title = "3 missed calls from Vane"; n.subtitle = "Vane"; n.afterLine = "Three missed calls from Vane. All before three in the morning."; break;
             case "IncidentReport":
                 n.title = "SHIFT WITNESS STATEMENT";
-                n.body = "13 APRIL - SILO 2\n\nOfficial cause: accidental fall while unsupervised.\n\nSignatures affirm witness to this account, not attendance.";
+                n.body = "13 APRIL - SILO 2\nT. ROURKE\n\nOFFICIAL ACCOUNT\nAccidental fall while unsupervised.\n\nSigning confirms that I witnessed this account.\nThis is not an attendance sheet.";
                 n.footer = "Signed: Maya / Sam / Derek / [your signature]\nFiled by Vane.";
                 n.afterLine = HS.S("307-308");
                 break;
@@ -285,11 +286,17 @@ public static class RevisedPlot
                 n.afterLine = HS.S("309-311");
                 break;
             case "CleaningRota": n.scrawl = "DID NOT FINISH"; n.afterLine = HS.S("312-313"); break;   // (the times stay out of order: putting them in order is the puzzle)
-            case "Calendar": n.afterLine = HS.S("279-281"); break;
+            case "Calendar":
+                n.dayNote = "Tomas accident";
+                n.scrawl = "";
+                n.beforeLine = HS.S("279");
+                n.afterLine = HS.S("281");
+                break;
             case "StickyNote": n.body = "THE DAY.\n\nDAY FIRST,\nMONTH SECOND.\n\nDO NOT WRITE DOWN\nTHE CODE."; n.footer = "- K."; n.afterLine = ""; break;
             case "YourDesk_Note":
                 n.beforeLine = HS.S("275-276");
-                n.body = "AFTER THE FALL\n\nYou'll look for keys first.\nYou always did.\nI've got them.\n\nSILO 2.\nCome find the last name\non the paper.\n- Elias";
+                n.body = "YOUR KEYS.\nSILO 2.\n\nBRING THE STATEMENT.\nREAD THE LAST NAME.";
+                n.footer = "- ELIAS";
                 n.afterLine = HS.S("277-278");
                 break;
         }

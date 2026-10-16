@@ -49,12 +49,13 @@ public class SleepSequence : MonoBehaviour
     [TextArea] public string fallWakeLine = "...I should be dead.|Where... is this?|Why is the sky RED?";
 
     public static bool WakeInHell;       // set by the prologue before it loads this scene
+    public static bool FromStory;        // came here through the title/prologue, not a debug jump (which skips Tomas's opening)
     public static Vector3? FallSpot;     // where you hit the ground, in the street anchor's space
     public static Vector3 FallFacing;    // which way to face when you get up (same space)
     public static bool Waking { get; private set; }   // out cold (and in the death vision): CityWalkers waits for it
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatic() => Waking = false;
+    static void ResetStatic() { Waking = false; FromStory = false; }
 
     void Start()
     {

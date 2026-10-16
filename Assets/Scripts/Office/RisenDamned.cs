@@ -11,6 +11,9 @@ public class RisenDamned : MonoBehaviour
     public Transform player;
     public float crawlOutTime = 2.2f;
     public float speed = 2.2f;
+    public float sneakSpeed = 0.6f;
+    public float runDistance = 8f;
+    bool running;
     public float attackRange = 1.6f;
     public float attackCooldown = 1.6f;
     public int attackDamage = 12;
@@ -97,6 +100,7 @@ public class RisenDamned : MonoBehaviour
             if (attackTimer <= 0f)
             {
                 attackTimer = attackCooldown;
+                anim.speed = 1f;
                 anim.SetTrigger("Attack");
                 state = null;
                 StartCoroutine(HitSoon());
@@ -104,12 +108,16 @@ public class RisenDamned : MonoBehaviour
             return;
         }
 
-        Go("Upright", 0.3f);
+        running = flat.magnitude <= (running ? runDistance + 2f : runDistance);
+        Go("Sneak", 0.3f);
+        float moveSpeed = running ? speed : sneakSpeed;
         Vector3 dir = flat.normalized;
-        z.position += dir * speed * Time.deltaTime;
+        z.position += dir * moveSpeed * Time.deltaTime;
         z.rotation = Quaternion.Slerp(z.rotation, Quaternion.LookRotation(dir), 8f * Time.deltaTime);
         Ground(z);
-        anim.SetFloat("Speed", speed, 0.15f, Time.deltaTime);
+        float clipSpeed = running ? 3.67f : 0.7f;
+        anim.SetFloat("Speed", clipSpeed, 0.15f, Time.deltaTime);
+        anim.speed = Mathf.Clamp(moveSpeed / clipSpeed, 0.25f, 1.5f);
     }
 
     // up (or down) the steps: the nearest surface under it within a stride; never the shaft floor far below

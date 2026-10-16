@@ -44,7 +44,7 @@ public static class PostCreditsTest
 
         var want = new List<string> { "ring", "pick up" };
         var problems = new List<string>();
-        for (int id = RevisedPlotDirector.CallFirst; id <= RevisedPlotDirector.CallLast; id++)
+        foreach (int id in RevisedPlotDirector.CallRows)
         {
             var row = HS.Rows[id];
             bool named = id > RevisedPlotDirector.CallReveal;   // his name is only on the plate after Kessler has said it

@@ -61,7 +61,7 @@ public static class PeopleSwap
         var lost = main.GetRootGameObjects().First(g => g.name == "HellWorld").transform.Find("LostSouls (City)");
         var souls = Shuffle(all);   // the dead of the whole city: uniforms too
         int i = 0;
-        foreach (Transform soul in lost)
+        if (lost != null) foreach (Transform soul in lost)   // gone since 10-15: the city's Lost are CityWalkers' floating women
         {
             var old = soul.GetComponentInChildren<Animator>(true);
             if (old == null) continue;
@@ -204,6 +204,151 @@ public static class PeopleSwap
         EditorUtility.SetDirty(ac);
         AssetDatabase.SaveAssets();
         return $"Elias's own stab: clip {clip.length:0.00} s on PrologueKiller.controller as StabOver (avatar hips = {hips}).";
+    }
+
+    // Derek was the "prep guy" baked into both two-person stab FBXs: the victim in machete stab.fbx (its second
+    // skeleton, bones *_2) on the prologue's bedroom floor, and the killer in kitchenknife multistab.fbx (its first
+    // skeleton) on the CCTV tape in the silo. He is the pack's Character_20_Police now: his half of each clip is taken
+    // as a Humanoid clip (a copy of the FBX whose avatar maps his skeleton) and played on the police model, stood on
+    // the rig's origin; the rig's prep-guy meshes are hidden. MainGameScene open; the Prologue is opened alongside.
+    const string DerekDir = "Assets/Materials/Derek";
+    const string KnifeFbx = "Assets/New Folder/tommy-jarvis-multiple-stab-animation/source/kitchenknife multistab.fbx";
+
+    [MenuItem("HellScape/People: Derek is Character_20_Police")]
+    public static void DerekMenu() => Debug.Log(DerekSwap());
+
+    public static string DerekSwap()
+    {
+        if (EditorApplication.isPlaying) return "Stop Play mode first.";
+        string police = AssetDatabase.FindAssets("Character_20_Police t:Model", new[] { Pack }).Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault(p => p.EndsWith("/Male/Character_20_Police.fbx"));
+        if (police == null) return "No Male/Character_20_Police.fbx in the pack.";
+        var pavatar = AssetDatabase.LoadAllAssetsAtPath(police).OfType<Avatar>().FirstOrDefault();
+        if (pavatar == null || !pavatar.isHuman) return "Character_20_Police is not Humanoid.";
+        if (!AssetDatabase.IsValidFolder(DerekDir)) AssetDatabase.CreateFolder("Assets/Materials", "Derek");
+
+        var dies = DerekController(StabFbx, "Derek Stabbed", "_2", out string err);   // the prologue: the second skeleton
+        if (dies == null) return err;
+        var kills = DerekController(KnifeFbx, "Derek Kills Tomas", "", out err);       // the tape: the first skeleton
+        if (kills == null) return err;
+
+        var main = SceneManager.GetSceneByName("MainGameScene");
+        if (!main.isLoaded) return "Open MainGameScene first.";
+        var pro = SceneManager.GetSceneByName("Prologue");
+        bool opened = false;
+        if (!pro.isLoaded) { pro = EditorSceneManager.OpenScene("Assets/Scenes/Prologue.unity", OpenSceneMode.Additive); opened = true; }
+        var log = new List<string>();
+
+        // the prologue: PrologueDirector drives derekRig itself (frame 0 behind the door, then the stab): his model
+        // takes that job, the old rig goes (its killer half has been Elias's own StabOver for a while)
+        var d = pro.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<PrologueDirector>(true)).FirstOrDefault();
+        if (d != null && d.derekRig != null && d.derekRig.avatar != pavatar)
+        {
+            var rig = d.derekRig.gameObject;
+            var anim = Police(police, pavatar, rig.transform.parent, rig.transform.localPosition, rig.transform.localRotation, dies);
+            Undo.RecordObject(d, "Derek");
+            d.derekRig = anim;
+            d.killerInRig = new GameObject[0];
+            EditorUtility.SetDirty(d);
+            Undo.DestroyObjectImmediate(rig);
+            EditorSceneManager.MarkSceneDirty(pro);
+            EditorSceneManager.SaveScene(pro);
+            log.Add("prologue swapped");
+        }
+        else log.Add("prologue: " + (d == null ? "no PrologueDirector" : "already him"));
+
+        // the tape: a child of the rig, so StabCutscene's actors.SetActive shows and hides him; enabling restarts his
+        // Animator on its one state in the same frame the rig's own clip is played from 0
+        var tape = main.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<StabCutscene>(true)).FirstOrDefault(s => s.name == "Cutscene - Derek kills Tomas");
+        if (tape != null && tape.actors != null && !tape.actors.GetComponentsInChildren<Animator>(true).Any(a => a.avatar == pavatar))
+        {
+            foreach (var r in tape.actors.GetComponentsInChildren<Renderer>(true).Where(r => r.name.Contains("Counselor")))
+            { Undo.RecordObject(r.gameObject, "Derek"); r.gameObject.SetActive(false); }
+            Police(police, pavatar, tape.actors.transform, Vector3.zero, Quaternion.identity, kills);
+            EditorSceneManager.MarkSceneDirty(main);
+            EditorSceneManager.SaveScene(main);
+            log.Add("CCTV tape swapped");
+        }
+        else log.Add("CCTV tape: " + (tape == null ? "not found" : "already him"));
+
+        DerekAnimationRepair.ConfigureTapeProp();
+
+        if (opened) EditorSceneManager.CloseScene(pro, true);
+        return "Derek is Character_20_Police. " + string.Join("; ", log);
+    }
+
+    // the police model on the rig's origin, a man's height, playing ctrl's one state
+    static Animator Police(string path, Avatar avatar, Transform parent, Vector3 localPos, Quaternion localRot, RuntimeAnimatorController ctrl)
+    {
+        var g = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(path), parent.gameObject.scene);
+        g.name = "Derek (Character_20_Police)";
+        var rs = g.GetComponentsInChildren<Renderer>(true);   // measured before parenting: an inactive parent has no bounds
+        Bounds b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
+        float raw = b.size.y;
+        g.transform.SetParent(parent, false);
+        g.transform.localPosition = localPos;
+        g.transform.localRotation = localRot;
+        g.transform.localScale = Vector3.one * (1.78f / Mathf.Max(0.01f, raw) / Mathf.Max(0.0001f, parent.lossyScale.y));
+        var anim = g.GetComponent<Animator>();
+        if (anim == null) anim = g.AddComponent<Animator>();
+        anim.avatar = avatar;
+        anim.runtimeAnimatorController = ctrl;
+        anim.applyRootMotion = false;
+        anim.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+        foreach (var smr in g.GetComponentsInChildren<SkinnedMeshRenderer>(true)) smr.updateWhenOffscreen = true;
+        Undo.RegisterCreatedObjectUndo(g, "Derek");
+        return anim;
+    }
+
+    // Derek's half of a two-person FBX as a Humanoid clip on a controller with one state, "Stab"
+    static RuntimeAnimatorController DerekController(string src, string name, string suffix, out string err)
+    {
+        err = null;
+        string copy = DerekDir + "/" + name + ".fbx";
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(copy) == null && !AssetDatabase.CopyAsset(src, copy)) { err = "Could not copy " + src; return null; }
+        var mi = (ModelImporter)AssetImporter.GetAtPath(copy);
+        mi.animationType = ModelImporterAnimationType.Human;
+        mi.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+        mi.materialImportMode = ModelImporterMaterialImportMode.None;
+        mi.importCameras = false;
+        mi.importLights = false;
+        var clips = mi.defaultClipAnimations;
+        foreach (var c in clips)
+        {
+            c.name = name;
+            c.loopTime = false;
+            c.lockRootRotation = c.lockRootHeightY = c.lockRootPositionXZ = true;
+            c.keepOriginalOrientation = c.keepOriginalPositionY = c.keepOriginalPositionXZ = true;
+        }
+        mi.clipAnimations = clips;
+        mi.SaveAndReimport();
+        // the automatic mapping takes the first skeleton (and the joint above both as the hips): his pelvis is the
+        // hips, and for the second skeleton every bone points at its name + suffix instead
+        {
+            var desc = mi.humanDescription;
+            var names = new HashSet<string>(desc.skeleton.Select(s => s.name));
+            var bones = desc.human;
+            bool changed = false;
+            for (int i = 0; i < bones.Length; i++)
+            {
+                if (bones[i].humanName == "Hips" && bones[i].boneName != "pelvis" + suffix) { bones[i].boneName = "pelvis" + suffix; changed = true; }
+                else if (suffix != "" && !bones[i].boneName.EndsWith(suffix) && names.Contains(bones[i].boneName + suffix)) { bones[i].boneName += suffix; changed = true; }
+            }
+            if (changed) { desc.human = bones; mi.humanDescription = desc; mi.SaveAndReimport(); }
+        }
+        DerekAnimationRepair.ConfigureReferencePose(mi, suffix);
+        mi.SaveAndReimport();
+        var avatar = AssetDatabase.LoadAllAssetsAtPath(copy).OfType<Avatar>().FirstOrDefault();
+        var clip = AssetDatabase.LoadAllAssetsAtPath(copy).OfType<AnimationClip>().FirstOrDefault(c => c.name == name);
+        if (avatar == null || !avatar.isValid || !avatar.isHuman || clip == null) { err = name + " did not import as a Humanoid clip."; return null; }
+        string hips = avatar.humanDescription.human.FirstOrDefault(h => h.humanName == "Hips").boneName;
+        if (hips != "pelvis" + suffix) { err = name + ": the avatar mapped the wrong man (hips = " + hips + ")."; return null; }
+
+        string ctrlPath = DerekDir + "/" + name + ".controller";
+        AssetDatabase.DeleteAsset(ctrlPath);
+        var ac = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
+        ac.layers[0].stateMachine.AddState("Stab").motion = clip;
+        AssetDatabase.SaveAssets();
+        return ac;
     }
 
     // replace the model under root (the child holding the Animator) with the pack model at modelPath

@@ -818,7 +818,7 @@ public class PrologueDirector : MonoBehaviour
         if (wind != null) wind.Stop();
         if (playerBody == null) Sounds.OneShot(sfx, "Prologue/Impact (hitting the street)", ProceduralAudio.Thud(), 1f);
         yield return new WaitForSeconds(playerBody != null ? 2f : 3f);
-        SleepSequence.WakeInHell = true;
+        SleepSequence.WakeInHell = SleepSequence.FromStory = true;
         if (streetAnchor != null)
         {
             Vector3 landed = new Vector3(over.x, groundY, over.z) + outward * fallDrift;

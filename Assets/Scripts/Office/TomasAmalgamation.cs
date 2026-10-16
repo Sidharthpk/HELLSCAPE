@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 
-// Tomas walks out of the office with Vane and Maya crawling after him, then drags them up into a floating pose and
+// Tomas walks out of the office dragging Vane and Maya in suspended floating poses, then
 // they flash red as they are fused into him. Visual-only clones: no copied AI, health or triggers.
 public class TomasAmalgamation : MonoBehaviour
 {
@@ -11,10 +11,12 @@ public class TomasAmalgamation : MonoBehaviour
     public bool Absorbing { get; private set; }
     public bool Formed { get; private set; }
     GameObject tomas, vane, maya, remains, tomasBody;
-    RuntimeAnimatorController crawlCtrl, floatCtrl;
+    RuntimeAnimatorController floatCtrl;
+    public float draggedHeight = 1.1f;
     readonly List<Material> solids = new List<Material>();
     readonly List<Transform> corpses = new List<Transform>();
     readonly List<Vector3> starts = new List<Vector3>();
+    readonly List<Vector3> bodyScales = new List<Vector3>();
     readonly List<LineRenderer> sinews = new List<LineRenderer>();
     readonly List<Light> lights = new List<Light>();
     readonly List<Renderer[]> skins = new List<Renderer[]>();
@@ -32,7 +34,6 @@ public class TomasAmalgamation : MonoBehaviour
         tomas = Template(guide != null && guide.animator != null ? guide.animator.gameObject : null, "Tomas - fusion source");
         vane = Template(boss.damnedForm, "Vane - ruined Damned shell");
         maya = Template(risen != null && risen.damned != null ? risen.damned.gameObject : null, "Maya - ruined Damned shell");
-        crawlCtrl = risen != null && risen.anim != null ? risen.anim.runtimeAnimatorController : null;
         floatCtrl = Resources.Load<RuntimeAnimatorController>("OfficeHorror/DamnedFloat");   // HellScape > Build Damned Float Pose
         tissue = new Material(Shader.Find("Universal Render Pipeline/Lit"));
         tissue.color = new Color(.29f, .025f, .035f); tissue.SetFloat("_Smoothness", .8f);
@@ -92,7 +93,7 @@ public class TomasAmalgamation : MonoBehaviour
         if (a != null) a.SetFloat("Speed", speed);
     }
 
-    // Vane and Maya crawling in his wake
+    // Vane and Maya are already suspended as they leave the office.
     public void Stage(Vector3 position, Quaternion rotation)
     {
         ClearRemains(); centre = position; facing = rotation;
@@ -102,11 +103,14 @@ public class TomasAmalgamation : MonoBehaviour
         for (int i = 0; i < sources.Length; i++)
         {
             if (sources[i] == null) continue;
-            var corpse = Live(sources[i], position, rotation, remains.transform);
-            corpse.name = i == 0 ? "Vane crawling" : "Maya crawling";
+            Vector3 at = position - rotation * Vector3.forward * (2.4f + i * .5f)
+                + rotation * Vector3.right * (i == 0 ? -.9f : .9f) + Vector3.up * draggedHeight;
+            var corpse = Live(sources[i], at, rotation * Quaternion.Euler(-12f, 0f, i == 0 ? -8f : 8f), remains.transform);
+            corpse.name = i == 0 ? "Vane dragged afloat" : "Maya dragged afloat";
             var an = Rig(corpse);
-            if (an != null && crawlCtrl != null) { an.runtimeAnimatorController = crawlCtrl; an.Play("Crawl", 0, i * .4f); an.SetFloat("Speed", .5f); }
-            corpses.Add(corpse.transform); starts.Add(position);
+            if (an != null && floatCtrl != null) { an.runtimeAnimatorController = floatCtrl; an.speed = .75f + i * .15f; an.Play("Float", 0, i * .4f); an.Update(0f); }
+            corpses.Add(corpse.transform); starts.Add(at);
+            bodyScales.Add(corpse.transform.localScale);
             skins.Add(corpse.GetComponentsInChildren<Renderer>());
             var strip = new GameObject("Torn connective tissue").AddComponent<LineRenderer>();
             strip.transform.SetParent(remains.transform, false); strip.sharedMaterial = tissue;
@@ -118,7 +122,7 @@ public class TomasAmalgamation : MonoBehaviour
         }
     }
 
-    // they crawl after him, a couple of metres back, one to each side
+    // Their bodies lag behind the pull with a suspended bob and trailing tilt.
     public void Follow(Vector3 tomasAt, Vector3 dir)
     {
         if (Absorbing) return;
@@ -127,9 +131,10 @@ public class TomasAmalgamation : MonoBehaviour
         for (int i = 0; i < corpses.Count; i++)
         {
             Vector3 want = tomasAt - dir * (2.4f + i * .5f) + side * (i == 0 ? -.9f : .9f);
-            want.y = tomasAt.y;
+            want.y = tomasAt.y + draggedHeight + Mathf.Sin(Time.time * 1.8f + i * 2f) * .07f;
             corpses[i].position = Vector3.Lerp(corpses[i].position, want, 1f - Mathf.Exp(-3f * Time.deltaTime));
-            corpses[i].rotation = Quaternion.Slerp(corpses[i].rotation, Quaternion.LookRotation(dir), 4f * Time.deltaTime);
+            corpses[i].rotation = Quaternion.Slerp(corpses[i].rotation,
+                Quaternion.LookRotation(dir) * Quaternion.Euler(-12f, 0f, i == 0 ? -8f : 8f), 4f * Time.deltaTime);
         }
     }
 
@@ -156,7 +161,7 @@ public class TomasAmalgamation : MonoBehaviour
             corpses[i].position = at;
             Vector3 toward = centre - at; toward.y = 0f;
             corpses[i].rotation = Quaternion.LookRotation(toward.sqrMagnitude > .01f ? toward : facing * Vector3.forward);
-            corpses[i].localScale = Vector3.one * (1f - .5f * k);
+            corpses[i].localScale = bodyScales[i] * (1f - .5f * k);
             // red flashing, faster and harder as they go in
             bool on = Mathf.Sin(Time.time * (14f + 22f * k) + i * 2f) > 0f || Random.value < .15f;
             lights[i].intensity = on ? 3f + 12f * k : 0f;
@@ -176,7 +181,7 @@ public class TomasAmalgamation : MonoBehaviour
     void ClearRemains()
     {
         if (remains != null) Destroy(remains);
-        corpses.Clear(); starts.Clear(); sinews.Clear(); lights.Clear(); skins.Clear(); Absorbing = false;
+        corpses.Clear(); starts.Clear(); bodyScales.Clear(); sinews.Clear(); lights.Clear(); skins.Clear(); Absorbing = false;
     }
     void OnDestroy()
     {

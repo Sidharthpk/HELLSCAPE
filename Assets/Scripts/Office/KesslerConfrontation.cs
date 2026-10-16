@@ -7,9 +7,9 @@ using TMPro;
 // After the tape: Vane defends his crimes. Justification, not admission alone, turns him Damned.
 //   Arm()        the CCTV flashback is over: his talk becomes the confrontation (confrontNodes)
 //   (talk ends)  he admits it -> "YOU SHOULD BE THANKING ME" -> the blue ghost starts to burn red, shaking itself
-//                apart, and the silo key falls out of his coat (user, 2026-10-02: there is no fight here any more).
-//                You get a couple of seconds of it, then you're free: grab the key and get out through the silo
-//                door while he's still turning. KesslerChase takes it from there (the tunnel).
+//                apart (watchTime), the silo key on the floor where he was. You're free: grab it and run; once you're
+//                out of the room, a cutscene: the damned thing low-crawls off into the dark ("I'm coming").
+//                KesslerChase takes it from there (the tunnel: he's at its door, then runs you down).
 //   too slow     stay for the whole of it (turnTime) and the damned thing lunges out and hunts you through the
 //                rooms (line of sight, else your trail) until you leave. Fists don't put it down.
 //   Leave()      you went through the silo door: the office is done with
@@ -41,6 +41,10 @@ public class KesslerConfrontation : MonoBehaviour
     public Transform keyPickup;             // the silo key (an Interactable), switched off until it falls out of his coat
     public float watchTime = 2.6f;          // you're held looking at him this long, then you can move
     public float turnTime = 18f;            // how long the whole change takes: your time to grab the key and go
+    public KillerCutscenes cuts;            // its camera and letterbox film the crawl (found if left empty)
+    public float crawlSpeed = 0.9f;         // m/s on his belly
+    public float crawlTime = 4f;
+    [TextArea] public string crawlLine = "Vane: I'm coming for you...";
 
     [Header("Lines ('|' splits)")]
     [TextArea] public string turnLine = "Kessler: Everything I did, I did for you. For you and your brother. To make us RICH.|Kessler: YOU SHOULD BE THANKING ME!";
@@ -104,6 +108,7 @@ public class KesslerConfrontation : MonoBehaviour
     void OnDisable() { AbortAmbush(); Lock(false); }
 
     public bool Armed => armed;
+    public bool Turned => turned;
     public bool Done => done;
     private Vector3 turnSpot;
     private Quaternion turnRot;
@@ -137,11 +142,8 @@ public class KesslerConfrontation : MonoBehaviour
         PreparingAmbush = true;
         while (DialogueBox.Instance != null && DialogueBox.Instance.Busy) yield return null;
         while (fpc != null && (!fpc.enabled || PauseMenu.Paused || (ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open))) yield return null;
-        // Let the player step away from the terminal before Vane closes in.
-        Vector3 terminal = player.position;
-        for (float wait = 0f; wait < 6f && Vector3.Distance(player.position, terminal) < 2.5f;)
-        { if (!PauseMenu.Paused && fpc.enabled) wait += Time.deltaTime; yield return null; }
-        yield return new WaitForSeconds(1.5f);
+        // the tape is done: he is already behind you, and the jump comes when you turn round
+        yield return new WaitForSeconds(.4f);
 
         PreparingAmbush = false; Ambushing = true;
         ghost.CancelConversation();
@@ -166,7 +168,7 @@ public class KesslerConfrontation : MonoBehaviour
         originalFaderColor = originalImage != null ? originalImage.color : Color.black;
         PlaceBehind(creepStart);
 
-        float t = 0f, watched = 0f, stepTimer = 0f;
+        float t = 0f, stepTimer = 0f;
         while (t < creepTimeout)
         {
             if (!fpc.enabled || PauseMenu.Paused || (DialogueBox.Instance != null && DialogueBox.Instance.Busy)) { yield return null; continue; }   // not while you are in something else
@@ -178,23 +180,13 @@ public class KesslerConfrontation : MonoBehaviour
             bool seen = Vector3.Angle(playerCam.transform.forward, chest - playerCam.transform.position) < 42f && ClearTo(playerCam.transform.position, chest);
             Tint(rends, block, new Color(.06f, .0f, .0f, seen ? .95f : .8f), 0f);
             ghost.transform.rotation = Quaternion.LookRotation(to);
-            if (seen)
-            {
-                // frozen the moment you look; look for long and he is somewhere behind you again, no nearer than before
-                watched += Time.deltaTime;
-                if (ghost.animator != null) ghost.animator.SetFloat("Speed", 0f, .1f, Time.deltaTime);
-                if (watched > 2.4f) { watched = 0f; PlaceBehind(Mathf.Max(dist, 6f)); }
-            }
-            else
-            {
-                watched = 0f;
-                Vector3 dir = to / Mathf.Max(dist, .01f);
-                if (FreeFor(chest, dir)) ghost.transform.position += dir * creepSpeed * Time.deltaTime;
-                if (ghost.animator != null) { ghost.animator.SetFloat("Speed", ghost.walkClipSpeed, .2f, Time.deltaTime); ghost.animator.speed = Mathf.Clamp(creepSpeed / ghost.walkClipSpeed, .3f, 1f); }
-                stepTimer -= Time.deltaTime;
-                if (stepTimer <= 0f) { stepTimer = .75f; Play(stepClip != null ? stepClip : stepClip = ProceduralAudio.Stomp(), Mathf.Lerp(.15f, .6f, 1f - Mathf.Clamp01(dist / creepStart))); }
-            }
-            if (dist <= scareDistance) break;
+            if (seen && t > .3f) break;   // you looked back: he is right there
+            Vector3 dir = to / Mathf.Max(dist, .01f);
+            bool close = dist <= scareDistance;   // close enough: he waits at your back for you to turn
+            if (!close && FreeFor(chest, dir)) ghost.transform.position += dir * creepSpeed * Time.deltaTime;
+            if (ghost.animator != null) { ghost.animator.SetFloat("Speed", close ? 0f : ghost.walkClipSpeed, .2f, Time.deltaTime); ghost.animator.speed = Mathf.Clamp(creepSpeed / ghost.walkClipSpeed, .3f, 1f); }
+            stepTimer -= Time.deltaTime;
+            if (!close && stepTimer <= 0f) { stepTimer = .75f; Play(stepClip != null ? stepClip : stepClip = ProceduralAudio.Stomp(), Mathf.Lerp(.15f, .6f, 1f - Mathf.Clamp01(dist / creepStart))); }
             yield return null;
         }
 
@@ -356,11 +348,10 @@ public class KesslerConfrontation : MonoBehaviour
 
         if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(turnLine);
         Play(Sounds.Clip("Office/Kessler turning (whisper)", null) ?? ProceduralAudio.Whisper(3f), 0.8f * Sounds.Volume("Office/Kessler turning (whisper)"));
-        bool free = false;
-        for (float t = 0f; t < turnTime; t += Time.deltaTime)
+        for (float t = 0f; t < watchTime; t += Time.deltaTime)
         {
             // blue -> blood red, ever more solid, shaking itself apart
-            float k = Mathf.Clamp01(t / turnTime);
+            float k = Mathf.Clamp01(t / watchTime);
             Color c = Color.Lerp(blue, new Color(0.8f, 0.03f, 0.02f), k);
             c.a = Mathf.Lerp(0.4f, 0.95f, k) * (Random.value < 0.08f ? 0.2f : 1f);
             foreach (var r in renderers)
@@ -372,17 +363,32 @@ public class KesslerConfrontation : MonoBehaviour
             body.localPosition = body0 + Random.insideUnitSphere * (0.02f + 0.07f * k);
             if (glow != null) { glow.color = Color.Lerp(new Color(0.5f, 0.85f, 1f), Color.red, k); glow.intensity = 0.8f + 4f * k; }
             if (whisper != null) whisper.pitch = Mathf.Lerp(0.9f, 0.45f, k);
-            if (!free && t >= watchTime)
-            {
-                // you've seen enough: the key drops, and you can move
-                free = true;
-                DropKey();
-                Lock(false);
-                if (DialogueBox.Instance != null) DialogueBox.Instance.Say(keyLine);
-            }
-            if (!free) Aim(head);
+            Aim(head);
             yield return null;
         }
+
+        // the key's on the floor and you run while he's still turning; once you're out of the room (out of sight of
+        // him) the cutscene: he crawls off into the dark after you
+        DropKey();
+        Lock(false);
+        if (DialogueBox.Instance != null) DialogueBox.Instance.Say(keyLine);
+        float gone = 0f;
+        for (float t = watchTime; t < turnTime; t += Time.deltaTime)
+        {
+            Vector3 chest = ghost.transform.position + Vector3.up * 1.2f;
+            bool out_ = Flat(player.position - ghost.transform.position).magnitude > 3f && !ClearTo(playerCam.transform.position, chest);
+            gone = out_ ? gone + Time.deltaTime : 0f;
+            if (gone > .3f)
+            {
+                Lock(true);
+                yield return Crawl();
+                Lock(false);
+                yield break;   // KesslerChase takes it from here
+            }
+            body.localPosition = body0 + Random.insideUnitSphere * .09f;   // still shaking itself apart
+            yield return null;
+        }
+        body.localPosition = body0;
 
         // still here: the lost becomes the damned, and it comes for you
         Play(Sounds.Clip("Office/Kessler becomes the damned", null) ?? ProceduralAudio.Thud(), Sounds.Volume("Office/Kessler becomes the damned"));
@@ -403,6 +409,46 @@ public class KesslerConfrontation : MonoBehaviour
         MusicManager.Area("Kessler Fight");
         Lock(false);
         hunting = true;
+    }
+
+    // the cutscene: the damned thing drops onto its belly and drags itself away from you, low, toward the lens
+    IEnumerator Crawl()
+    {
+        if (cuts == null) cuts = FindFirstObjectByType<KillerCutscenes>(FindObjectsInactive.Include);
+        bool shot = cuts != null && cuts.isActiveAndEnabled && cuts.cam != null;
+        Play(Sounds.Clip("Office/Kessler becomes the damned", null) ?? ProceduralAudio.Thud(), Sounds.Volume("Office/Kessler becomes the damned"));
+        if (fader != null) yield return fader.FadeTo(1f, 0.15f);
+        Vector3 from = ghost.transform.position;
+        // away from you, down the longest clear run of floor
+        Vector3 dir = Flat(from - player.position).normalized; float room = 0f;
+        for (int i = 0; i < 16; i++)
+        {
+            Vector3 d = Quaternion.Euler(0f, i * 22.5f, 0f) * Vector3.forward;
+            if (Vector3.Dot(d, Flat(from - player.position).normalized) < -0.2f) continue;
+            float free = Physics.Raycast(from + Vector3.up * 0.4f, d, out RaycastHit hit, 9f, ~0, QueryTriggerInteraction.Ignore) ? hit.distance : 9f;
+            if (free > room) { room = free; dir = d; }
+        }
+        float path = Mathf.Min(crawlSpeed * crawlTime, Mathf.Max(0f, room - 3f));   // (he ends ~2.6m short of the lens: closer, he fills it)
+        ghost.gameObject.SetActive(false);
+        damned.transform.SetPositionAndRotation(from, Quaternion.LookRotation(dir));
+        damned.gameObject.SetActive(true);
+        if (damnedAnim != null) damnedAnim.CrossFadeInFixedTime("Crawl", 0f, 0);
+        Vector3 camAt = from + dir * Mathf.Min(room - 0.4f, path + 2.6f) +Vector3.Cross(Vector3.up, dir) * 0.5f + Vector3.up * 0.45f;
+        if (shot) { cuts.Begin(); cuts.cam.transform.position = camAt; }
+        if (fader != null) StartCoroutine(fader.FadeTo(0f, 0.25f));
+        if (DialogueBox.Instance != null) DialogueBox.Instance.SayNow(crawlLine);
+        for (float t = 0f; t < crawlTime; t += Time.deltaTime)
+        {
+            damned.transform.position = from + dir * path * (t / crawlTime);
+            Vector3 headAt = damned.transform.position + dir * 0.6f + Vector3.up * 0.35f;
+            if (shot) cuts.cam.transform.rotation = Quaternion.LookRotation(headAt - cuts.cam.transform.position);
+            else Aim(headAt);
+            yield return null;
+        }
+        if (fader != null) yield return fader.FadeTo(1f, 0.2f);
+        damned.gameObject.SetActive(false);   // gone into the dark (until he's back for you, if you're too slow)
+        if (shot) cuts.End();   // (it only re-enables what it disabled: nothing, Lock(true) got there first)
+        if (fader != null) StartCoroutine(fader.FadeTo(0f, 0.3f));
     }
 
     // the silo key, on the floor between him and you, lit so you can't miss it

@@ -71,10 +71,11 @@ public partial class OfficeEye : MonoBehaviour
         gaze = MakeLight("Eye beam", LightType.Spot); gaze.range = sightRange; gaze.spotAngle = sightAngle * 2f; gaze.innerSpotAngle = sightAngle;
         gaze.shadows = LightShadows.Hard; gaze.enabled = false;
 
-        if (NavMesh.SamplePosition(root.position, out var floor, 4f, NavMesh.AllAreas))
+        // the office floor under it (the roof has navmesh too: a plain nearest-navmesh search put it up there, out of sight)
+        if (Physics.Raycast(root.position, Vector3.down, out var under, 6f, ~0, QueryTriggerInteraction.Ignore))
         {
-            hover = Mathf.Max(.6f, root.position.y - floor.position.y);   // it floats as high as it was placed
-            root.position = floor.position;
+            hover = Mathf.Max(.6f, root.position.y - under.point.y);   // it floats as high as it was placed
+            if (OnFloor(under.point, under.point.y, 4f, out var floor)) root.position = floor;
         }
         agent = root.gameObject.AddComponent<NavMeshAgent>();
         unscale = 1f / Mathf.Max(.01f, root.lossyScale.y);
@@ -122,18 +123,26 @@ public partial class OfficeEye : MonoBehaviour
     {
         at = default;
         var path = new NavMeshPath();
-        bool from = NavMesh.SamplePosition(player.position, out var you, 3f, NavMesh.AllAreas);
+        bool from = OnFloor(player.position, player.position.y - 1f, 3f, out var you);
         for (int i = 0; i < 24; i++)
         {
             Vector3 p = player.position + Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f) * Vector3.forward * UnityEngine.Random.Range(min, min + 22f);
-            if (!OfficeHorrorDirector.In(p) || !NavMesh.SamplePosition(p, out var h, 3f, NavMesh.AllAreas)) continue;
-            if (Flat(h.position - player.position).magnitude < min) continue;
-            if (unseen && Vector3.Angle(cam.transform.forward, h.position - cam.transform.position) < 60f && finder.Clear(cam.transform.position, h.position + Vector3.up * hover)) continue;
+            if (!OfficeHorrorDirector.In(p) || !OnFloor(p, player.position.y - 1f, 3f, out var h)) continue;
+            if (Flat(h - player.position).magnitude < min) continue;
+            if (unseen && Vector3.Angle(cam.transform.forward, h - cam.transform.position) < 60f && finder.Clear(cam.transform.position, h + Vector3.up * hover)) continue;
             // (Vane's shut door cuts the navmesh: only the side of it you are on)
-            if (from && (!NavMesh.CalculatePath(you.position, h.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete)) continue;
-            at = h.position; return true;
+            if (from && (!NavMesh.CalculatePath(you, h, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete)) continue;
+            at = h; return true;
         }
         return false;
+    }
+
+    // navmesh near p on the floor at floorY (not the roof's navmesh above the ceiling)
+    static bool OnFloor(Vector3 p, float floorY, float radius, out Vector3 at)
+    {
+        at = default;
+        if (!NavMesh.SamplePosition(new Vector3(p.x, floorY, p.z), out var h, radius, NavMesh.AllAreas) || Mathf.Abs(h.position.y - floorY) > 1.2f) return false;
+        at = h.position; return true;
     }
 
     // ---------------------------------------------------------------- the palm flash
@@ -164,7 +173,7 @@ public partial class OfficeEye : MonoBehaviour
         {
             case S.Waiting:   // until you are in the office and looking about: then it is down the far end of the room
                 if (!free) break;
-                if (finder.TryFind(22f, true, out var far)) agent.Warp(far);
+                if (finder.TryFind(22f, true, out var far) && OnFloor(far, far.y, 1.5f, out far)) agent.Warp(far);
                 state = S.Watching;
                 saidSeen = true;   // (the line for this is said at the office door, HS_0150)
                 break;
@@ -193,6 +202,7 @@ public partial class OfficeEye : MonoBehaviour
 
             case S.Patrol:
                 if (Hold(!free)) break;
+                if (Mathf.Abs(agent.nextPosition.y - (player.position.y - 1f)) > 2f && Point(10f, true, out var down)) { agent.Warp(down); break; }   // strayed off your floor (the roof): back
                 agent.speed = patrolSpeed;
                 if (Sees()) { Spot(); break; }
                 if (agent.pathPending || agent.remainingDistance > 1f) break;

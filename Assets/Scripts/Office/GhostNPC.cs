@@ -75,6 +75,7 @@ public class GhostNPC : MonoBehaviour
     private AudioSource whisper;
     private Vector3 basePos, home;
     private float seed, driftTime;
+    private static RuntimeAnimatorController floatPose;
     private bool finished;
     private readonly HashSet<int> judged = new HashSet<int>();   // karma counts once per question
 
@@ -115,6 +116,7 @@ public class GhostNPC : MonoBehaviour
         renderers = body.GetComponentsInChildren<Renderer>();
         block = new MaterialPropertyBlock();
         seed = Random.value * 10f;
+        if (floatPose == null) floatPose = Resources.Load<RuntimeAnimatorController>("OfficeHorror/DamnedFloat");   // HellScape > Build Damned Float Pose
 
         whisper = gameObject.AddComponent<AudioSource>();
         whisper.clip = Sounds.Clip("Office/Ghost whispers", null) ?? ProceduralAudio.Whisper(Random.Range(2.5f, 4f));
@@ -137,8 +139,17 @@ public class GhostNPC : MonoBehaviour
         if (mine && !talking && !nextComing && (DialogueBox.Instance == null || !DialogueBox.Instance.Busy)) { mine = false; Conversing = false; }
         Vector3 look = toPlayer;
         bool moving = false;
+        bool lost = fate == Fate.Lost || fate == Fate.Gone;   // the Lost hang in the floating pose, they never walk again
+        if (lost && animator != null && floatPose != null && animator.runtimeAnimatorController != floatPose)
+        {
+            animator.runtimeAnimatorController = floatPose;
+            animator.applyRootMotion = false;
+            animator.speed = 1f;
+            working = false;
+        }
+        if (lost) body.localPosition += Vector3.up * (0.35f + Mathf.Sin((Time.time + seed) * 0.6f) * 0.15f);
         if (working && !mine) look = workLook;
-        if (!working && !talking && toPlayer.magnitude > holdRange && driftRadius > 0f)
+        if (!lost && !working && !talking && toPlayer.magnitude > holdRange && driftRadius > 0f)
         {
             // a slow wandering loop around home
             driftTime += Time.deltaTime * driftSpeed / Mathf.Max(driftRadius, 0.1f);
@@ -154,7 +165,7 @@ public class GhostNPC : MonoBehaviour
                 moving = true;
             }
         }
-        if (animator != null)
+        if (animator != null && !lost)
         {
             animator.SetFloat("Speed", moving ? walkClipSpeed : 0f, 0.2f, Time.deltaTime);
             animator.speed = moving ? Mathf.Clamp(driftSpeed / walkClipSpeed, 0.3f, 1f) : 1f;

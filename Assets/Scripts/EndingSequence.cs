@@ -14,6 +14,7 @@ using UnityEngine;
 // BEYOND the end of the deck (never through it), standing in the water and towering over the edge. He goes back
 // down into the sea the same way. (ContinuedEndingBuilder places his points and yours from the arena's deck.)
 // PlayEnding() is called by the bridge boss's death.
+[DefaultExecutionOrder(100)]
 public class EndingSequence : MonoBehaviour
 {
     [System.Serializable]
@@ -106,6 +107,14 @@ public class EndingSequence : MonoBehaviour
     public bool testDamned = false;
 
     private bool played = false, walkedAway = false;
+    Being framedBeing;
+
+    void LateUpdate()
+    {
+        if (framedBeing == null || !Playing || framedBeing.root == null || !framedBeing.root.activeInHierarchy) return;
+        FacePlayer(framedBeing.root.transform);
+        Frame(framedBeing, 4f);
+    }
 
     IEnumerator Start()
     {
@@ -148,6 +157,8 @@ public class EndingSequence : MonoBehaviour
         if (played) return;
         played = true;
         Playing = true;
+        CutsceneHUD.Hide(true);
+        foreach (var ghost in FindObjectsByType<GhostNPC>(FindObjectsInactive.Include, FindObjectsSortMode.None)) ghost.CancelConversation();
         if (DialogueBox.Instance != null) DialogueBox.Instance.playerName = "CONFESSOR";   // (what the King calls you: your name plate for the judgement)
         StartCoroutine(RunEnding());
     }
@@ -230,6 +241,7 @@ public class EndingSequence : MonoBehaviour
         }
 
         for (float w = 0f; w < holdBeforeAnim; w += Time.deltaTime) { Frame(being, 4f); yield return null; }
+        framedBeing = being;
 
         if (RevisedPlotDirector.Instance != null)
         {
@@ -250,6 +262,7 @@ public class EndingSequence : MonoBehaviour
                 yield return null;
             }
         }
+        framedBeing = null;
         if (being.animator != null) being.animator.SetTrigger(being.animTrigger);
         if (demonLaugh != null && (damned || endTrack == null)) { demonLaugh.pitch = 1f; demonLaugh.Play(); }   // (not damned: the track comes in after he goes down)
 
@@ -636,19 +649,22 @@ public class EndingSequence : MonoBehaviour
     AudioSource voidSfx;   // the soul void's own 2D one-shots
     private float kingTop = 12f, kingBottom, fov0 = 60f;   // his height above / below his pivot; your normal view
 
-    // look at the king so that ALL of him is in the picture: aim a little above his middle and widen the view
-    // until his head (and raised arms) and his feet both fit
+    // his upper body fills the picture, looking up at him: the view narrows (or widens) until his head (and raised
+    // arms) sit at the top edge and his waist at the bottom. His head always wins: if he can't all fit, the waist goes.
+    public float waistHeight = 0.55f;       // the lowest part of him in view, as a fraction of his full height
+    public float minFov = 30f;              // how tight the view may close on him
     void Frame(Being king, float speed)
     {
         if (playerCamera == null) return;
         Vector3 p = king.root.transform.position, eye = playerCamera.transform.position;
         float flat = Mathf.Max(1f, new Vector2(p.x - eye.x, p.z - eye.z).magnitude);
-        float top = Mathf.Atan2(p.y + kingTop * headRoom - eye.y, flat) * Mathf.Rad2Deg;
-        float bottom = Mathf.Atan2(Mathf.Max(p.y + kingBottom, eye.y - 1.8f) - eye.y, flat) * Mathf.Rad2Deg;   // (nothing to see below the deck)
-        float aim = Mathf.Min(Mathf.Lerp(bottom, top, 0.5f), 40f);                                              // (TurnCamera never looks higher)
-        float need = 2f * Mathf.Max(top - aim, aim - bottom) + 3f;
+        float top = Mathf.Atan2(p.y + kingTop * headRoom - eye.y, flat) * Mathf.Rad2Deg + 1.5f;   // (a little sky over his head)
+        float bottom = Mathf.Atan2(Mathf.Max(p.y + Mathf.Lerp(kingBottom, kingTop, waistHeight), eye.y - 1.8f) - eye.y, flat) * Mathf.Rad2Deg;   // (nothing to see below the deck)
+        float fov = Mathf.Clamp(top - bottom, minFov, maxFov);
+        float aim = Mathf.Min(top - fov / 2f, 40f);                      // head at the top edge (TurnCamera never looks higher than 40)
+        fov = Mathf.Clamp(Mathf.Max(fov, 2f * (top - aim)), minFov, maxFov);   // looking up as far as it goes: widen so the head stays in
         float k = 1f - Mathf.Exp(-2.5f * Time.deltaTime);
-        playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, Mathf.Clamp(need, fov0, maxFov), k);
+        playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, fov, k);
         TurnCamera(new Vector3(p.x, eye.y + Mathf.Tan(aim * Mathf.Deg2Rad) * flat, p.z), speed);
     }
 
@@ -857,7 +873,7 @@ public class EndingSequence : MonoBehaviour
         Sounds.OneShot(voidSfx, "Ending/Demon rises", null, 1f);
         if (DialogueBox.Instance != null)
         {
-            DialogueBox.Instance.SayNow(HS.S("107").Replace("The Demon King:", "???:"));
+            DialogueBox.Instance.SayNow(HS.S("107"));
             Sounds.OneShot(voidSfx, "Ending/Demon King talking", null);
             yield return null;
             Vector3 cam0 = playerCamera.transform.localPosition;
@@ -917,7 +933,7 @@ public class EndingSequence : MonoBehaviour
             for (int x = 0; x < 128; x++)
             {
                 float d = Mathf.Clamp01(new Vector2(x - 63.5f, y - 63.5f).magnitude / 64f);
-                hazeTex.SetPixel(x, y, new Color(0.9f, 0.08f, 0.04f, Mathf.Pow(1f - d, 1.6f)));
+                hazeTex.SetPixel(x, y, new Color(.9f, .025f, .025f, Mathf.Pow(1f - d, 1.6f)));
             }
         hazeTex.Apply();
         var hazeShader = Shader.Find("Sprites/Default");

@@ -27,6 +27,18 @@ public class NoteViewer : MonoBehaviour
     RectTransform root, item;
     CanvasGroup group;
     Sprite dot, ring;
+    TextMeshProUGUI hint;
+    bool transcript;
+    float zoom = 1f;
+    Vector3 lastMouse;
+    ReadableNote currentNote;
+
+    public static void ToggleLargeText()
+    {
+        if (!open || instance == null || instance.currentNote == null || instance.currentNote.artwork == null) return;
+        instance.transcript = !instance.transcript;
+        instance.Draw(instance.currentNote);
+    }
 
     public static void Show(ReadableNote note)
     {
@@ -43,6 +55,7 @@ public class NoteViewer : MonoBehaviour
     IEnumerator Run(ReadableNote note)
     {
         open = true;
+        currentNote = note;
         var locked = Lock();
 
         if (!string.IsNullOrEmpty(note.beforeLine) && DialogueBox.Instance != null)
@@ -52,7 +65,11 @@ public class NoteViewer : MonoBehaviour
             while (DialogueBox.Instance != null && DialogueBox.Instance.Busy) yield return null;
         }
 
+        transcript = false;
         Draw(note);
+        var cursorLock = Cursor.lockState;
+        bool cursorVisible = Cursor.visible;
+        if (note.artwork != null) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
         float scale0 = Time.timeScale;
         Time.timeScale = 0f;
         yield return Fade(0f, 1f, 0.15f);
@@ -64,15 +81,20 @@ public class NoteViewer : MonoBehaviour
         {
             yield return null;
             if (Time.frameCount <= openedAt) continue;   // not the F that opened it
-            foreach (var k in closeKeys) if (Input.GetKeyDown(k)) done = true;
+            foreach (var k in closeKeys)
+                if ((note.artwork == null || k != KeyCode.Mouse0) && Input.GetKeyDown(k)) done = true;
+            if (note.artwork != null) InspectArtwork(note);
             if (closeRequested) done = true;
         }
         closeRequested = false;
         yield return Fade(1f, 0f, 0.12f);
         if (item != null) Destroy(item.gameObject);
         Time.timeScale = scale0 > 0f ? scale0 : 1f;
+        Cursor.lockState = cursorLock;
+        Cursor.visible = cursorVisible;
         foreach (var b in locked) if (b != null) b.enabled = true;
         open = false;
+        currentNote = null;
         closedFrame = Time.frameCount;
 
         if (!string.IsNullOrEmpty(note.afterLine) && DialogueBox.Instance != null) DialogueBox.Instance.Say(note.afterLine);
@@ -116,7 +138,7 @@ public class NoteViewer : MonoBehaviour
         var scaler = go.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
+        scaler.matchWidthOrHeight = 1f;
         v.group = go.AddComponent<CanvasGroup>();
         v.group.alpha = 0f;
         v.group.blocksRaycasts = false;
@@ -130,9 +152,10 @@ public class NoteViewer : MonoBehaviour
         v.root.SetParent(go.transform, false);
         v.root.anchoredPosition = new Vector2(0f, 20f);
         v.root.localScale = Vector3.one * 0.86f;   // the tallest pages (1000) stay clear of the hint
-        var hint = v.Text(go.transform, "[F]  Put it down", 26, new Color(0.8f, 0.78f, 0.72f), TextAlignmentOptions.Center,
-                          new Vector2(0f, -500f), new Vector2(800f, 40f));
-        hint.name = "Hint";
+        v.hint = v.Text(go.transform, "[F]  Put it down", 26, new Color(0.8f, 0.78f, 0.72f), TextAlignmentOptions.Center,
+                          new Vector2(0f, -500f), new Vector2(1500f, 40f));
+        v.hint.name = "Hint";
+        v.hint.transform.SetAsLastSibling();
         return v;
     }
 
@@ -145,9 +168,17 @@ public class NoteViewer : MonoBehaviour
 
     void Draw(ReadableNote n)
     {
-        if (item != null) Destroy(item.gameObject);
+        if (item != null) { item.gameObject.SetActive(false); Destroy(item.gameObject); }
         item = new GameObject("Note", typeof(RectTransform)).GetComponent<RectTransform>();
         item.SetParent(root, false);
+        zoom = 1f;
+        if (n.artwork != null)
+        {
+            Artwork(n);
+            hint.text = "[F] Close     [SCROLL] Zoom     [DRAG] Move     [T] " + (transcript ? "Image" : "Large text");
+            return;
+        }
+        hint.text = "[F]  Put it down";
         switch (n.style)
         {
             case ReadableNote.Style.Sticky: Sticky(n, false); break;
@@ -159,6 +190,46 @@ public class NoteViewer : MonoBehaviour
             case ReadableNote.Style.Calendar: Calendar(n); break;
             default: Paper(n); break;
         }
+    }
+
+    void Artwork(ReadableNote n)
+    {
+        if (transcript)
+        {
+            item.sizeDelta = new Vector2(1060f, 1000f);
+            var page = Box(item, "Readable transcript", Vector2.zero, item.sizeDelta, new Color(.97f, .95f, .88f));
+            string title = n.style == ReadableNote.Style.Calendar ? n.month + " - OFFICE CALENDAR" : n.title;
+            if (string.IsNullOrWhiteSpace(title)) title = "NOTE LEFT ON YOUR DESK";
+            Text(page, title, 44, Black, TextAlignmentOptions.TopLeft, new Vector2(0, 410), new Vector2(940, 100));
+            string text = n.style == ReadableNote.Style.Calendar
+                ? n.circledDay + " - circled in pen\n\nSmall handwritten note beside the date:\n" + n.dayNote
+                : n.body + (string.IsNullOrEmpty(n.footer) ? "" : "\n\n" + n.footer);
+            var words = Text(page, text, 40, Black, TextAlignmentOptions.TopLeft, new Vector2(0, -40), new Vector2(940, 760));
+            words.lineSpacing = 4f;
+            return;
+        }
+        float aspect = n.artwork.rect.width / n.artwork.rect.height;
+        float height = aspect > .95f ? 960f : 1060f;
+        item.sizeDelta = new Vector2(height * aspect, height);
+        var sheet = Box(item, "Document artwork", Vector2.zero, item.sizeDelta, Color.white);
+        sheet.GetComponent<Image>().sprite = n.artwork;
+        sheet.GetComponent<Image>().preserveAspect = true;
+    }
+
+    void InspectArtwork(ReadableNote note)
+    {
+        if (Input.GetKeyDown(KeyCode.T)) ToggleLargeText();
+        zoom = Mathf.Clamp(zoom + Input.mouseScrollDelta.y * .15f, 1f, 3.5f);
+        item.localScale = Vector3.one * zoom;
+        if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(2)) lastMouse = Input.mousePosition;
+        if (Input.GetMouseButton(0) || Input.GetMouseButton(2))
+        {
+            float scale = GetComponent<Canvas>().scaleFactor * root.localScale.x;
+            item.anchoredPosition += (Vector2)(Input.mousePosition - lastMouse) / Mathf.Max(.01f, scale);
+        }
+        lastMouse = Input.mousePosition;
+        var limit = item.sizeDelta * (zoom - 1f) * .5f;
+        item.anchoredPosition = new Vector2(Mathf.Clamp(item.anchoredPosition.x, -limit.x, limit.x), Mathf.Clamp(item.anchoredPosition.y, -limit.y, limit.y));
     }
 
     void Paper(ReadableNote n)
@@ -296,15 +367,9 @@ public class NoteViewer : MonoBehaviour
             Text(sheet, d.ToString(), 26, col >= 5 ? Marker : Black, TextAlignmentOptions.TopLeft, centre + new Vector2(6f, 4f), new Vector2(cw - 16f, ch - 12f));
             if (d != n.circledDay) continue;
             Circle(sheet, centre + new Vector2(-cw * 0.3f, ch * 0.26f), 66f, Marker, ring);   // circled in red
-            // written across the box and the next one (the way people write on calendars), crossed out...
+            // A discreet annotation stays inside this date's cell.
             if (!string.IsNullOrEmpty(n.dayNote))
-                Text(sheet, "<s>" + n.dayNote + "</s>", 26, Ink, TextAlignmentOptions.Left, centre + new Vector2(cw * 0.9f + 4f, -ch * 0.12f), new Vector2(cw * 2.8f - 10f, 60f));
-            // ...and the word written over it, big, in red marker, under the entry so it stays readable
-            if (!string.IsNullOrEmpty(n.scrawl))
-            {
-                var s = Text(sheet, n.scrawl, 50, Marker, TextAlignmentOptions.Center, centre + new Vector2(cw * 1.1f, -ch * 0.62f), new Vector2(cw * 3.2f, 70f));
-                s.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 8f);
-            }
+                Text(sheet, n.dayNote, 18, Ink, TextAlignmentOptions.TopLeft, centre + new Vector2(0f, -ch * .12f), new Vector2(cw - 14f, ch * .4f));
         }
         if (!string.IsNullOrEmpty(n.body)) Text(sheet, n.body, 24, Ink, TextAlignmentOptions.BottomLeft, new Vector2(0f, -H * 0.5f + 34f), new Vector2(gridW, 40f));
     }

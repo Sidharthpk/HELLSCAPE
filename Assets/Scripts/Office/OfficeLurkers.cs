@@ -10,7 +10,8 @@ public class OfficeLurkers : MonoBehaviour
     OfficeHorrorDirector dir; OfficeStalker finder; Transform player; Camera cam; PlayerHealth health; Func<bool> canAct;
     GameObject shade, runner; Animator anim, runAnim; Material black; AudioSource sfx; AudioClip stomp;
     bool busy;
-    float timer = 20f;
+    float timer = 7f;
+    bool rushDue = true;
 
     public void Init(OfficeHorrorDirector director, OfficeStalker stalker, Transform body, Camera camera, PlayerHealth hp, Transform template, GameObject runTemplate, Func<bool> act)
     {
@@ -70,15 +71,20 @@ public class OfficeLurkers : MonoBehaviour
     void Update()
     {
         if (player == null) return;
-        if (!canAct()) { timer = Mathf.Max(timer, 10f); return; }   // only once things have gone quiet again
+        if (!canAct()) { timer = Mathf.Max(timer, 3f); return; }   // brief breathing room after dialogue or another encounter
         if (busy) return;
         timer -= Time.deltaTime;
         if (timer > 0f) return;
-        timer = UnityEngine.Random.Range(9f, 20f);   // (the Damned are gone from the office: it is all shadows now)
+        timer = UnityEngine.Random.Range(6f, 10f);   // measured between scares; busy holds the countdown
         float r = UnityEngine.Random.value;
-        if (r < .15f) dir.LurkSteps();
-        else if (r < .55f) StartCoroutine(Lurk());
-        else StartCoroutine(Rush());
+        if (rushDue || r < .75f) StartCoroutine(Rush());
+        else
+        {
+            // Never let a run of ambient selections keep the runner away indefinitely.
+            rushDue = true;
+            if (r < .83f) dir.LurkSteps();
+            else StartCoroutine(Lurk());
+        }
     }
 
     void Show(Vector3 at, float speed, float animSpeed)
@@ -209,11 +215,14 @@ public class OfficeLurkers : MonoBehaviour
         Vector3 at = default; bool found = false;
         for (int i = 0; i < 60 && !found && canAct(); i++)
         {
-            found = finder.TryFind(UnityEngine.Random.Range(12f, 17f), false, out at) && finder.Clear(cam.transform.position, at + Vector3.up * 1.2f);
+            // Prefer behind the player, then try the visible aisle if walls block that side.
+            // Reject the finder's very close fallback points: the runner needs room to approach.
+            found = finder.TryFind(UnityEngine.Random.Range(8f, 13f), i >= 30, out at)
+                && Vector3.Distance(player.position, at) >= 5f
+                && finder.Clear(cam.transform.position, at + Vector3.up * 1.2f);
             if (!found) yield return null;
         }
-        if (found && !rushSaid && DialogueBox.Instance != null) { rushSaid = true; DialogueBox.Instance.Say(HS.S("385-386")); }   // the first time only
-        if (!found) { busy = false; yield break; }
+        if (!found) { busy = false; rushDue = true; timer = 2f; yield break; }
         var swap = shade; var swapAnim = anim;
         if (runner != null) { shade = runner; anim = runAnim; Show(at, 0f, 1f); anim.Play("Run", 0, UnityEngine.Random.value); }
         else Show(at, 1.3f, 2.6f);   // no run clip: the civilian walk cycle at 2.6x
@@ -237,5 +246,13 @@ public class OfficeLurkers : MonoBehaviour
         sfx.pitch = .7f; sfx.PlayOneShot(stomp, 1f);
         Hide();
         shade = swap; anim = swapAnim;
+        rushDue = !seen;
+        // Speaking before the approach makes canAct false and cancels the very first rush.
+        // Only acknowledge a scare the player actually saw, after its movement has finished.
+        if (seen && !rushSaid && canAct() && DialogueBox.Instance != null)
+        {
+            rushSaid = true;
+            DialogueBox.Instance.Say(HS.S("385-386"));
+        }
     }
 }

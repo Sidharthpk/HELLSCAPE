@@ -258,7 +258,7 @@ public class TitleScreen : MonoBehaviour
         // no prologue scene in the build: straight to waking up on the red street
         seen = true;
         Showing = false;
-        SleepSequence.WakeInHell = true;
+        SleepSequence.WakeInHell = SleepSequence.FromStory = true;
         UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.name);
     }
 

@@ -173,6 +173,6 @@ MonoBehaviour:
     before: {fileID: 2100000, guid: 94e5f601886b24440a80dac2db2f2859, type: 2}
   - burnt: {fileID: 2100000, guid: 0f125e405e561454fbf61653c0b982ab, type: 2}
     before: {fileID: 2100000, guid: 6ccd7dcbd1507d543955e96fbd730fa1, type: 2}
-  transitionSeconds: 0.85
+  transitionSeconds: 0.25
   exposure: 0.85
   tint: {r: 0.68, g: 0.83, b: 1, a: 1}

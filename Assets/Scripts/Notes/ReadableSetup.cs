@@ -21,12 +21,23 @@ public static class ReadableSetup
     {
         foreach (var it in Object.FindObjectsByType<Interactable>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
-            if (it.GetComponent<ReadableNote>() != null) continue;
+            if (it.TryGetComponent<ReadableNote>(out var existing))
+            {
+                if (existing.artwork == null) existing.artwork = Artwork(it.name);
+                continue;
+            }
             var n = Make(it.gameObject.name);
             if (n == null) continue;
             var r = it.gameObject.AddComponent<ReadableNote>();
             n(r);
+            r.artwork = Artwork(it.name);
         }
+    }
+
+    public static Sprite Artwork(string name)
+    {
+        string file = name == "Calendar" ? "AprilCalendar" : name == "IncidentReport" ? "WitnessStatement" : name == "YourDesk_Note" ? "DeskNote" : null;
+        return file == null ? null : Resources.Load<Sprite>("OfficeDocuments/" + file);
     }
 
     static System.Action<ReadableNote> Make(string name)
@@ -75,9 +86,9 @@ public static class ReadableSetup
                 n.firstWeekday = 2;
                 n.days = 30;
                 n.circledDay = 13;
-                n.dayNote = "Tomas - last shift! cake??";
-                n.scrawl = "ACCIDENT";
-                n.afterLine = "The 13th. Circled in red.|Someone crossed it out and wrote ACCIDENT over it.";
+                n.dayNote = "Tomas accident";
+                n.scrawl = "";
+                n.afterLine = "Someone left a note beside the circled date.";
             };
             case "StickyNote": return n =>
             {
@@ -90,7 +101,8 @@ public static class ReadableSetup
             {
                 n.style = ReadableNote.Style.BloodySticky;
                 n.beforeLine = "My desk. My keys should be right... here.|Gone.|There's a sticky note. It's wet.";
-                n.body = "COME GET THEM.\n\nSILO 2.";
+                n.body = "YOUR KEYS.\nSILO 2.\n\nBRING THE STATEMENT.\nREAD THE LAST NAME.";
+                n.footer = "- ELIAS";
             };
             case "IncidentReport": return n =>
             {

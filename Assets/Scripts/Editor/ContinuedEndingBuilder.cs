@@ -57,7 +57,7 @@ public static class ContinuedEndingBuilder
         return "To-be-continued card wired: '" + Title + "'. " + stage;
     }
 
-    const float KingPastEdge = 11f;     // his middle, this far beyond the end of the deck (he's ~12 m deep)
+    const float KingPastEdge = 16f;     // his middle, this far beyond the end of the deck (he's ~18 m deep)
     const float KingFeetUnder = 3f;     // he stands shin-deep in the sea
     const float YouFromEdge = 9f;       // where you stand, back from the edge
 
