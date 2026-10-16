@@ -50,8 +50,6 @@ public static class ContinuedEndingBuilder
 
         ending.continuedCard = card.gameObject;
         EditorUtility.SetDirty(ending);
-        var angel = GameObject.Find("BridgeEnding/Angel");
-        if (angel != null) angel.SetActive(false);
         string stage = Stage(ending);
         EditorSceneManager.MarkSceneDirty(ending.gameObject.scene);
         return "To-be-continued card wired: '" + Title + "'. " + stage;
