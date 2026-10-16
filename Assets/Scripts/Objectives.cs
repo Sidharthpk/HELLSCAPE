@@ -2,7 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Announce objectives in the center, then lift into a slim, opaque top bar.
+// Announce objectives in the center, then lift into a smaller box docked at the top right (the Objective Box art).
 public class ObjectiveUI : MonoBehaviour
 {
     public static string Current { get; private set; } = "";
@@ -13,11 +13,15 @@ public class ObjectiveUI : MonoBehaviour
     {
         if (ui == null || ui.all == null || ui.all.alpha <= .01f || ui.strip == null || target == null) return 0f;
         var source = ui.GetComponent<Canvas>();
-        return ((RectTransform)ui.strip.transform).rect.height * source.scaleFactor / Mathf.Max(.01f, target.rootCanvas.scaleFactor);
+        // (only once it has docked in the corner: while it announces in the middle the top is free)
+        return ui.docked * (((RectTransform)ui.strip.transform).rect.height + DockMargin.y) * source.scaleFactor / Mathf.Max(.01f, target.rootCanvas.scaleFactor);
     }
+    static readonly Vector2 DockMargin = new Vector2(36f, 28f);   // docked: this far in from the right edge and the top
+    const float DockWidth = 540f;
     CanvasGroup all, strip;
     TextMeshProUGUI stripText, eyebrow;
-    DialoguePanelGraphic panel;
+    float aspect;   // the art's width per unit of height
+    float docked;   // 0 announcing in the middle .. 1 docked top right
     const float Hold = 2.6f, Lift = .8f, Delay = .7f;
     float elapsed;
 
@@ -43,7 +47,8 @@ public class ObjectiveUI : MonoBehaviour
     {
         // Dock before checking dialogue, so combat chatter does not restart a centre announcement.
         if (BossHUDLayout.AnyVisible) elapsed = Mathf.Max(elapsed, Hold + Lift);
-        bool talking = elapsed < Hold + Lift && DialogueBox.Instance != null && DialogueBox.Instance.Busy;
+        bool talking = elapsed < Hold + Lift && DialogueBox.Instance != null && DialogueBox.Instance.Busy
+                       || DialogueBox.Instance != null && DialogueBox.Instance.CardOpen;
         bool show = Current != "" && !talking && (!CutsceneHUD.Hidden || OverCutscene) &&!TitleScreen.Showing && !GameOverScreen.Open && !EndingSequence.Playing;
         all.alpha = show && elapsed >= 0f ? 1f : 0f;
         if (!show) return;
@@ -54,23 +59,26 @@ public class ObjectiveUI : MonoBehaviour
     void LayoutAnnouncement(float seconds)
     {
         float lift = Mathf.SmoothStep(0f, 1f, (seconds - Hold) / Lift);
+        docked = lift;
         var bar = (RectTransform)strip.transform;
         float screenWidth = ((RectTransform)bar.parent).rect.width;
-        float centerWidth = Mathf.Min(690f, Mathf.Max(100f, screenWidth - 64f));
-        float width = Mathf.Lerp(centerWidth, screenWidth, lift);
-        float padding = Mathf.Lerp(24f, 10f, lift);
-        stripText.fontSize = Mathf.Lerp(30f, 24f, lift);
-        float textHeight = stripText.GetPreferredValues(stripText.text, Mathf.Max(40f, width - 64f), Mathf.Infinity).y;
-        float height = Mathf.Max(Mathf.Lerp(104f, 54f, lift), textHeight + padding * 2f + (1f - lift) * 20f);
-        eyebrow.alpha = 1f - lift;
-        panel.corner = Mathf.Lerp(10f, 0f, lift);   // square once it is the full-width bar
-        bar.anchorMin = bar.anchorMax = new Vector2(.5f, Mathf.Lerp(.5f, 1f, lift));
-        bar.pivot = new Vector2(.5f, Mathf.Lerp(.5f, 1f, lift));
-        bar.anchoredPosition = Vector2.zero;
+        float width = Mathf.Lerp(Mathf.Min(720f, Mathf.Max(100f, screenWidth - 64f)), Mathf.Min(DockWidth, screenWidth - DockMargin.x * 2f), lift);
+        // the art's proportions; taller only if a long objective needs it. Text starts past the red icon (top left).
+        float left = width * .12f, right = width * .06f;
+        stripText.fontSize = Mathf.Lerp(32f, 27f, lift);
+        eyebrow.fontSize = Mathf.Lerp(18f, 16f, lift);
+        float textHeight = stripText.GetPreferredValues(stripText.text, Mathf.Max(40f, width - left - right), Mathf.Infinity).y;
+        float height = Mathf.Max(width / aspect, textHeight + width * .17f);
+        // from the middle of the screen to the top right corner, kept clear of both edges
+        bar.anchorMin = bar.anchorMax = Vector2.Lerp(new Vector2(.5f, .5f), Vector2.one, lift);
+        bar.pivot = Vector2.Lerp(new Vector2(.5f, .5f), Vector2.one, lift);
+        bar.anchoredPosition = Vector2.Lerp(Vector2.zero, -DockMargin, lift);
         bar.sizeDelta = new Vector2(width, height);
-        stripText.rectTransform.offsetMin = new Vector2(32f, padding);
-        stripText.rectTransform.offsetMax = new Vector2(-32f, -padding - (1f - lift) * 20f);   // room for the eyebrow
-        panel.SetVerticesDirty();
+        // "OBJECTIVE" level with the icon, the objective under it
+        eyebrow.rectTransform.offsetMin = new Vector2(left, 0f);
+        eyebrow.rectTransform.offsetMax = new Vector2(-right, -width * .045f);
+        stripText.rectTransform.offsetMin = new Vector2(left, width * .04f);
+        stripText.rectTransform.offsetMax = new Vector2(-right, -width * .1f);
     }
 
     static ObjectiveUI Build()
@@ -81,29 +89,20 @@ public class ObjectiveUI : MonoBehaviour
         var scaler = go.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1920f, 1080f); scaler.matchWidthOrHeight = .5f;
         o.all = go.GetComponent<CanvasGroup>(); o.all.alpha = 0f; o.all.blocksRaycasts = false; o.all.interactable = false;
 
-        // the strip along the top: the dialogue box's chamfered charcoal panel with a blood-red edge, typewriter text
-        var bar = Panel("Strip", go.transform, out o.panel);
-        bar.anchorMin = new Vector2(0f, 1f); bar.anchorMax = Vector2.one; bar.pivot = new Vector2(.5f, 1f); bar.sizeDelta = new Vector2(0f, 54f); bar.anchoredPosition = Vector2.zero;
+        // the box: the Objective Box art (Resources/HellscapeUI), typewriter text
+        var art = Resources.Load<Sprite>("HellscapeUI/Objective Box");
+        var frame = new GameObject("Strip", typeof(RectTransform)).AddComponent<Image>();
+        frame.transform.SetParent(go.transform, false);
+        frame.sprite = art; frame.raycastTarget = false;
+        if (art == null) frame.color = new Color(.035f, .042f, .052f, .96f);
+        o.aspect = art != null ? art.rect.width / art.rect.height : 3.6f;
+        var bar = frame.rectTransform;
         o.strip = bar.gameObject.AddComponent<CanvasGroup>();
-        o.stripText = Label(bar, 24f, new Color(.94f, .94f, .92f), TextAlignmentOptions.Center);
-        o.stripText.rectTransform.offsetMin = new Vector2(40f, 16f);
-        o.stripText.rectTransform.offsetMax = new Vector2(-40f, -16f);
-        // "OBJECTIVE" over the announcement; fades as the bar lifts
-        o.eyebrow = Label(bar, 15f, DialoguePresentation.Blood * 1.25f, TextAlignmentOptions.Top);
+        o.stripText = Label(bar, 24f, new Color(.94f, .94f, .92f), TextAlignmentOptions.MidlineLeft);
+        o.eyebrow = Label(bar, 15f, DialoguePresentation.Blood * 1.25f, TextAlignmentOptions.TopLeft);
         o.eyebrow.text = "OBJECTIVE"; o.eyebrow.characterSpacing = 6f;
-        o.eyebrow.rectTransform.offsetMin = new Vector2(0f, 0f);
-        o.eyebrow.rectTransform.offsetMax = new Vector2(0f, -10f);
 
         return o;
-    }
-
-    static RectTransform Panel(string name, Transform parent, out DialoguePanelGraphic graphic)
-    {
-        graphic = new GameObject(name, typeof(RectTransform)).AddComponent<DialoguePanelGraphic>();
-        graphic.transform.SetParent(parent, false);
-        graphic.color = new Color(.035f, .042f, .052f, .96f); graphic.edge = DialoguePresentation.Blood; graphic.corner = 10f; graphic.thickness = 1.5f;
-        graphic.raycastTarget = false;
-        return graphic.rectTransform;
     }
 
     // (fills its parent: the caller pulls the edges in)

@@ -23,6 +23,7 @@ public class DialoguePresentation : MonoBehaviour
     [SerializeField] Button[] buttons;
     [SerializeField] TextMeshProUGUI[] labels;
     [SerializeField] bool choices;
+    [SerializeField] float frameAspect;   // > 0: the box is the Text Box art (Resources/HellscapeUI), this wide per unit of height
     public void SetCountdown(float seconds)
     {
         if (eyebrow == null || !eyebrow.TryGetComponent<TextMeshProUGUI>(out var label)) return;
@@ -104,8 +105,19 @@ public class DialoguePresentation : MonoBehaviour
         // Opaque charcoal surface with a fine neutral edge.
         v.shade = Node("Box", v.root);
         v.shade.SetAsFirstSibling();
-        var box = v.shade.gameObject.AddComponent<DialoguePanelGraphic>();
-        box.color = Ink; box.edge = Edge; box.corner = 10f; box.thickness = 1f; box.raycastTarget = false;
+        var art = isChoice ? null : Resources.Load<Sprite>("HellscapeUI/Text Box");
+        v.frameAspect = art != null ? art.rect.width / art.rect.height : 0f;
+        if (art != null)
+        {
+            var frame = v.shade.gameObject.AddComponent<Image>();
+            frame.sprite = art; frame.raycastTarget = false;
+            v.rule.gameObject.SetActive(false);   // the art has its own frame; the name keeps the speaker's colour
+        }
+        else
+        {
+            var box = v.shade.gameObject.AddComponent<DialoguePanelGraphic>();
+            box.color = Ink; box.edge = Edge; box.corner = 10f; box.thickness = 1f; box.raycastTarget = false;
+        }
         if (isChoice) Stretch(v.shade, -26f, -26f, -26f, -22f); else Stretch(v.shade, 0f, 0f, 0f, 0f);
 
         if (isChoice)
@@ -182,7 +194,7 @@ public class DialoguePresentation : MonoBehaviour
         if (choices) return;
         narration = on;
         speaker.gameObject.SetActive(!on);
-        rule.gameObject.SetActive(!on);
+        rule.gameObject.SetActive(!on && frameAspect <= 0f);
         if (shade != null) shade.gameObject.SetActive(!on);
         var m = body.fontMaterial;
         if (on)
@@ -225,6 +237,22 @@ public class DialoguePresentation : MonoBehaviour
         const float pad = 32f;
         float textWidth = choices ? width - 48f : width - pad * 2f;
         float bodyHeight = Mathf.Max(34f, body.GetPreferredValues(body.text, textWidth, Mathf.Infinity).y + 6f);
+        if (!choices && frameAspect > 0f && !narration)
+        {
+            // the Text Box art at its own proportions (taller only for a very long line), the text inside its frame,
+            // clear of the ornaments in the middle of the top and bottom edges
+            float inset = width * 0.045f;
+            float framedText = width - inset * 2f;
+            bodyHeight = Mathf.Max(34f, body.GetPreferredValues(body.text, framedText, Mathf.Infinity).y + 6f);
+            root.sizeDelta = new Vector2(width, Mathf.Max(width / frameAspect, bodyHeight + 132f));
+            Place(speaker.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(inset, -30f), new Vector2(framedText * 0.42f, 32f));
+            speaker.rectTransform.pivot = new Vector2(0f, 1f);
+            Place(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(inset, -74f), new Vector2(framedText, bodyHeight));
+            body.rectTransform.pivot = new Vector2(0f, 1f);
+            Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-inset, 22f), new Vector2(120f, 26f));
+            hint.rectTransform.pivot = new Vector2(1f, 0f);
+            return;
+        }
         if (!choices)
         {
             // the name (a square of the speaker's colour beside it), the words under it, the key in the corner

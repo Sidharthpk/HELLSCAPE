@@ -307,13 +307,14 @@ public class DialogueBox : MonoBehaviour
     static bool InOffice => Camera.main != null && Camera.main.gameObject.scene.name == "MainGameScene" && OfficeHorrorDirector.In(Camera.main.transform.position);
     static bool tutorialShown;
     GameObject tutorialCard;
+    public bool CardOpen => tutorialCard != null;   // an instruction card is up (the objective stays out of its way)
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetTutorial() => tutorialShown = false;
 
     IEnumerator Tutorial()
     {
         tutorialShown = true;
-        yield return Card("TALKING TO THE DEAD",
+        yield return Card("TALKING TO THE SOULS",
                  "<color=#C70D0A>[E]</color>  next line\n" +
                  "<color=#C70D0A>[1-4]</color>  choose your answer\n\n" +
                  "Some of them won't wait for you.", false);
@@ -330,13 +331,28 @@ public class DialogueBox : MonoBehaviour
         panel.transform.SetParent(parent, false);
         var rt = (RectTransform)panel.transform;
         rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
-        panel.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.88f);
-        var t = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
-        t.transform.SetParent(panel.transform, false);
-        t.font = text.font; t.fontSize = 30f; t.alignment = TextAlignmentOptions.Center; t.raycastTarget = false;
-        t.color = DialoguePresentation.Bone; t.lineSpacing = 14f;
-        t.text = "<size=150%><color=#C70D0A>" + title + "</color></size>\n\n" + body + "\n\n<alpha=#88>[E] to go on";
-        var trt = t.rectTransform; trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one; trt.offsetMin = new Vector2(160f, 0f); trt.offsetMax = new Vector2(-160f, 0f);
+        panel.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.7f);
+        // the Instruction Box art (Resources/HellscapeUI) in the middle: the title beside its red icon, the controls under it
+        var art = Resources.Load<Sprite>("HellscapeUI/Instruction Box");
+        var box = new GameObject("Box", typeof(RectTransform), typeof(UnityEngine.UI.Image)).GetComponent<UnityEngine.UI.Image>();
+        box.transform.SetParent(panel.transform, false);
+        box.sprite = art; box.raycastTarget = false;
+        if (art == null) box.color = new Color(0.035f, 0.042f, 0.052f, 1f);
+        const float h = 640f;
+        float w = art != null ? h * art.rect.width / art.rect.height : 700f;
+        box.rectTransform.sizeDelta = new Vector2(w, h);
+        TextMeshProUGUI Label(string s, float size, TextAlignmentOptions align, Vector2 min, Vector2 max)
+        {
+            var l = new GameObject("Text", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+            l.transform.SetParent(box.transform, false);
+            l.font = text.font; l.fontSize = size; l.alignment = align; l.raycastTarget = false;
+            l.color = DialoguePresentation.Bone; l.text = s;
+            var r = l.rectTransform; r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = min; r.offsetMax = max;
+            return l;
+        }
+        Label("<color=#C70D0A>" + title + "</color>", 34f, TextAlignmentOptions.MidlineLeft, new Vector2(w * .2f, h * .84f), new Vector2(-w * .07f, -h * .065f));
+        Label(body, 28f, TextAlignmentOptions.TopLeft, new Vector2(w * .09f, h * .16f), new Vector2(-w * .09f, -h * .22f)).lineSpacing = 14f;
+        Label("<alpha=#88>[E] to go on", 24f, TextAlignmentOptions.Bottom, new Vector2(w * .09f, h * .065f), new Vector2(-w * .09f, 0f));
         panel.transform.SetAsLastSibling();
         float scale = Time.timeScale;
         if (freeze) Time.timeScale = 0f;

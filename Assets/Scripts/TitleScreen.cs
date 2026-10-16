@@ -55,6 +55,7 @@ public class TitleScreen : MonoBehaviour
     private bool[] hudWasOn;
     private TMPro.TMP_Text hint;               // "PRESS ANY BUTTON", fading in and out
     private float hintAt = -1f;                // when the title finished appearing: no prompt (and no start) before that
+    private Image logo;                        // the HELLSCAPE title art (Resources/HellscapeUI), in place of the old text
 
     void Awake()
     {
@@ -70,6 +71,16 @@ public class TitleScreen : MonoBehaviour
         if (startButton != null) startButton.onClick.AddListener(StartGame);
         if (quitButton != null) quitButton.onClick.AddListener(Quit);
         if (title != null) titleHome = title.anchoredPosition;
+        var art = Resources.Load<Sprite>("HellscapeUI/HellScape Title");
+        if (title != null && art != null)
+        {
+            foreach (var tx in title.GetComponentsInChildren<TMPro.TMP_Text>()) tx.gameObject.SetActive(false);
+            logo = new GameObject("Logo", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            logo.transform.SetParent(title, false);
+            var lr = logo.rectTransform; lr.anchorMin = Vector2.zero; lr.anchorMax = Vector2.one; lr.offsetMin = lr.offsetMax = Vector2.zero;
+            logo.sprite = art; logo.preserveAspect = true; logo.raycastTarget = false; logo.color = new Color(1f, 1f, 1f, 0f);
+            title.sizeDelta = new Vector2(1400f, 1400f * art.rect.height / art.rect.width);
+        }
         if (ui != null) { var h = ui.transform.Find("Hint"); if (h != null) { hint = h.GetComponent<TMPro.TMP_Text>(); if (hint != null) { hint.text = "PRESS ANY BUTTON"; hint.fontSize = 34f; } } }
         if (ui != null && dim > 0f)
         {
@@ -109,7 +120,8 @@ public class TitleScreen : MonoBehaviour
             StartCoroutine(Volume(music, 0.55f, 3f));
         }
         StartCoroutine(core != null ? CoreRide() : Shots());
-        if (title != null) StartCoroutine(TitleLetters(1.4f, 0.28f, 0.7f));
+        if (logo != null) StartCoroutine(LogoIn(1.4f, 2.2f));
+        else if (title != null) StartCoroutine(TitleLetters(1.4f, 0.28f, 0.7f));
         else hintAt = Time.unscaledTime;
         yield return new WaitForSeconds(1.2f);
         yield return Fade(ui, 1f, 2f);
@@ -180,6 +192,18 @@ public class TitleScreen : MonoBehaviour
                 yield return null;
             }
         }
+    }
+
+    // the title art fades up out of the dark
+    IEnumerator LogoIn(float delay, float fade)
+    {
+        for (float t = 0f; t < delay + fade && !starting; t += Time.deltaTime)
+        {
+            logo.color = new Color(1f, 1f, 1f, Mathf.SmoothStep(0f, 1f, (t - delay) / fade));
+            yield return null;
+        }
+        logo.color = Color.white;
+        hintAt = Time.unscaledTime;
     }
 
     // the title appears one letter at a time: each fades in `fade` seconds after the one before, `step` apart

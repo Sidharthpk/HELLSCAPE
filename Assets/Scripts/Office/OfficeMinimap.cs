@@ -59,6 +59,7 @@ public class OfficeMinimap : MonoBehaviour
     GameObject mini, full; RectTransform miniMap, fullDot, miniArrow;
     TextMeshProUGUI roomText; string room; float roomShown;
     bool open;
+    Canvas mapCanvas;
 
     public void Init(Transform body, Bounds office) { player = body; zone = office; }
 
@@ -76,8 +77,8 @@ public class OfficeMinimap : MonoBehaviour
 
         var rim = Make<Image>("Minimap", canvas.transform, new Vector2(Size + 10f, Size + 10f)); rim.sprite = disc; rim.color = Rim;
         rim.rectTransform.anchorMin = rim.rectTransform.anchorMax = rim.rectTransform.pivot = Vector2.one;
-        rim.rectTransform.anchoredPosition = new Vector2(-30f, -110f);   // under the objective strip (90)
-        mini = rim.gameObject;
+        mini = rim.gameObject;   // (placed under the objective box in Update)
+        mapCanvas = c;
         var face = Make<Image>("Face", mini.transform, new Vector2(Size, Size)); face.sprite = disc; face.color = Back;
         face.gameObject.AddComponent<Mask>();
         var map = Make<RawImage>("Plan", face.transform, zone.size.x * Size / (2f * Range) * new Vector2(1f, aspect)); map.texture = plan; map.color = Floor;
@@ -127,6 +128,9 @@ public class OfficeMinimap : MonoBehaviour
         if (mini.activeSelf != (show && !open)) mini.SetActive(show && !open);
         if (full.activeSelf != (show && open)) full.SetActive(show && open);
         if (!show) return;
+
+        // top right, under the objective box (it docks in the same corner)
+        ((RectTransform)mini.transform).anchoredPosition = new Vector2(-36f, -Mathf.Max(30f, ObjectiveUI.TopInset(mapCanvas) + 16f));
 
         // the arrow points the way you look (north is up on the plan; the body turns with the look)
         var facing = Quaternion.Euler(0f, 0f, -player.eulerAngles.y);
