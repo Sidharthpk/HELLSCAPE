@@ -33,7 +33,7 @@ static class SoundManagerMenu
         ("Prologue Chase", "", ""),
 
         ("Hell City", "Wake heartbeat", "Heartbeat when you come to on the red street (now: WakeHeartbeat)."),
-        ("Hell City", "Hell ambience", "The hell city's background (now: D&D Ambience Hell Cries)."),
+        ("Hell City", "Hell ambience", "The hell city's background loop (now: hell_ambience)."),
         ("Hell City", "Eerie music (street trigger)", "Music that starts at the street trigger in the hell city (now: Song of Unhealing)."),
         ("Hell City", "Zombie moans", "The damned moaning (now: Half Life 2 zombie cries reversed). Several clips = variety."),
         ("Hell City", "Zombie scream", "A zombie screaming when it notices you (built-in: its moan, pitched down)."),

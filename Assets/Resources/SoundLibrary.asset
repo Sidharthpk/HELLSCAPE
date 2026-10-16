@@ -135,7 +135,7 @@ MonoBehaviour:
       - {fileID: 8300000, guid: 47eecacc55e21fc4c929121815ff6f76, type: 3}
       volume: 1
     - name: Hell ambience
-      note: 'The hell city''s background (now: D&D Ambience Hell Cries).'
+      note: 'The hell city''s background loop (now: hell_ambience).'
       clips:
       - {fileID: 8300000, guid: 6715c03982488f149b23a38ec24d49c1, type: 3}
       volume: 1
