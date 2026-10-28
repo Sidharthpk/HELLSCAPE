@@ -36,7 +36,7 @@ public class RealmBlink : MonoBehaviour
     public IEnumerator Animate(float target, float duration)
     {
         float from = Closed;
-        for (float elapsed = 0f; elapsed < duration; elapsed += Mathf.Min(Time.deltaTime, 1f / 30f))
+        for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
         {
             Set(Mathf.Lerp(from, target, Mathf.SmoothStep(0f, 1f, elapsed / duration)));
             yield return null;

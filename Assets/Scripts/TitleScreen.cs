@@ -2,10 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
-// The start screen: a slow cinematic drift through the hell city (the red sky, the lamps, the lost souls in the air)
-// with the HELLSCAPE title and a minimal menu over it. Nothing of the game runs behind it. The city shown is a
-// visual-only copy of HellWorld (every script, collider and agent stripped), so the real HellWorld never wakes
-// early. START fades to black and loads the prologue.
+// Animated kaleidoscope backdrop with the existing title, music and prologue transition.
 public class TitleScreen : MonoBehaviour
 {
     [System.Serializable]
@@ -40,7 +37,7 @@ public class TitleScreen : MonoBehaviour
     public CanvasGroup titleGroup;
     public Button startButton, quitButton;
 
-    [Range(0f, 1f)] public float dim = 0.3f;   // the city behind the title, a little darker
+    [Range(0f, 1f)] public float dim = 0.3f;   // extra dimming behind the title
 
     [Header("Story")]
     public string prologueScene = "Prologue";   // START plays this first (the flat, Derek, the roof); empty = start here
@@ -48,8 +45,13 @@ public class TitleScreen : MonoBehaviour
     [Header("Sound")]
     public AudioSource music;               // a procedural drone if it has no clip
     public AudioSource sfx;
+    public float stingHit = 3.43f;          // seconds into the opening sting (Sound Manager: Title/Opening sting) where the beat lands: the logo slams in on it
+    public float musicAfterHit = 3.5f;      // the title music fades in this long after the hit, under the sting's tail
+    private AudioSource sting;
+    private double stingDspStart;
+    private float shakeUntil;
 
-    private GameObject city;
+    private Material backgroundMaterial;
     private bool starting;
     private Vector2 titleHome;
     private bool[] hudWasOn;
@@ -65,7 +67,15 @@ public class TitleScreen : MonoBehaviour
         hudWasOn = new bool[hideDuring.Length];
         for (int i = 0; i < hideDuring.Length; i++)
             if (hideDuring[i] != null) { hudWasOn[i] = hideDuring[i].enabled; hideDuring[i].enabled = false; }
-        if (cam != null) cam.enabled = true;
+        if (cam != null)
+        {
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = Color.black;
+            cam.cullingMask = 0;
+            cam.enabled = true;
+        }
+        if (core != null) core.gameObject.SetActive(false);
+        CreateBackground();
         if (cut != null) cut.alpha = 1f;
         if (ui != null) { ui.alpha = 0f; ui.interactable = false; }
         if (startButton != null) startButton.onClick.AddListener(StartGame);
@@ -79,6 +89,15 @@ public class TitleScreen : MonoBehaviour
             logo.transform.SetParent(title, false);
             var lr = logo.rectTransform; lr.anchorMin = Vector2.zero; lr.anchorMax = Vector2.one; lr.offsetMin = lr.offsetMax = Vector2.zero;
             logo.sprite = art; logo.preserveAspect = true; logo.raycastTarget = false; logo.color = new Color(1f, 1f, 1f, 0f);
+            // UI mesh effects follow the logo's alpha and scale, including the music-drop reveal.
+            var outline = logo.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0.015f, 0f, 0f, 0.8f);
+            outline.effectDistance = new Vector2(3f, -3f);
+            outline.useGraphicAlpha = true;
+            var shadow = logo.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            shadow.effectDistance = new Vector2(10f, -14f);
+            shadow.useGraphicAlpha = true;
             title.sizeDelta = new Vector2(1400f, 1400f * art.rect.height / art.rect.width);
         }
         if (ui != null) { var h = ui.transform.Find("Hint"); if (h != null) { hint = h.GetComponent<TMPro.TMP_Text>(); if (hint != null) { hint.text = "PRESS ANY BUTTON"; hint.fontSize = 34f; } } }
@@ -101,15 +120,50 @@ public class TitleScreen : MonoBehaviour
         yield return null;
         foreach (var b in lockDuring) if (b != null) b.enabled = false;
 
-        if (sleep.hellSkybox != null) RenderSettings.skybox = sleep.hellSkybox;
-        RenderSettings.fogColor = sleep.hellFogColor;
-        RenderSettings.fogDensity = menuFogDensity;
-        if (sleep.sun != null) { sleep.sun.color = sleep.hellSunColor; sleep.sun.intensity = sleep.hellSunIntensity; }
-        if (sleep.dayWorld != null) sleep.dayWorld.SetActive(false);
-        if (core != null) RenderSettings.fogDensity = coreFogDensity;
-        else city = VisualCopy(sleep.hellWorld);
-        DynamicGI.UpdateEnvironment();
+        if (sleep != null && sleep.dayWorld != null) sleep.dayWorld.SetActive(false);
+        StartCoroutine(Fade(cut, 0f, 1.2f));
+        // the opening sting first (the logo lands on its beat), then the title music under its tail
+        var stingClip = Sounds.Clip("Title/Opening sting", null);
+        if (stingClip != null) StartCoroutine(StingIntro(stingClip));
+        else
+        {
+            StartMusic();
+            if (logo != null) StartCoroutine(LogoIn(1.4f, 2.2f));
+            else if (title != null) StartCoroutine(TitleLetters(1.4f, 0.28f, 0.7f));
+            else hintAt = Time.unscaledTime;
+        }
+        yield return new WaitForSeconds(1.2f);
+        yield return Fade(ui, 1f, 2f);
+        if (ui != null) ui.interactable = true;
+    }
 
+    void CreateBackground()
+    {
+        if (ui == null) return;
+        var go = new GameObject("Kaleidoscope Background", typeof(RectTransform), typeof(RawImage));
+        go.transform.SetParent(ui.transform.parent, false);
+        go.transform.SetAsFirstSibling();
+        var image = go.GetComponent<RawImage>();
+        var rt = image.rectTransform;
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        image.raycastTarget = false;
+        image.color = Color.black;
+        var shader = Resources.Load<Shader>("TitleKaleidoscope");
+        if (shader == null) return;
+        backgroundMaterial = new Material(shader);
+        image.material = backgroundMaterial;
+        image.color = Color.white;
+    }
+
+    void OnDestroy()
+    {
+        if (backgroundMaterial != null) Destroy(backgroundMaterial);
+    }
+
+    void StartMusic()
+    {
         if (MusicManager.HasMusic("Title")) MusicManager.Area("Title");   // your own title music (Sound Manager)
         else if (music != null)
         {
@@ -119,79 +173,62 @@ public class TitleScreen : MonoBehaviour
             music.Play();
             StartCoroutine(Volume(music, 0.55f, 3f));
         }
-        StartCoroutine(core != null ? CoreRide() : Shots());
-        if (logo != null) StartCoroutine(LogoIn(1.4f, 2.2f));
-        else if (title != null) StartCoroutine(TitleLetters(1.4f, 0.28f, 0.7f));
-        else hintAt = Time.unscaledTime;
-        yield return new WaitForSeconds(1.2f);
-        yield return Fade(ui, 1f, 2f);
-        if (ui != null) ui.interactable = true;
     }
 
-    // HellWorld's look without any of its behaviour: only visuals, the hell volume, and the harmless ambient movers
-    static GameObject VisualCopy(GameObject source)
+    IEnumerator StingIntro(AudioClip clip)
     {
-        if (source == null) return null;
-        var copy = Instantiate(source);   // inactive, like the original: nothing has woken up yet
-        copy.name = "HellWorld (Title)";
-        foreach (var mb in copy.GetComponentsInChildren<MonoBehaviour>(true))
-            if (!(mb is UnityEngine.Rendering.Volume) && !(mb is LostSoul) && !(mb is LampFlicker) && !(mb is LightFlicker))
-                DestroyImmediate(mb);
-        foreach (var a in copy.GetComponentsInChildren<UnityEngine.AI.NavMeshAgent>(true)) DestroyImmediate(a);
-        foreach (var j in copy.GetComponentsInChildren<Joint>(true)) DestroyImmediate(j);
-        foreach (var r in copy.GetComponentsInChildren<Rigidbody>(true)) DestroyImmediate(r);
-        foreach (var c in copy.GetComponentsInChildren<Collider>(true)) DestroyImmediate(c);
-        copy.SetActive(true);
-        return copy;
-    }
-
-    IEnumerator Shots()
-    {
-        if (shots == null || shots.Length == 0 || cam == null) yield break;
-        for (int i = 0; !starting; i = (i + 1) % shots.Length)
+        // the first frames of the title stall (shaders warming up): the sting would run on through the
+        // stall while the logo can't move, and land late. Wait for a few smooth frames first (3 s at most).
+        int smooth = 0;
+        for (float waited = 0f; smooth < 5 && waited < 3f; waited += Time.unscaledDeltaTime)
         {
-            var s = shots[i];
-            float d = Mathf.Max(2f, s.duration);
-            StartCoroutine(Fade(cut, 0f, 1.2f));
-            for (float t = 0f; t < d && !starting; t += Time.deltaTime)
-            {
-                float k = Mathf.SmoothStep(0f, 1f, t / d);
-                Vector3 p = Vector3.Lerp(s.fromPos, s.toPos, k);
-                p += new Vector3(Mathf.PerlinNoise(t * 0.3f, 1f) - 0.5f, Mathf.PerlinNoise(2f, t * 0.3f) - 0.5f, 0f) * 0.25f;   // handheld drift
-                cam.transform.SetPositionAndRotation(p, Quaternion.LookRotation(Vector3.Lerp(s.fromLook, s.toLook, k) - p));
-                if (t > d - 1.2f && cut != null && cut.alpha < 0.01f) StartCoroutine(Fade(cut, 1f, 1.2f));
-                yield return null;
-            }
+            smooth = Time.unscaledDeltaTime < .05f ? smooth + 1 : 0;
+            yield return null;
         }
+        if (starting) yield break;
+        sting = gameObject.AddComponent<AudioSource>();
+        sting.clip = clip; sting.volume = Sounds.Volume("Title/Opening sting");
+        sting.spatialBlend = 0f; sting.playOnAwake = false; sting.loop = false;
+        // Share the audio engine clock with the reveal; frame stalls cannot shift the beat.
+        stingDspStart = AudioSettings.dspTime + 0.1;
+        sting.PlayScheduled(stingDspStart);
+        StartCoroutine(MusicAfter(stingHit + musicAfterHit));
+        if (logo != null) StartCoroutine(LogoOnBeat());
+        else hintAt = Time.unscaledTime;
     }
 
-    // inside the tunnel: the clip twists the hex tube while the camera flies down its middle, swaying and rolling a little
-    IEnumerator CoreRide()
+    IEnumerator MusicAfter(float seconds)
     {
-        if (cam == null) yield break;
-        var lightGo = new GameObject("CoreGlow", typeof(Light));
-        lightGo.transform.SetParent(cam.transform, false);
-        var glow = lightGo.GetComponent<Light>();
-        glow.type = LightType.Point; glow.color = new Color(1f, 0.35f, 0.15f); glow.range = 40f; glow.intensity = 6f;
+        while (!starting && AudioSettings.dspTime - stingDspStart < seconds) yield return null;
+        if (!starting) StartMusic();
+    }
 
-        var root = core.transform;
-        core.speed = 10.4f / coreRideTime;                           // the clip is ~10.4s: stretch it over the whole ride
+    // with the sting: the logo creeps up out of the dark through the whole build-up, then BOOM on the beat
+    IEnumerator LogoOnBeat()
+    {
+        float hit = Mathf.Max(0.01f, stingHit);
         while (!starting)
         {
-            core.Play(0, 0, 0f);
-            StartCoroutine(Fade(cut, 0f, 1.2f));
-            for (float t = 0f; t < coreRideTime && !starting; t += Time.deltaTime)
-            {
-                float k = t / coreRideTime;
-                float z = Mathf.Lerp(50f, -105f, k);
-                var local = new Vector3(Mathf.Sin(t * 0.5f) * 0.8f, 3.6f + Mathf.Sin(t * 0.37f) * 0.6f, z);
-                cam.transform.SetPositionAndRotation(root.TransformPoint(local),
-                    root.rotation * Quaternion.Euler(Mathf.Sin(t * 0.3f) * 3f, 180f + Mathf.Sin(t * 0.21f) * 6f, Mathf.Sin(t * 0.17f) * 12f + t * 1.5f));
-                cam.fieldOfView = 68f + Mathf.Sin(t * 0.6f) * 5f;
-                if (t > coreRideTime - 1.2f && cut != null && cut.alpha < 0.01f) StartCoroutine(Fade(cut, 1f, 1.2f));
-                yield return null;
-            }
+            float t = Mathf.Max(0f, (float)(AudioSettings.dspTime - stingDspStart));
+            if (t >= hit) break;
+            logo.color = new Color(1f, 1f, 1f, .22f * Mathf.Pow(t / hit, 1.6f));
+            yield return null;
         }
+        if (starting) yield break;
+        // Full opacity on the first rendered frame of the drop, with no extra fade delay.
+        logo.color = Color.white;
+        if (ui != null) ui.alpha = 1f;
+        if (titleGroup != null) titleGroup.alpha = 1f;
+        hintAt = Time.unscaledTime;
+        shakeUntil = Time.unscaledTime + .35f;
+        for (float t = 0f; t < .6f && !starting; t += Time.unscaledDeltaTime)
+        {
+            float k = 1f - (1f - t / .6f) * (1f - t / .6f);   // ease out
+            logo.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.25f, 1f, k);   // the punch
+            yield return null;
+        }
+        logo.color = Color.white;
+        logo.rectTransform.localScale = Vector3.one;
     }
 
     // the title art fades up out of the dark
@@ -235,6 +272,11 @@ public class TitleScreen : MonoBehaviour
 
     void Update()
     {
+        if (backgroundMaterial != null)
+        {
+            backgroundMaterial.SetFloat("_MotionTime", Time.unscaledTime);
+            backgroundMaterial.SetFloat("_Aspect", Screen.width / (float)Mathf.Max(1, Screen.height));
+        }
         if (!Showing) return;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -242,8 +284,11 @@ public class TitleScreen : MonoBehaviour
         // the title glitches now and then: a sideways jolt and a dropout
         if (title != null && titleGroup != null)
         {
-            bool glitch = Mathf.PerlinNoise(Time.time * 0.9f, 3.3f) > 0.72f && Random.value < 0.35f;
+            bool glitch = hintAt >= 0f && Time.unscaledTime > hintAt + 1f && Mathf.PerlinNoise(Time.time * 0.9f, 3.3f) > 0.72f && Random.value < 0.35f;
             title.anchoredPosition = titleHome + (glitch ? new Vector2(Random.Range(-14f, 14f), Random.Range(-3f, 3f)) : Vector2.zero);
+            // the beat: a short, hard shake that dies away
+            float shake = Mathf.Clamp01((shakeUntil - Time.unscaledTime) / .35f);
+            if (shake > 0f) title.anchoredPosition += Random.insideUnitCircle * 22f * shake;
             titleGroup.alpha = glitch && Random.value < 0.4f ? 0.35f : 1f;
         }
 
@@ -268,6 +313,7 @@ public class TitleScreen : MonoBehaviour
         MusicManager.Stop(2f);
         StartCoroutine(Fade(ui, 0f, 0.8f));
         if (music != null) StartCoroutine(Volume(music, 0f, 2f));
+        if (sting != null) StartCoroutine(Volume(sting, 0f, 0.8f));
         yield return Fade(cut, 1f, 1.2f);
         yield return new WaitForSeconds(0.6f);
 

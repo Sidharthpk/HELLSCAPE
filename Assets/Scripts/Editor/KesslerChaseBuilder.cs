@@ -27,10 +27,11 @@ public static class KesslerChaseBuilder
     const string RunFbx = "Assets/Enemies/RUNKESSLER.fbx";
     const string AnimDir = "Assets/Materials/OfficeAct/Anim";
     const string WalkerController = "Assets/Scenes/Controllers/ZombieWalkerController.controller";
-    const string BodyFbx = "Assets/Enemies/body-bag/source/Body.fbx";
+    // what hangs from the roof now: the severed torso (Assets/Floating), longest side in metres
+    static readonly (string key, float size)[] Parts = { ("torso", 0.8f) };
     const string BloodMat = "Assets/Materials/OfficeAct/BloodDrip.mat";
     const int Pieces = 4;                   // about 36 m each (user: "make the tunnel longer": it was 2)
-    const float HookHeight = 5.7f, BagLength = 1.9f, BagBottom = 0.75f;   // (the duct along the roof is 5.8 m up)
+    const float HookHeight = 5.7f, BagBottom = 0.75f;   // (the duct along the roof is 5.8 m up)
 
     [MenuItem("HellScape/Office/Kessler Tunnel Chase")]
     public static void Menu() => Debug.Log(Build());
@@ -279,9 +280,7 @@ public static class KesslerChaseBuilder
             l.type = LightType.Point; l.color = new Color(1f, 0.2f, 0.08f); l.intensity = 5f; l.range = 9f; l.shadows = LightShadows.None;
         }
 
-        var bagModel = AssetDatabase.LoadAssetAtPath<GameObject>(BodyFbx);
-        var officeBag = office.Find("Body");
-        Material bagMat = officeBag != null ? officeBag.GetComponentsInChildren<Renderer>(true).Select(r => r.sharedMaterial).FirstOrDefault(m => m != null) : null;
+        var partPaths = Parts.Select(p => AssetDatabase.FindAssets("t:Model", new[] { "Assets/Floating" }).Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault(f => f.Contains("_" + p.key + "_"))).ToArray();
         Material ropeMat = mats.FirstOrDefault(m => m != null && m.name.Contains("Pipe")) ?? wallMat;
         var bodies = new GameObject("Hanging bodies").transform;
         bodies.SetParent(root, false);
@@ -295,12 +294,15 @@ public static class KesslerChaseBuilder
         EditorUtility.SetDirty(blood);
         var rnd = new System.Random(1304);
         int hung = 0;
-        if (bagModel != null)
+        if (partPaths.All(f => f != null))
             for (float s = 14f; s < total - 5f; s += 2.1f + (float)rnd.NextDouble() * 1.3f)   // (none by the door: the cutscenes look back at it)
             {
                 float aside = ((float)rnd.NextDouble() * 2f - 1f) * 1.7f;   // over the walkway and the foot of the slopes: you can't not brush them
                 Vector3 hook = Route(s, aside, HookHeight, out _);
-                Hang(bodies, hook, bagModel, bagMat, ropeMat, (float)rnd.NextDouble() * 360f, new[] { player, kc.damned.transform }, blood, 1.5f + (float)rnd.NextDouble() * 3.5f);
+                int kind = (int)(rnd.NextDouble() * Parts.Length) % Parts.Length;
+                var partModel = AssetDatabase.LoadAssetAtPath<GameObject>(partPaths[kind]);
+                var partMat = AssetDatabase.LoadAssetAtPath<Material>(System.IO.Path.ChangeExtension(partPaths[kind], ".mat"));
+                Hang(bodies, hook, partModel, partMat, ropeMat, Parts[kind].size, (float)rnd.NextDouble() * 360f, new[] { player, kc.damned.transform }, blood, 1.5f + (float)rnd.NextDouble() * 3.5f);
                 // and what's dripped out of it so far
                 var pool = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 Object.DestroyImmediate(pool.GetComponent<Collider>());
@@ -314,11 +316,38 @@ public static class KesslerChaseBuilder
                 hung++;
             }
 
+        // severed parts lying about the walkway: heavy rigidbodies with mesh colliders (SiloBodyParts), shoved aside slowly
+        var floorParts = new GameObject("Body parts (floor)");
+        floorParts.transform.SetParent(root, false);
+        floorParts.transform.localScale = new Vector3(1f / root.lossyScale.x, 1f / root.lossyScale.y, 1f / root.lossyScale.z);
+        floorParts.transform.position = Route(0f, 0f, 0.03f, out _);
+        var floorMgr = floorParts.AddComponent<SiloBodyParts>();
+        floorMgr.bob = 0f; floorMgr.sink = 0f;
+        var partSizes = new[] { ("arm", 0.8f), ("foot", 0.28f), ("hand", 0.21f), ("head", 0.26f), ("leg", 0.95f), ("torso", 0.75f) };
+        var allParts = AssetDatabase.FindAssets("t:Model", new[] { "Assets/Floating" }).Select(AssetDatabase.GUIDToAssetPath).OrderBy(f => f).ToArray();
+        int lying = 0;
+        for (float s = 10f; s < total - 8f && allParts.Length > 0; s += 2.4f + (float)rnd.NextDouble() * 2f)
+        {
+            string path = allParts[lying % allParts.Length];
+            var go = (GameObject)Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path), floorParts.transform);
+            foreach (var col in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(col);
+            var pm = AssetDatabase.LoadAssetAtPath<Material>(System.IO.Path.ChangeExtension(path, ".mat"));
+            if (pm != null) foreach (var rr in go.GetComponentsInChildren<Renderer>()) rr.sharedMaterial = pm;
+            float want = partSizes.FirstOrDefault(k => path.Contains("_" + k.Item1 + "_")).Item2;
+            var prs = go.GetComponentsInChildren<Renderer>();
+            Bounds pb = prs[0].bounds; foreach (var rr in prs) pb.Encapsulate(rr.bounds);
+            go.name = "Body part";
+            go.transform.localScale = Vector3.one * (want * (0.85f + 0.3f * (float)rnd.NextDouble()) / Mathf.Max(0.001f, Mathf.Max(pb.size.x, pb.size.y, pb.size.z)));
+            go.transform.rotation = Quaternion.Euler(pb.size.y >= Mathf.Max(pb.size.x, pb.size.z) ? 90f : 0f, (float)rnd.NextDouble() * 360f, 0f);
+            go.transform.position = Route(s, ((float)rnd.NextDouble() * 2f - 1f) * 1.5f, 0.03f, out _);
+            lying++;
+        }
+
         // ---------------------------------------------------------------- Kessler: his run, and Tomas
         kc.damnedAnim.runtimeAnimatorController = ChaseController(kc.damnedAnim);
         EditorUtility.SetDirty(kc.damnedAnim);
         Transform tomas = null; Animator tomasAnim = null;
-        var ghost = office.Find("Ghost - Tomas");
+        Transform ghost = null;   // (Tomas no longer holds Kessler on the bridge: chase.tomas stays empty and every Tomas beat is skipped)
         if (ghost != null)
         {
             tomas = Object.Instantiate(ghost.gameObject, root).transform;
@@ -500,12 +529,12 @@ public static class KesslerChaseBuilder
 
     // ---------------------------------------------------------------- a body on a rope
 
-    static void Hang(Transform parent, Vector3 hook, GameObject bagModel, Material bagMat, Material ropeMat, float turn, Transform[] pushers, Material blood, float drips)
+    static void Hang(Transform parent, Vector3 hook, GameObject bagModel, Material bagMat, Material ropeMat, float len, float turn, Transform[] pushers, Material blood, float drips)
     {
         var pivot = new GameObject("Hanging body").transform;
         pivot.SetParent(parent, false);
         pivot.position = hook;   // (square to the world while the bag is measured and fitted; turned at the end)
-        float rope = HookHeight - BagBottom - BagLength;
+        float BagLength = len, rope = HookHeight - BagBottom - len;
 
         var line = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         Object.DestroyImmediate(line.GetComponent<Collider>());
@@ -555,6 +584,7 @@ public static class KesslerChaseBuilder
         var swing = pivot.gameObject.AddComponent<HangingBody>();
         swing.length = rope + BagLength * 0.5f;
         swing.pushers = pushers;
+        swing.colliderHeight = len; swing.colliderRadius = Mathf.Clamp(len * 0.3f, 0.15f, 0.3f);
     }
 
     // ---------------------------------------------------------------- his run

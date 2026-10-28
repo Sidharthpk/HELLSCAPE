@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
@@ -37,7 +38,14 @@ public class OfficeFlashback : MonoBehaviour
         var amb = d.ambience; var street = amb != null ? amb.clip : null;
         var office = Sounds.Clip("Prologue/Office ambience", null);
         if (amb != null && office != null) { amb.Stop(); amb.clip = office; amb.loop = true; amb.Play(); }
-        yield return Play(d);
+        var opening = GetComponent<OfficeOpeningSequence>();
+        if (opening != null && opening.room != null)
+        {
+            yield return opening.Run(d);
+            yield return DriveOut(d, d.cine.transform, d.cine);
+            CutsceneHUD.Hide(false);
+        }
+        else yield return Play(d);
         if (amb != null && office != null) { amb.Stop(); amb.clip = street; amb.Play(); }
         Playing = false;
     }
@@ -148,7 +156,7 @@ public class OfficeFlashback : MonoBehaviour
         }
 
         // out through the lobby to the front door, and the garage (Maya on the radio as you go)
-        Say(HS.S("17-19"));
+        Say(HS5.S("P01_p01_start"));   // V5.1: One more drop. Then bed.
         yield return Path(ct, Leg(ToDoor), walkSpeed * 0.8f);
         yield return Wait();
         yield return d.fader.FadeTo(1f, 0.8f);
@@ -170,7 +178,7 @@ public class OfficeFlashback : MonoBehaviour
         var van = FindFirstObjectByType<PrologueVan>(FindObjectsInactive.Include);
         var bay = GameObject.Find("Garage parking bay");
         var drive = GameObject.Find("Garage driveway");
-        if (van == null || bay == null || drive == null) yield break;
+        if (van == null || bay == null) yield break;
 
         Rigidbody rb = van.body;
         Vector3 home = van.transform.position;
@@ -178,25 +186,76 @@ public class OfficeFlashback : MonoBehaviour
         bool kin = rb != null && rb.isKinematic;
         if (rb != null) rb.isKinematic = true;
 
-        Vector3 from = bay.transform.position, to = drive.transform.position;
+        Vector3 from = bay.transform.position, to = drive != null ? drive.transform.position : from + bay.transform.forward * 9f;
         Vector3 dir = (to - from); dir.y = 0f; dir.Normalize();
         van.transform.SetPositionAndRotation(from, Quaternion.LookRotation(dir));
-        ct.position = StreetCam;
-        ct.rotation = Quaternion.LookRotation(Vector3.Lerp(from, to, 0.5f) + Vector3.up * 1.2f - StreetCam);
+        var opening = GetComponent<OfficeOpeningSequence>();
+        var depotMercer = GameObject.Find("Mercer (at the depot)");
+        var walker = opening != null ? opening.mercerWalk : null;
+        var mercer = walker != null ? null : opening != null && opening.mercer != null ? opening.mercer.gameObject : depotMercer;   // (the walking Mercer replaces the one standing at the bay)
+        Vector3 mercerHome = mercer != null ? mercer.transform.position : default;
+        Quaternion mercerRotation = mercer != null ? mercer.transform.rotation : default;
+        if (GetComponent<OfficeOpeningSequence>() != null && mercer != null)
+        {
+            if (depotMercer != null && depotMercer != mercer) depotMercer.SetActive(false);
+            mercer.SetActive(true);
+            Vector3 feet = from - van.transform.right * 2.1f + van.transform.forward * 1.6f;
+            if(Physics.Raycast(feet+Vector3.up*2f,Vector3.down,out var ground,6f,~0,QueryTriggerInteraction.Ignore)) feet=ground.point;
+            mercer.transform.SetPositionAndRotation(feet + Vector3.up*(opening.mercer != null ? mercerHome.y : 0f), Quaternion.LookRotation(-van.transform.right));
+            if (opening.mercer != null) opening.mercer.Play("Idle",0,0f);
+            ct.position = mercer.transform.position - van.transform.right * 2.8f + van.transform.forward * .4f + Vector3.up * 1.6f;
+            ct.LookAt(mercer.transform.position + Vector3.up * 1.45f);
+        }
+        else ct.position = StreetCam;
+        if (GetComponent<OfficeOpeningSequence>() == null || mercer == null) ct.rotation = Quaternion.LookRotation(Vector3.Lerp(from, to, 0.5f) + Vector3.up * 1.2f - ct.position);
         cam.fieldOfView = 55f;
         var night = Night(cam);
+        GameObject faceLight = null;
+        if(opening != null)
+        {
+            faceLight = new GameObject("Depot conversation light");
+            faceLight.transform.position = ct.position+Vector3.up*.4f;
+            var lamp=faceLight.AddComponent<Light>(); lamp.type=LightType.Point; lamp.range=8f; lamp.intensity=3f; lamp.color=new Color(1f,.86f,.7f);
+        }
         cam.enabled = true;
         d.StartCoroutine(d.fader.FadeTo(0f, 0.8f));
 
+        if (walker != null)
+        {
+            if (depotMercer != null) depotMercer.SetActive(false);
+            if (faceLight != null) Destroy(faceLight);
+            yield return WalkWithMercer(d, ct, cam, walker, from, dir);
+            yield return d.fader.FadeTo(1f, .35f);   // (you get in: the engine is next)
+            walker.gameObject.SetActive(false);
+            ct.position = from - van.transform.right*7f + dir*4f + Vector3.up*2.5f;
+            ct.LookAt(Vector3.Lerp(from, to, .5f) + Vector3.up * 1.2f);
+            yield return d.fader.FadeTo(0f, .5f);
+        }
+
+        if (GetComponent<OfficeOpeningSequence>() != null && mercer != null)
+        {
+            yield return OfficeOpeningSequence.Speak(HS5.S("P02_dock_enter") + "|" + HS5.S("P02_manifest_pickup") + "|" + HS5.S("P02_dock_leave"));
+            yield return d.fader.FadeTo(1f, .35f);
+            ct.position = from - van.transform.right*7f + dir*4f + Vector3.up*2.5f;
+            ct.LookAt(Vector3.Lerp(from, to, .5f) + Vector3.up * 1.2f);
+            mercer.transform.SetPositionAndRotation(mercerHome, mercerRotation);
+            if(opening.mercer != null) mercer.SetActive(false);
+            if(depotMercer != null && depotMercer != mercer) depotMercer.SetActive(true);
+            if(faceLight != null) Destroy(faceLight);
+            yield return d.fader.FadeTo(0f, .5f);
+        }
+
         if (van.engine != null) { van.engine.loop = true; van.engine.volume = 0.25f; van.engine.Play(); }
         yield return new WaitForSeconds(1.5f);   // the engine turning over
-        const float seconds = 2f;
-        float total = Vector3.Distance(from, to);
+        // out of the bay, then a left turn onto the street (straight on is the house across it)
+        Vector3 corner = from + dir * 9f, turnTo = corner - Vector3.Cross(Vector3.up, dir) * 8f;
+        const float seconds = 2.4f;
         for (float t = 0f; t < seconds; t += Time.deltaTime)
         {
-            float k = Mathf.Clamp01(t / seconds);
-            Vector3 p = Vector3.Lerp(from, to, k * k);   // from rest, picking up
-            van.transform.position = p;                  // (never leaves the line from the bay to the drive: no walls, no footpath)
+            float k = Mathf.Clamp01(t / seconds); k *= k;   // from rest, picking up
+            Vector3 p = Vector3.Lerp(Vector3.Lerp(from, corner, k), Vector3.Lerp(corner, turnTo, k), k);
+            Vector3 ahead = Vector3.Lerp(corner - from, turnTo - corner, k);
+            van.transform.SetPositionAndRotation(p, Quaternion.LookRotation(ahead));
             ct.rotation = Quaternion.Slerp(ct.rotation, Quaternion.LookRotation(p + Vector3.up * 1.2f - ct.position), 3f * Time.deltaTime);
             if (t > seconds - 0.6f) d.fader.fade.alpha = Mathf.InverseLerp(seconds - 0.6f, seconds, t);
             yield return null;
@@ -211,7 +270,122 @@ public class OfficeFlashback : MonoBehaviour
         yield return new WaitForSeconds(0.8f);
     }
 
-    // the office at night: no sun through the windows, flat cool ambient and a few LED ceiling panels along the way
+    // from the office front to the van in the garage (the street's own coordinates; the last point is worked out from the bay)
+    // (the user's own path of "WAypoint1" cubes in the Prologue scene: out of the door, west along the deck, down to the street and
+    // along it to the garage. Wide all the way, so Mercer is beside you throughout: GapAt 0 = no single-file stretch)
+    static readonly Vector3[] ToVan = { new Vector3(54.8f, 0f, 78.1f), new Vector3(51.22f, 0f, 77.23f), new Vector3(45.78f, 0f, 77.32f), new Vector3(35.40f, 0f, 76.30f), new Vector3(24.95f, 0f, 76.47f), new Vector3(24.78f, 0f, 66.25f), new Vector3(16.30f, 0f, 57.94f) };
+    const int GapAt = 0;
+
+    // You step out of the office; "Wait up." and Mercer comes after you, falls in beside you and says the whole depot
+    // talk as the two of you walk to the van. The pace follows the talk: it slows near the van rather than arrive before
+    // he has finished, and you stop at the van only when the last line is done.
+    IEnumerator WalkWithMercer(PrologueDirector d, Transform ct, Camera cam, Animator mw, Vector3 vanAt, Vector3 vanDir)
+    {
+        var pts = new System.Collections.Generic.List<Vector3>(ToVan) { new Vector3(vanAt.x + .6f, 0f, vanAt.z + 3.9f) };
+        float total = 0f;
+        for (int i = 1; i < pts.Count; i++) total += Vector3.Distance(pts[i - 1], pts[i]);
+        Vector3 Along(float m)
+        {
+            for (int i = 1; i < pts.Count; i++)
+            {
+                float seg = Vector3.Distance(pts[i - 1], pts[i]);
+                if (m <= seg || i == pts.Count - 1) return Vector3.Lerp(pts[i - 1], pts[i], Mathf.Clamp01(m / Mathf.Max(seg, .01f)));
+                m -= seg;
+            }
+            return pts[pts.Count - 1];
+        }
+        float gapDist = 0f;
+        for (int i = 1; i <= GapAt; i++) gapDist += Vector3.Distance(pts[i - 1], pts[i]);
+        float floor = 2.59f;   // the deck outside the door; followed down the slope as we go (the player's and the van's own colliders are skipped)
+        float Ground(Vector3 p)
+        {
+            foreach (var h in Physics.RaycastAll(new Vector3(p.x, floor + 1.5f, p.z), Vector3.down, 8f, ~0, QueryTriggerInteraction.Ignore).OrderBy(h => h.distance))
+            {
+                if (h.collider.transform.IsChildOf(d.fpc.transform) || h.collider.GetComponentInParent<PrologueVan>() != null) continue;
+                floor = h.point.y; break;
+            }
+            return floor;
+        }
+
+        Vector3 first = Along(0f), ahead0 = Flat(Along(2f) - first).normalized;
+        float dist = 1.2f, bob = 0f, clock = 0f, spoken = -1f;
+        Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
+        float eyeY = Ground(Along(dist)) + 1.65f;
+        ct.position = new Vector3(Along(dist).x, eyeY, Along(dist).z);
+        ct.rotation = Quaternion.LookRotation(ahead0);
+        cam.fieldOfView = 60f;
+        var lamp = new GameObject("Depot conversation light");
+        lamp.transform.SetParent(ct, false); lamp.transform.localPosition = new Vector3(0f, .3f, 0f);
+        var lit = lamp.AddComponent<Light>(); lit.type = LightType.Point; lit.range = 14f; lit.intensity = 6.5f; lit.color = new Color(1f, .86f, .7f);
+        float ambBefore = RenderSettings.ambientIntensity;
+        RenderSettings.ambientIntensity = Mathf.Max(ambBefore, 1.2f);   // (the night grade leaves the street dull; lifted for the walk, put back after)
+
+        var m = mw.transform;
+        mw.gameObject.SetActive(true);
+        Vector3 start = Along(0f) - ahead0 * 3.2f;   // still in the doorway, behind you
+        m.SetPositionAndRotation(new Vector3(start.x, Ground(start), start.z), Quaternion.LookRotation(ahead0));
+        mw.Play("Walk", 0, 0f);
+        string lines = "Mercer: Wait up.|" + HS5.S("P02_dock_enter") + "|" + HS5.S("P02_manifest_pickup") + "|" + HS5.S("P02_dock_leave");
+
+        while (true)
+        {
+            clock += Time.deltaTime;
+            if (spoken < 0f && clock > .8f && DialogueBox.Instance != null) { DialogueBox.Instance.Say(lines); spoken = clock; }
+            bool talking = spoken < 0f || (DialogueBox.Instance != null && DialogueBox.Instance.Busy);
+            float remaining = total - dist;
+            if (!talking && remaining < .15f) break;
+            float v = 1.9f;
+            if (talking && remaining < 8f) v = Mathf.Lerp(.3f, 1.9f, Mathf.Clamp01(remaining / 8f));   // never at the van before the last line
+            if (clock < 1.2f) v = .6f;                                                                     // a beat to hear "Wait up." first
+            float step = talking ? Mathf.Min(v * Time.deltaTime, Mathf.Max(0f, remaining - .1f)) : Mathf.Min(1.9f * Time.deltaTime, remaining);
+            dist += step;
+            bob += step;
+
+            Vector3 p = Along(dist), fwd = Flat(Along(dist + 2.5f) - p);
+            if (fwd.sqrMagnitude < .01f) fwd = Flat(Along(total) - Along(total - 1f));
+            fwd.Normalize();
+            Vector3 side = Vector3.Cross(Vector3.up, fwd);
+            eyeY = Mathf.Lerp(eyeY, Ground(p) + 1.65f, 1f - Mathf.Exp(-8f * Time.deltaTime));   // (eased: the ramp and the steps)
+            ct.position = new Vector3(p.x, eyeY + Mathf.Sin(bob * 4.2f) * .03f, p.z);
+
+            // Mercer: catching up first, then in step on your right a pace ahead (in the picture); ahead of you in single file for the gap in the rail
+            float wide = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(Mathf.Abs(dist - gapDist) / 3.5f - .3f));
+            Vector3 want = new Vector3(p.x, 0f, p.z) + side * 1.05f * wide + fwd * Mathf.Lerp(2.4f, 1.7f, wide);
+            Vector3 mp = m.position; Vector3 to = Flat(want - mp);
+            float gap = to.magnitude;
+            float camV = step / Mathf.Max(Time.deltaTime, .0001f);
+            float mv = gap < .05f ? camV : camV + Mathf.Clamp(gap * .9f, 0f, 2f);   // (faster while he is catching up)
+            Vector3 np = gap < .001f ? mp : mp + to.normalized * Mathf.Min(gap, mv * Time.deltaTime);
+            m.position = new Vector3(np.x, Ground(np), np.z);
+            floor = Ground(p);   // (the camera's floor is the one we follow)
+            Vector3 face = gap > .35f ? to : fwd;
+            m.rotation = Quaternion.Slerp(m.rotation, Quaternion.LookRotation(face), 6f * Time.deltaTime);
+            mw.speed = Mathf.Clamp(mv / 1.4f, 0f, 1.6f);
+
+            // the view looks where you walk, a little towards him
+            Vector3 toHim = m.position + Vector3.up * 1.5f - ct.position;
+            Quaternion look = Quaternion.LookRotation(Vector3.Slerp(fwd + Vector3.down * .04f, toHim.normalized, .2f));
+            ct.rotation = Quaternion.Slerp(ct.rotation, look, 1f - Mathf.Exp(-4f * Time.deltaTime));
+            yield return null;
+        }
+        mw.speed = 0f;
+        yield return new WaitForSeconds(.6f);
+        Destroy(lamp);
+        RenderSettings.ambientIntensity = ambBefore;
+    }
+
+    // the lamps lit along the way at night (NewOfficeFit.DressPrologue hangs a pendant over each one)
+    public static readonly Vector3[] LedSpots = {
+        new Vector3(1039f, 0f, 906f), new Vector3(1030f, 0f, 906f), new Vector3(1021f, 0f, 906f), new Vector3(1012f, 0f, 907f),   // the hall outside Vane's door
+        new Vector3(1011f, 0f, 913f), new Vector3(1009f, 0f, 918f), new Vector3(1002f, 0f, 917.8f),   // up its east side, the north corridor
+        new Vector3(991f, 0f, 920f), new Vector3(993.5f, 0f, 922.5f),   // kitchen
+        new Vector3(999f, 0f, 911f), new Vector3(993f, 0f, 905f), new Vector3(988f, 0f, 900f),   // open-plan floor
+        new Vector3(986.5f, 0f, 891f), new Vector3(983f, 0f, 885f), new Vector3(979f, 0f, 879f), new Vector3(982.5f, 0f, 873f),   // corridor, lobby
+        new Vector3(974f, 0f, 887.5f), new Vector3(972f, 0f, 895f),   // reception
+        new Vector3(1048f, 0f, 906f), new Vector3(1053f, 0f, 903f) };   // Vane's office
+
+    // the office at night: no sun through the windows, a dim ambient, warm pendant lamps along the way and the
+    // computers left on (the scene's "Office night lights", off by day)
     static System.Action Interior(float floor, Camera cam)
     {
         var flags = cam.clearFlags; var bg = cam.backgroundColor;
@@ -219,30 +393,25 @@ public class OfficeFlashback : MonoBehaviour
         var suns = new System.Collections.Generic.List<(Light l, float i)>();
         foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None)) if (l.type == LightType.Directional) { suns.Add((l, l.intensity)); l.intensity = 0f; }
         float amb = RenderSettings.ambientIntensity;
-        RenderSettings.ambientIntensity = amb * 0.55f;
+        RenderSettings.ambientIntensity = amb * 0.42f;
         var root = new GameObject("Office LEDs");
-        Vector3[] spots = {
-            new Vector3(1039f, 0f, 906f), new Vector3(1030f, 0f, 906f), new Vector3(1021f, 0f, 906f), new Vector3(1012f, 0f, 907f),   // the hall outside Vane's door
-            new Vector3(1011f, 0f, 913f), new Vector3(1009f, 0f, 918f), new Vector3(1002f, 0f, 917.8f),   // up its east side, the north corridor
-            new Vector3(991f, 0f, 920f), new Vector3(993.5f, 0f, 922.5f),   // kitchen
-            new Vector3(999f, 0f, 911f), new Vector3(993f, 0f, 905f), new Vector3(988f, 0f, 900f),   // open-plan floor
-            new Vector3(986.5f, 0f, 891f), new Vector3(983f, 0f, 885f), new Vector3(979f, 0f, 879f), new Vector3(982.5f, 0f, 873f),   // corridor, lobby
-            new Vector3(974f, 0f, 887.5f), new Vector3(972f, 0f, 895f),   // reception
-            new Vector3(1048f, 0f, 906f), new Vector3(1053f, 0f, 903f) };   // Vane's office
-        foreach (var p in spots)
+        foreach (var p in LedSpots)
         {
             var go = new GameObject("LED");
             go.transform.SetParent(root.transform);
-            go.transform.position = new Vector3(p.x, floor + 2.6f, p.z);
+            go.transform.position = new Vector3(p.x, floor + 2.35f, p.z);   // (under its pendant)
             var l = go.AddComponent<Light>();
-            l.type = LightType.Point; l.color = new Color(0.82f, 0.93f, 1f); l.intensity = 3.2f; l.range = 11f; l.shadows = LightShadows.None;
+            l.type = LightType.Point; l.color = new Color(1f, 0.88f, 0.74f); l.intensity = 3.4f; l.range = 10f; l.shadows = LightShadows.Soft;
         }
+        var glow = GameObject.Find("Office Ground Floor")?.transform.Find("Office night lights");
+        if (glow != null) glow.gameObject.SetActive(true);
         return () =>
         {
             foreach (var (l, i) in suns) if (l != null) l.intensity = i;
             RenderSettings.ambientIntensity = amb;
             cam.clearFlags = flags; cam.backgroundColor = bg;
             if (root != null) Destroy(root);
+            if (glow != null) glow.gameObject.SetActive(false);
         };
     }
 

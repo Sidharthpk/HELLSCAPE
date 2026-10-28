@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -29,7 +30,11 @@ public static class CheckpointRetryTest
     public static void Run()
     {
         if (EditorApplication.isPlaying) { Debug.LogWarning("Stop Play first."); return; }
-        if (SceneManager.GetActiveScene().name != "MainGameScene") { Debug.LogWarning("Open MainGameScene first."); return; }
+        if (SceneManager.GetActiveScene().name != "MainGameScene")
+        {
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            EditorSceneManager.OpenScene("Assets/Scenes/MainGameScene.unity");
+        }
         System.IO.File.Delete(Result);
         SessionState.SetBool(Key, true);
         EditorApplication.isPlaying = true;
@@ -103,20 +108,41 @@ public static class CheckpointRetryTest
         yield return 1f;
         yield return Until(() => !TitleScreen.Showing && (fpc = One<FirstPersonController>()) != null && fpc.enabled && Time.timeSinceLevelLoad > 2f, 40f, "the game to start");
         if (fpc == null) { log.AppendLine("FAIL: no player"); yield break; }
-        player = fpc.transform; hp = player.GetComponent<PlayerHealth>(); over = One<GameOverScreen>();
-        cam = GameObject.Find("PlayerCamera").transform; camParent = cam.parent; camHome = cam.localPosition;
-
-        var chase = One<KesslerChase>();
-        foreach (var name in new[] { "Hell city", "Office entrance", "Kessler tunnel", "Silo complex", "Lower bridge", "Silo floor", "Escape", "Bridge" })
+        BindPlayer();
+        foreach (var name in new[] { "Hell city", "Escape", "Bridge" })
         {
             var cp = One<Checkpoint>(name);
             if (cp == null) { log.AppendLine("FAIL " + name + ": no such checkpoint"); continue; }
-            if (name == "Kessler tunnel" && chase != null) { yield return Tunnel(cp, chase); continue; }
             cp.Activate();
             Teleport(cp.spawn);
             yield return 1.5f;
             yield return DieAndRetry(name + ": died", cp);
         }
+        // Office checkpoints and their cutscenes belong to OfficeSilo after the scene split.
+        Teleporter.ArriveAt = "OfficeArrival";
+        Teleporter.ArriveCheckpoint = "Checkpoint - Office entrance";
+        SleepSequence.WakeInHell = true;
+        SceneManager.LoadScene("OfficeSilo");
+        yield return 3f;
+        BindPlayer();
+        var chase = One<KesslerChase>();
+        foreach (var name in new[] { "Office entrance", "Kessler tunnel", "Silo complex", "Lower bridge", "Silo floor" })
+        {
+            var cp = One<Checkpoint>(name);
+            if (cp == null) { log.AppendLine("FAIL " + name + ": no such checkpoint"); continue; }
+            if (name == "Kessler tunnel" && chase != null) { yield return Tunnel(cp, chase); continue; }
+            cp.Activate(); Teleport(cp.spawn);
+            yield return 1.5f;
+            yield return DieAndRetry(name + ": died", cp);
+        }
+    }
+
+    static void BindPlayer()
+    {
+        fpc = One<FirstPersonController>();
+        player = fpc.transform; hp = player.GetComponent<PlayerHealth>(); over = One<GameOverScreen>();
+        cam = player.GetComponentInChildren<Camera>(true).transform;
+        camParent = cam.parent; camHome = cam.localPosition;
     }
 
     static IEnumerator Tunnel(Checkpoint cp, KesslerChase chase)

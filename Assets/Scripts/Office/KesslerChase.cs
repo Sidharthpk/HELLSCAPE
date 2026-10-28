@@ -232,7 +232,7 @@ public class KesslerChase : MonoBehaviour
         kesslerAnim.SetFloat("Speed", 0f);
 
         // shot 2: his face (wherever the scream throws his head). The scream
-        Transform head = Find(kessler, "Head");
+        Transform head = Find(kessler, "DEF-Head") ?? Find(kessler, "Head");   // (the Cry Wolf's rig, else a Mixamo one)
         Vector3 Face() => head != null ? head.position + Vector3.up * 0.08f : kessler.position + Vector3.up * 1.7f;
         Anim(screamState, 0.05f);
         var z = kessler.GetComponent<Zombie>();

@@ -8,7 +8,7 @@ public class ScreenFader : MonoBehaviour
 
     void Start()
     {
-        fade.alpha = 0f;
+        fade.alpha = Teleporter.ArriveAt != null ? 1f : 0f;
         fade.blocksRaycasts = false;
     }
 

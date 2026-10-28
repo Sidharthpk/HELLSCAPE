@@ -1,0 +1,236 @@
+fileFormatVersion: 2
+guid: 3d492955493e7454c8b31447a7379e31
+ModelImporter:
+  serializedVersion: 24300
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: BiglWhieTable_low_BigWhiteTable_BaseColor
+    second: {fileID: 2800000, guid: 7336076671439be408c6851083bb7c95, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: BiglWhieTable_low_BigWhiteTable_Normal
+    second: {fileID: 2800000, guid: a3bf0349f9398bb4ab0d002f621ac4e4, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: BiglWhieTable_low_BigWhiteTable_Roughness
+    second: {fileID: 2800000, guid: 4bfd13a3ec401104383d0a937f16d172, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Computer_low_Desktop_BaseColor
+    second: {fileID: 2800000, guid: 17addb7be179d2645a87094dfb18279d, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Computer_low_Desktop_Normal
+    second: {fileID: 2800000, guid: 6c0b6edab6a1dd24d8d6392cd38a19a7, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Computer_low_Desktop_Roughness
+    second: {fileID: 2800000, guid: ccafedc9b61e9a74ab19163be64bdca5, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Office_Props_Texture.tga
+    second: {fileID: 2800000, guid: a6a34dba88a844a499a69a67546c1fd7, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Sofa_Leather_Base_color
+    second: {fileID: 2800000, guid: 82767c076916bcc49abde8c1dad2ee52, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Sofa_Leather_Normal_OpenGL
+    second: {fileID: 2800000, guid: 0e7fec3d58406864d934e875c2bdcbd9, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: SwivlChair_low_SwivlChair_BaseColor
+    second: {fileID: 2800000, guid: 38278d6bf149fcb499f749ffc11a7eaa, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: SwivlChair_low_SwivlChair_Metallic
+    second: {fileID: 2800000, guid: b83fd98a6f42cbd4e9c62349bb3e8f6c, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: SwivlChair_low_SwivlChair_Normal
+    second: {fileID: 2800000, guid: d131ca55652f7a64eb579fc4cae19f75, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: SwivlChair_low_SwivlChair_Roughness
+    second: {fileID: 2800000, guid: 274cb276ecdd26f4e80632a4c6d58a80, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Table2_LP_table_BaseColor
+    second: {fileID: 2800000, guid: 894da9652c9daaa4d88c2c79a659dd21, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Wood_base_Color
+    second: {fileID: 2800000, guid: 1d7e06748559f6d47b1905f16d80a334, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: chair_Base_color
+    second: {fileID: 2800000, guid: b03e953f6dcb81d49a045df558234dad, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: details_Base_color
+    second: {fileID: 2800000, guid: b984648ea810a744b9d6fe4089b2ba7c, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: details_Metallic
+    second: {fileID: 2800000, guid: e067385ed176e7d43a8733ca396d74c4, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: evidence_Base_color
+    second: {fileID: 2800000, guid: c118217ce8be551488fa7f8457572775, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: shelving_low_shelving_BaseColor
+    second: {fileID: 2800000, guid: b1821396728ce9045b2c64e26090b278, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: shelving_low_shelving_Normal
+    second: {fileID: 2800000, guid: 56b923ddebf23814a993a3b5bd45e204, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: shelving_low_shelving_Roughness
+    second: {fileID: 2800000, guid: bf91654386e54bf4285df338d14bba3f, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: table_AlbedoTransparency
+    second: {fileID: 2800000, guid: 290517fc84311af44930849f5049d1bc, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: table_metal
+    second: {fileID: 2800000, guid: a4c5754ad27f8944d88a078b7f1734cf, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: table_rough
+    second: {fileID: 2800000, guid: cba7d37102e29fb48a8810e056a6f2cb, type: 3}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+    searchTexturesGlobally: 0
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 1
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

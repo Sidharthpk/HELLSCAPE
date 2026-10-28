@@ -20,8 +20,8 @@ public static class PrologueBuilder
     const string ScenePath = "Assets/Scenes/Prologue.unity";
     const string Dir = "Assets/Materials/Prologue";
     const string OfficeMats = "Assets/Materials/OfficeAct";
-    const string JasonFbx = "Assets/New Folder/jason-manhattan-no-mask/source/Jason_Manhattan.fbx";
-    const string MacheteFbx = "Assets/New Folder/jason-voorhees-machete-stab-animation/source/machete stab.fbx";
+    const string JasonFbx = "Assets/Models/jason-manhattan-no-mask/source/Jason_Manhattan.fbx";
+    const string MacheteFbx = "Assets/Models/jason-voorhees-machete-stab-animation/source/machete stab.fbx";
     const string KillerRunFbx = OfficeMats + "/Anim/KillerRun.fbx";
     const string CivilianController = "Assets/Enemies/Civilian.controller";
     const string FpcPrefab = "Assets/ModularFirstPersonController/FirstPersonController/FirstPersonController.prefab";
@@ -125,7 +125,7 @@ public static class PrologueBuilder
         });
 
         // sound
-        d.ambience = Source(d.gameObject, AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/New York City Streets Ambience Sound Effect.mp3"), true);
+        d.ambience = Source(d.gameObject, AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/10 Minutes of Rain and Thunderstorm Sounds For Focus, Relaxing and Sleep ⛈️ Epidemic ASMR.mp3"), true);
         d.music = Source(d.gameObject, null, false);
         d.sfx = Source(d.gameObject, null, false);
         d.wind = Source(d.gameObject, null, true);
@@ -896,7 +896,7 @@ public static class PrologueBuilder
 
     // ---------------------------------------------------------------- the fall (the user's Mixamo clips)
 
-    const string FallDir = "Assets/New Folder/FallAnimation";
+    const string FallDir = "Assets/Models/FallAnimation";
     const string PoolFbx = FallDir + "/Falling Into Pool.fbx";         // the killer, going over the edge
     const string FallFlatFbx = FallDir + "/Falling Flat Impact.fbx";   // you (the Ch33 body comes with it), hitting the street
 

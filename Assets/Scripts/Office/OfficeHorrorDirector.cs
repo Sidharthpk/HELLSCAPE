@@ -14,12 +14,11 @@ using UnityEngine.UI;
 //   stage 5  CCTV     the cameras lie, the lights trip to red, every phone rings, the Auditor hunts you
 // until Kessler's turn takes over (the Auditor withdraws) and you are out through the silo door.
 // Most of it only happens in the red city: the Echo stays the safe, clean memory, until stage 3-4 corrupt it.
-public class OfficeHorrorDirector : MonoBehaviour
+public class OfficeHorrorDirector : MonoBehaviour, ISceneProgress
 {
     public int Stage { get; private set; }
     public int Corruption => Mathf.Max(0, Stage - 2);   // 0 safe .. 3 the Echo is hunted
     public OfficeStalker Auditor => stalker;
-    public OfficeEye Eye { get; private set; }
     OfficeColleagues colleaguesAct;
 
     RevisedPlotDirector plot;
@@ -38,6 +37,8 @@ public class OfficeHorrorDirector : MonoBehaviour
     OfficeCctvMemory cctv;
     RealmBlink blink;
     public bool Switching => switching;
+    public object CaptureProgress() => Stage;
+    public void RestoreProgress(object state) => Advance((int)state);
     int pendingShifts, paIndex, answers, prints;
     float bedBase = .22f, hush, paTimer = 55f, scareTimer = 40f, footTimer = 30f, boxTimer;
     readonly Queue<Func<IEnumerator>> redEvents = new Queue<Func<IEnumerator>>();
@@ -58,10 +59,11 @@ public class OfficeHorrorDirector : MonoBehaviour
     // the office = the zone of its InteriorDarkness (OfficeAct/Office), so it follows the model wherever it stands
     static Bounds zone = new Bounds(new Vector3(1015.5f, 5f, 899.4f), new Vector3(106f, 18f, 77f));
     public static bool In(Vector3 p) => zone.Contains(p);
+    public static Bounds Zone => zone;
     bool InOffice => player != null && In(player.position);
     bool Safe => fpc != null && fpc.enabled && !GhostNPC.Conversing && !PauseMenu.Paused && !TitleScreen.Showing && !GameOverScreen.Open
         && !NoteViewer.Blocking && !(conf != null && conf.Ambushing) && (plot == null || !plot.InSequence)
-        && (DialogueBox.Instance == null || !DialogueBox.Instance.Busy) && (ChoiceDialogue.Instance == null || !ChoiceDialogue.Instance.Open) && !EndingSequence.Playing;
+        && (DialogueBox.Instance == null || (!DialogueBox.Instance.CardOpen && (!DialogueBox.Instance.Busy || DialogueBox.Instance.ActionSpeech))) && (ChoiceDialogue.Instance == null || !ChoiceDialogue.Instance.Open) && !EndingSequence.Playing;
 
     // ---------------------------------------------------------------- setup
 
@@ -96,7 +98,9 @@ public class OfficeHorrorDirector : MonoBehaviour
                 colleagues.Add(g);
             }
         }
-        Transform mt = male != null ? male.body ?? male.transform : null, ft = female != null ? female.body ?? female.transform : mt;
+        // (the burnt bodies and the Auditor are copies of the old humanoid models, kept inactive on Ben and Priya as "Body template")
+        Transform Tpl(GhostNPC g) => g == null ? null : g.transform.Find("Body template") ?? g.body ?? g.transform;
+        Transform mt = Tpl(male), ft = female != null ? Tpl(female) : mt;
 
         bodies = gameObject.AddComponent<OfficeBodies>();
         bodies.Build(player, cam, mt, ft);
@@ -137,19 +141,11 @@ public class OfficeHorrorDirector : MonoBehaviour
 
         foreach (var i in RevisedPlot.All<Interactable>(scene)) if (i.name == "YourDesk_Note") deskNote = i.transform;
         BuildProps(scene);
-        gameObject.AddComponent<OfficeLurkers>().Init(this, stalker, player, cam, health, mt, conf != null && conf.damned != null ? conf.damned.gameObject : null, () => Safe && InOffice && !echo && !withdrawn && !ended && (Eye == null || !Eye.Chasing));
+        gameObject.AddComponent<VaneHunt>().Init(this, player, cam, fpc, health, mt, conf != null && conf.damned != null ? conf.damned.gameObject : null,
+            () => Safe && InOffice && !echo && !withdrawn && !ended, () => InOffice && !echo && !withdrawn && !ended);
         colleaguesAct = gameObject.AddComponent<OfficeColleagues>(); colleaguesAct.Init(colleagues, player, cam, stalker, () => Safe && InOffice && !echo && !withdrawn && !ended);
-        foreach (var go in scene.GetRootGameObjects())
-            if (go.name == "EyeBalls" && Eye == null)
-            {
-                Eye = gameObject.AddComponent<OfficeEye>();
-                // (not `Safe`: a line of your own on screen must not stop it mid-chase. Only what stops you stops it)
-                Eye.Init(go.transform, player, cam, health, stalker, () => InOffice && fpc.enabled && !GhostNPC.Conversing && !NoteViewer.Blocking && !PauseMenu.Paused
-                    && !GameOverScreen.Open && !(plot != null && plot.InSequence) && !(ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open), () => !echo && !withdrawn && !ended);
-            }
         blink = gameObject.AddComponent<RealmBlink>(); blink.Initialize(player);
         cctv = gameObject.AddComponent<OfficeCctvMemory>(); cctv.Initialize(tapes, player, cam, mt);
-        var loop = gameObject.AddComponent<OfficeMemoryLoop>(); loop.Initialize(this, director, fpc);
         EvidenceJournal.Collected += OnEvidence;
     }
 
@@ -335,7 +331,7 @@ public class OfficeHorrorDirector : MonoBehaviour
     {
         if (ended || breakdown) return;
         Advance(5);
-        Say(HS.S("320,325-335"));   // the terminal, then what the tape's microphone caught
+        Say(HS.S("320"));   // the terminal; what the tape's microphone caught is said in time with the tape (TomasTape)
         StartCoroutine(Breakdown());
     }
 
@@ -459,7 +455,7 @@ public class OfficeHorrorDirector : MonoBehaviour
 
     public void RequestSwitch(bool on, Action apply, bool forcedReturn = false)
     {
-        if (switching) return;
+        if (switching || VaneHunt.Seizing) return;   // (his hands are on you)
         StartCoroutine(SwitchRoutine(on, apply, forcedReturn));
     }
 

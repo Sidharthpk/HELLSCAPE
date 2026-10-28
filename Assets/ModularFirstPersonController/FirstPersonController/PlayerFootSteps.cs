@@ -10,10 +10,28 @@ public class PlayerFootStep : MonoBehaviour
     public float stepInterval = 0.45f;
     public float minSpeedToStep = 0.5f;
 
+    public float crouchVolume = 0.3f, crouchIntervalScale = 1.4f, crouchCutoff = 900f;
+
     private float stepTimer;
+    FirstPersonController fpc;
+    AudioSource muffled;
+
+    // a second source with a low-pass on it, so the player's main AudioSource keeps its other sounds clear
+    AudioSource Muffled()
+    {
+        if (muffled != null) return muffled;
+        var go = new GameObject("Footsteps (muffled)");
+        go.transform.SetParent(transform, false);
+        muffled = go.AddComponent<AudioSource>();
+        muffled.playOnAwake = false; muffled.outputAudioMixerGroup = audioSource.outputAudioMixerGroup;
+        muffled.spatialBlend = audioSource.spatialBlend; muffled.volume = audioSource.volume;
+        go.AddComponent<AudioLowPassFilter>().cutoffFrequency = crouchCutoff;
+        return muffled;
+    }
 
     void Start()
     {
+        fpc = GetComponentInParent<FirstPersonController>();
         rb = GetComponent<Rigidbody>();
         audioSource = GetComponent<AudioSource>();
         footSteps = Sounds.Clips("General/Player footsteps", footSteps);   // HellScape Sound Manager
@@ -37,8 +55,12 @@ public class PlayerFootStep : MonoBehaviour
                 var set = OnMetal() && metalSteps != null && metalSteps.Length > 0 ? metalSteps : footSteps;
                 if (set == null || set.Length == 0) return;
                 AudioClip clip = set[Random.Range(0, set.Length)];
-                audioSource.pitch = Random.Range(0.94f, 1.06f);   // no two steps quite the same
-                audioSource.PlayOneShot(clip, Sounds.Volume(set == metalSteps ? "General/Player footsteps (metal)" : "General/Player footsteps"));
+                float volume = Sounds.Volume(set == metalSteps ? "General/Player footsteps (metal)" : "General/Player footsteps");
+                bool quiet = fpc != null && fpc.IsCrouched;   // crouched: soft, muffled steps (Vane hunts by sound)
+                if (quiet) stepTimer = stepInterval * crouchIntervalScale;
+                var src = quiet ? Muffled() : audioSource;
+                src.pitch = Random.Range(0.94f, 1.06f);   // no two steps quite the same
+                src.PlayOneShot(clip, quiet ? volume * crouchVolume : volume);
             }
         }
         else

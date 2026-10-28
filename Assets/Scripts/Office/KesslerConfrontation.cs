@@ -124,6 +124,8 @@ public class KesslerConfrontation : MonoBehaviour
 
     public void Arm()
     {
+        if (OfficeV52Sequence.Instance != null && OfficeV52Sequence.Instance.legacyEncounter == this)
+        { return; }
         if (armed || done || ghost == null) return;
         armed = true;
         EvidenceJournal.Collect(EvidenceJournal.Tape);
@@ -548,6 +550,7 @@ public class KesslerConfrontation : MonoBehaviour
 
     IEnumerator Defeated()
     {
+        Truth.Set("VaneForm1Defeated");
         done = true;
         hunting = false;
         yield return new WaitForSeconds(1.5f);
@@ -559,6 +562,7 @@ public class KesslerConfrontation : MonoBehaviour
     // a checkpoint respawn mid-fight: it's back where it turned, whole again, waiting
     public void ResetFight()
     {
+        if (OfficeV52Sequence.Instance != null && OfficeV52Sequence.Instance.legacyEncounter == this) return;
         AbortAmbush();
         if (!turned || done || damned == null) return;
         StopAllCoroutines();

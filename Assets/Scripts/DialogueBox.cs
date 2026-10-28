@@ -73,21 +73,23 @@ public class DialogueBox : MonoBehaviour
     private readonly Queue<QueuedLine> queue = new Queue<QueuedLine>();
     private readonly Dictionary<string, int> pendingBatches = new Dictionary<string, int>();
     private int generation;
-    public float staleAfter = 15f;         // a speech still waiting its turn after this long is about something that's over: dropped
+    public float staleAfter = 8f;         // a speech still waiting its turn after this long is about something that's over: dropped
     private float queueResumedAt;
     private bool running;
     private bool cutCurrent;               // SayNow: drop the line on screen as well
+    public bool ActionSpeech => urgent;
     private bool urgent;                   // SayNow lines: no letterbox, they're shouted mid-action
     private bool bars;                     // the letterbox wanted for the lines running now
     private float barK;
 
     public bool Busy => running;           // lines still typing or queued (cutscenes wait on this)
-    public bool PlayerSpeaking => running && speakingPlayer;   // the line up now is the driver's own (the Echo clock keeps running)
+    public bool PlayerSpeaking => running && speakingPlayer;   // the line up now is the driver's own
     private bool speakingPlayer;
 
     // scripted playtests (no keyboard): lines move on by themselves after this many seconds. 0 = wait for the key.
     public static float AutoAdvanceAfter;
     private float lineShownAt;
+    private float holdFor = 3f;            // how long the line on screen stays once typed out (set per line: Hold)
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatic() => AutoAdvanceAfter = 0f;
@@ -230,7 +232,6 @@ public class DialogueBox : MonoBehaviour
     IEnumerator Run()
     {
         running = true;
-        if (!tutorialShown && InOffice) yield return Tutorial();
         queueResumedAt = Time.time;   // (reading the card doesn't make the lines behind it stale)
         // (outer loop: a line that arrives while the box is fading out is still said, not left stranded in the queue)
         while (DropStale() && queue.Count > 0)
@@ -247,6 +248,8 @@ public class DialogueBox : MonoBehaviour
                 Show(line, 0);
                 text.ForceMeshUpdate();
                 int count = text.textInfo.characterCount;
+                bool fast = FastPaced();
+                holdFor = Hold(count, fast);
                 if (hintText != null) hintText.alpha = 0f;
 
                 for (int i = 0; i < count; i++)
@@ -255,7 +258,7 @@ public class DialogueBox : MonoBehaviour
                     text.maxVisibleCharacters = i + 1;
                     char c = text.textInfo.characterInfo[i].character;
                     if (blip != null && char.IsLetterOrDigit(c) && i % 3 == 0) Mumble();
-                    float wait = charDelay * (c == '.' || c == '?' || c == '!' || c == ',' ? 6f : 1f);
+                    float wait = charDelay * (fast ? .4f : .75f) * (c == '.' || c == '?' || c == '!' || c == ',' ? (fast ? 3f : 5f) : 1f);
                     yield return new WaitForSeconds(wait);
                 }
                 text.maxVisibleCharacters = 99999;
@@ -298,26 +301,44 @@ public class DialogueBox : MonoBehaviour
     }
 
     bool Pressed() => !PauseMenu.Paused && !(ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open) && (Input.GetKeyDown(advanceKey) || CutsceneSkip.Skipping
-                      || (text.maxVisibleCharacters > 9999 && Time.unscaledTime - lineShownAt > (AutoAdvanceAfter > 0f ? AutoAdvanceAfter : InEcho ? 10f : 3f)));   // no key needed: a line stays 3 s (10 s in the Echo realm)
+                      || (text.maxVisibleCharacters > 9999 && Time.unscaledTime - lineShownAt > (AutoAdvanceAfter > 0f ? AutoAdvanceAfter : InEcho ? 10f : holdFor)));   // no key needed: a line stays its Hold time (10 s in the Echo realm)
+
+    // time to read a line once it is out: by its length, and much shorter when something is going on
+    static float Hold(int chars, bool fast) => fast ? Mathf.Clamp(.6f + .025f * chars, 1f, 2.2f) : Mathf.Clamp(.9f + .045f * chars, 1.6f, 4f);
+
+    // shouted lines, driving, chases, fights, swimming, lock picking, the Eye on you, or a pile-up of lines waiting:
+    // the words must keep up with what is happening
+    HordeChase horde; KesslerChase kesslerChase;
+    bool FastPaced()
+    {
+        if (urgent || queue.Count >= 3) return true;
+        if ((car != null && car.InCar) || (van != null && van.InVan) || (chase != null && chase.Chasing)) return true;
+        foreach (var g in fightBars) if (g != null && g.activeInHierarchy) return true;
+        if (LockPick.Active || TapLock.Active || VaultDial.Active || BloodFlood.Swimming || DemonBoss.InFight) return true;
+        if (horde == null) horde = FindFirstObjectByType<HordeChase>();
+        if (kesslerChase == null) kesslerChase = FindFirstObjectByType<KesslerChase>();
+        return (horde != null && horde.Running) || (kesslerChase != null && kesslerChase.Chasing);
+    }
 
     static bool InEcho => RevisedPlotDirector.Instance != null && RevisedPlotDirector.Instance.Echo;
 
     // a one-off "how talking works" card before the first line said inside the office, where the conversations are
     // (not at the start of the game: the prologue and the street have nobody to answer)
-    static bool InOffice => Camera.main != null && Camera.main.gameObject.scene.name == "MainGameScene" && OfficeHorrorDirector.In(Camera.main.transform.position);
+    static bool InOffice => Camera.main != null && (Camera.main.gameObject.scene.name == "MainGameScene" || Camera.main.gameObject.scene.name == "OfficeSilo") && OfficeHorrorDirector.In(Camera.main.transform.position);
     static bool tutorialShown;
     GameObject tutorialCard;
     public bool CardOpen => tutorialCard != null;   // an instruction card is up (the objective stays out of its way)
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetTutorial() => tutorialShown = false;
 
-    IEnumerator Tutorial()
+    public IEnumerator SoulTutorial()
     {
+        if(tutorialShown) yield break;
         tutorialShown = true;
         yield return Card("TALKING TO THE SOULS",
                  "<color=#C70D0A>[E]</color>  next line\n" +
-                 "<color=#C70D0A>[1-4]</color>  choose your answer\n\n" +
-                 "Some of them won't wait for you.", false);
+                 "<color=#C70D0A>[1-5]</color>  choose your answer\n\n" +
+                 "Speak to them now. Return with evidence when you know what happened.", true);
     }
 
     // the same card for the boss fight's controls (gameplay frozen behind it until E)
@@ -366,6 +387,7 @@ public class DialogueBox : MonoBehaviour
     void Show(Line line, int visible)
     {
         speakingPlayer = line.speaker == playerName;
+        voicePitch = VoicePitch(line.speaker);
         if (presentation != null) presentation.SetNarration(line.narration);
         if (nameText != null)
         {
@@ -413,9 +435,24 @@ public class DialogueBox : MonoBehaviour
     }
 
     // a low mumbled syllable (not a beep): a random one of the library's, slightly varied in pitch
+    // the mumble's voice: women high, men low (you included), each person a little apart from the others of their
+    // kind, and every syllable wavering round that
+    static readonly HashSet<string> women = new HashSet<string> { "maya", "priya", "nadia", "mrs. okafor" };
+    float voicePitch = 1f;
+    float VoicePitch(string who)
+    {
+        string key = (who ?? "").ToLowerInvariant();
+        if (key.Length == 0) return 1f;   // a voice with no face: as it was
+        int h = 0; foreach (char c in key) h = h * 31 + c;
+        float own = ((h & 0x7fffffff) % 7 - 3) * .03f;   // -0.09 .. +0.09, the same for the same name every time
+        bool woman = false;
+        foreach (var w in women) woman |= key == w || key.StartsWith(w + " ") || key.EndsWith(" " + w);
+        return (woman ? 1.35f : .78f) + own;
+    }
+
     void Mumble()
     {
-        blip.pitch = Random.Range(0.9f, 1.04f);
+        blip.pitch = voicePitch * Random.Range(0.9f, 1.1f);
         if (voice != null && voice.Length > 0)
             blip.PlayOneShot(voice[Random.Range(0, voice.Length)], 0.7f * Sounds.Volume("General/Dialogue blip"));
         else

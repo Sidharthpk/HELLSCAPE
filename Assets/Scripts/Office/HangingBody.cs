@@ -14,6 +14,7 @@ public class HangingBody : MonoBehaviour
     public Transform[] pushers;             // the player, Kessler
     public bool physical = true;
     public float mass = 45f;
+    public float colliderHeight = 1.9f, colliderRadius = 0.3f;   // (a body bag; the severed parts are smaller)
     const int floorPileEvery = 0;           // 0: none. (every Nth hanging body would drop a heap across the floor; too hard. A const, because the scene had 3 saved into it)
 
     Vector2 angle, velocity;                // degrees about the world x and z axes
@@ -51,7 +52,7 @@ public class HangingBody : MonoBehaviour
         rb.centerOfMass = Vector3.down * length;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         var col = gameObject.AddComponent<CapsuleCollider>();
-        col.direction = 1; col.radius = 0.3f; col.height = 1.9f;
+        col.direction = 1; col.radius = colliderRadius; col.height = colliderHeight;
         col.center = Vector3.down * length;
         var j = gameObject.AddComponent<ConfigurableJoint>();   // (to the world, at the hook)
         j.xMotion = j.yMotion = j.zMotion = ConfigurableJointMotion.Locked;

@@ -72,6 +72,20 @@ public class KillerBoss : MonoBehaviour
     public float yourKnifeDamage = 30f;
     [TextArea] public string knifeLine = "One of his knives. I can throw it back.";
 
+    [Header("Blood balls (Vane, story V4: instead of knives)")]
+    public bool bloodBalls;                 // the Throw spits these at you: dodge them (none to pick up)
+    public float ballSpeed = 9f;
+    public float ballSize = 0.34f;
+    public float ballDamage = 9f;
+    public float ballGap = 0.18f;           // between the balls of one volley
+    public Vector3 mouth = new Vector3(0f, 1.75f, 0.7f);   // where they leave him, in his own space
+    public SiloBodyParts bodyParts;         // severed parts floating on the floor's blood: a single throw picks one up and hurls it
+    public float partSpeed = 12f;
+    public float partDamage = 12f;
+    [TextArea] public string rushLine = "";        // said as he sets off on a rush (sometimes)
+    [TextArea] public string staggerLine = "";     // when he hits the wall
+    [TextArea] public string halfLine = "";        // once, below half health
+
     [Header("Health orbs")]
     public GameObject healthPickup;         // disabled template (the bridge boss's): one is left on the floor each time he loses...
     public int orbs = 3;                    // ...another 1/(orbs+1) of his health
@@ -136,9 +150,11 @@ public class KillerBoss : MonoBehaviour
         busy = evading = charging = stunned = false;
         if (downBody != null) downBody.enabled = false;
         health = maxHealth;
+        saidHalf = false;
         cooldown = 0f;
         held = 0;
         ClearKnives(true);
+        if (bodyParts != null) { bodyParts.StopAllCoroutines(); bodyParts.ResetParts(); }
         foreach (var o in dropped) if (o != null) Destroy(o);
         dropped.Clear();
         ShowKnifeHud();
@@ -303,6 +319,7 @@ public class KillerBoss : MonoBehaviour
         Vector3 dir = Flat(player.position - transform.position).normalized;
         if (dir == Vector3.zero) dir = transform.forward;
         transform.rotation = Quaternion.LookRotation(dir);
+        if (!string.IsNullOrEmpty(rushLine) && Random.value < 0.35f) Bark(rushLine);
         charging = true;
         Go("Charge", 0.08f);
         bool hit = false, wall = false;
@@ -328,6 +345,7 @@ public class KillerBoss : MonoBehaviour
         {
             Say(ProceduralAudio.Thud(), 1f);
             BloodFx.Spray(transform.position + Vector3.up * 1.5f, -dir, 10, 2.5f);
+            Bark(staggerLine);
             yield return Stun();
             yield break;
         }
@@ -359,7 +377,9 @@ public class KillerBoss : MonoBehaviour
         stunned = false;
         moveTimer = 1f;
         // (up, and straight into a dodge: while he's dodging nothing you fire touches him; it often runs into a charge)
-        yield return Dodge(0f);
+        if (dodgeChance > 0f) { yield return Dodge(0f); yield break; }
+        Go("Locomotion", 0.2f);   // (one who doesn't dodge just comes on again)
+        busy = false;
     }
 
     BoxCollider downBody;
@@ -397,6 +417,45 @@ public class KillerBoss : MonoBehaviour
             }
         }
         Go("Throw", 0.1f);
+        Transform part = bloodBalls && count == 1 && bodyParts != null ? bodyParts.Take(transform.position) : null;
+        if (part != null)
+        {
+            // he scoops a piece of someone out of the blood (it flies up into his grip) and hurls it at you
+            // (run on the parts, so a stun or a reset mid-throw can't leave it hanging in the air)
+            bodyParts.StartCoroutine(Part(part));
+            for (float t = 0f; t < throwRelease; t += Time.deltaTime)
+            {
+                Face(Flat(player.position - transform.position), 8f);
+                yield return null;
+            }
+            Say(ProceduralAudio.Thud(), 0.45f);
+            yield return new WaitForSeconds(Mathf.Max(0f, throwTime - throwRelease));
+            Go("Locomotion", 0.2f);
+            busy = false;
+            yield break;
+        }
+        if (bloodBalls)
+        {
+            // he heaves, and spits blood at you: a ball, or a quick volley of three when he's hurt
+            for (float t = 0f; t < throwRelease; t += Time.deltaTime)
+            {
+                Face(Flat(player.position - transform.position), 8f);
+                yield return null;
+            }
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 spit = transform.TransformPoint(mouth);
+                Vector3 line = (Target() - spit).normalized;
+                line = Quaternion.AngleAxis((i - (count - 1) * 0.5f) * fanAngle * 0.6f, Vector3.up) * line;
+                StartCoroutine(Ball(spit, line));
+                Say(ProceduralAudio.Thud(), 0.35f);
+                if (i < count - 1) yield return new WaitForSeconds(ballGap);
+            }
+            yield return new WaitForSeconds(Mathf.Max(0f, throwTime - throwRelease));
+            Go("Locomotion", 0.2f);
+            busy = false;
+            yield break;
+        }
         Transform hand = animator != null && animator.isHuman ? animator.GetBoneTransform(HumanBodyBones.RightHand) : null;
         GameObject inHand = hand != null ? MakeKnife() : null;
         if (inHand != null) { inHand.transform.SetParent(hand, false); inHand.transform.localPosition = Vector3.zero; inHand.transform.localRotation = Quaternion.identity; inHand.transform.localScale = Vector3.one / Mathf.Max(0.001f, hand.lossyScale.x); }
@@ -414,6 +473,110 @@ public class KillerBoss : MonoBehaviour
         yield return new WaitForSeconds(Mathf.Max(0f, throwTime - throwRelease));
         Go("Locomotion", 0.2f);
         busy = false;
+    }
+
+    // a ball of blood, straight at where you were: step out of its line. It bursts on you, a wall or the floor.
+    IEnumerator Ball(Vector3 from, Vector3 dir)
+    {
+        var ball = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        ball.name = "Blood ball";
+        Destroy(ball.GetComponent<Collider>());
+        ball.transform.position = from;
+        ball.transform.localScale = Vector3.one * ballSize;
+        if (ballMat == null)
+        {
+            ballMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            ballMat.SetColor("_BaseColor", new Color(0.18f, 0f, 0f));
+            ballMat.EnableKeyword("_EMISSION");
+            ballMat.SetColor("_EmissionColor", new Color(0.45f, 0.01f, 0f));
+            ballMat.SetFloat("_Smoothness", 0.6f);
+        }
+        ball.GetComponent<Renderer>().sharedMaterial = ballMat;
+        var glow = ball.AddComponent<Light>();
+        glow.color = new Color(1f, 0.05f, 0.02f); glow.range = 2.5f; glow.intensity = 0.8f; glow.shadows = LightShadows.None;
+        flying.Add(ball);
+        Transform b = ball.transform;
+        for (float t = 0f; t < 4f && ball != null; t += Time.deltaTime)
+        {
+            Vector3 p = b.position, step = dir * ballSpeed * Time.deltaTime, next = p + step;
+            b.localScale = Vector3.one * ballSize * (1f + 0.12f * Mathf.Sin(t * 30f));   // it wobbles
+            Vector3 you = Target();
+            if (Flat(next - you).magnitude < 0.55f && Mathf.Abs(next.y - you.y) < 0.9f)
+            {
+                var ph = player.GetComponentInParent<PlayerHealth>();
+                if (ph != null) ph.TakeDamage(ballDamage);
+                BloodFx.Spray(next, -dir, 14, 2.5f);
+                break;
+            }
+            bool hit = false;
+            foreach (var h in Physics.RaycastAll(p, dir, step.magnitude + 0.05f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (h.collider.transform.IsChildOf(transform) || h.collider.transform.IsChildOf(player.root)) continue;
+                BloodFx.Spray(h.point, h.normal, 12, 2f);
+                hit = true;
+                break;
+            }
+            if (!hit && arenaCenter != null && (Flat(next - arenaCenter.position).magnitude > arenaRadius + wallBeyond || next.y < arenaCenter.position.y))
+            {
+                BloodFx.Spray(next, -dir, 12, 2f);
+                hit = true;
+            }
+            if (hit) break;
+            b.position = next;
+            yield return null;
+        }
+        if (ball != null) { flying.Remove(ball); Destroy(ball); }
+    }
+    static Material ballMat;
+
+    // a body part, lobbed at where you were: it tumbles, bursts blood on whatever it hits and floats again where it comes down
+    IEnumerator Part(Transform part)
+    {
+        Vector3 lift0 = part.position;
+        for (float k = 0f; k < throwRelease; k += Time.deltaTime)
+        {
+            part.position = Vector3.Lerp(lift0, transform.TransformPoint(mouth), Mathf.SmoothStep(0f, 1f, k / throwRelease));
+            yield return null;
+        }
+        Vector3 from = transform.TransformPoint(mouth), to = Target();
+        float flight = Mathf.Max(0.2f, (to - from).magnitude / partSpeed);
+        Vector3 v = (to - from) / flight + Vector3.up * 0.5f * 9.81f * flight;
+        Vector3 spin = Random.onUnitSphere * 720f;
+        Transform t = part;
+        t.position = from;
+        float floor = bodyParts.transform.position.y;
+        for (float s = 0f; s < 4f; s += Time.deltaTime)
+        {
+            Vector3 p = t.position;
+            v += Vector3.down * 9.81f * Time.deltaTime;
+            Vector3 step = v * Time.deltaTime, next = p + step;
+            t.Rotate(spin * Time.deltaTime, Space.World);
+            Vector3 you = Target();
+            if (Flat(next - you).magnitude < 0.6f && Mathf.Abs(next.y - you.y) < 0.9f)
+            {
+                var ph = player.GetComponentInParent<PlayerHealth>();
+                if (ph != null) ph.TakeDamage(partDamage);
+                BloodFx.Spray(next, -step.normalized, 18, 2.5f);
+                break;
+            }
+            bool hit = false;
+            foreach (var h in Physics.RaycastAll(p, step.normalized, step.magnitude + 0.05f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (h.collider.transform.IsChildOf(transform) || h.collider.transform.IsChildOf(player.root)) continue;
+                BloodFx.Spray(h.point, h.normal, 12, 2f);
+                hit = true;
+                break;
+            }
+            if (hit || next.y < floor) break;
+            t.position = next;
+            yield return null;
+        }
+        bodyParts.Drop(t, InArena(t.position));
+    }
+
+    void Bark(string lines)
+    {
+        if (!string.IsNullOrEmpty(lines) && DialogueBox.Instance != null && !DialogueBox.Instance.Busy) DialogueBox.Instance.Say(lines);
     }
 
     // your chest, roughly: where his knives are thrown at
@@ -573,6 +736,7 @@ public class KillerBoss : MonoBehaviour
         health -= dmg;
         if (healthFill != null) healthFill.localScale = new Vector3(Mathf.Clamp01(health / maxHealth), 1f, 1f);
         while (health > 0f && dropped.Count < orbs && health <= maxHealth * (1f - (dropped.Count + 1f) / (orbs + 1f))) DropOrb();
+        if (!saidHalf && health < maxHealth * 0.5f) { saidHalf = true; Bark(halfLine); }
         if (health > 0f) return;
 
         defeated = true;
@@ -582,9 +746,12 @@ public class KillerBoss : MonoBehaviour
         ShowKnifeHud();
         SetSpeed(0f);
         if (healthBar != null) healthBar.SetActive(false);
-        StartCoroutine(Tip(25f, -0.55f, 0.8f));   // drops to his knees
+        // a body with its own death (Vane): that; otherwise he drops to his knees
+        if (animator != null && animator.enabled && animator.HasState(0, Animator.StringToHash("Death"))) Go("Death", 0.15f);
+        else StartCoroutine(Tip(25f, -0.55f, 0.8f));
         onDefeated.Invoke();
     }
+    bool saidHalf;
 
     readonly List<GameObject> dropped = new List<GameObject>();
 
@@ -669,6 +836,9 @@ public class KillerBoss : MonoBehaviour
     // ---------------------------------------------------------------- helpers
 
     void SetSpeed(float s) { if (animator != null && animator.enabled) animator.SetFloat("Speed", s); }
+
+    // for cutscenes (SiloEncounter's jump): one of his moves' states, if the controller has it
+    public void PlayState(string state) => Go(state, 0.1f);
 
     // cross-fade to a state, if this controller has it (an old controller: he just doesn't play the move)
     void Go(string state, float fade)

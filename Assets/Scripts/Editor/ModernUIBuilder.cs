@@ -227,7 +227,6 @@ public static class ModernUIBuilder
         return n;
     }
 
-    static Sprite HeartSprite(string name) => Picture("Heart_" + name + ".png", false);   // (a render of the heart model: HudIconRenderer)
 
     // a HUD picture from the Modern folder: pixel art keeps hard pixels; anything else is smooth, with mipmaps so
     // it stays smooth when it's drawn small or scaled (the beating heart)
@@ -314,7 +313,7 @@ public static class ModernUIBuilder
         return "speedometer for " + ctl.name;
     }
 
-    // your health: a pixel heart in the corner that beats faster the more hurt you are (HeartbeatUI). No number.
+    // your health: an RE-style ECG strip in the corner (HeartbeatUI draws it). No number.
     static void Health(RectTransform canvas)
     {
         Van(canvas);
@@ -322,20 +321,11 @@ public static class ModernUIBuilder
         if (bar == null) return;
         var slider = bar.GetComponent<Slider>();
         foreach (var child in bar.Cast<Transform>().ToArray()) Object.DestroyImmediate(child.gameObject);
-        Place(bar, Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(48f, 56f), new Vector2(126f, 202f));   // (the heart render is tall: 249 x 399)
+        Place(bar, Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(48f, 56f), new Vector2(250f, 92f));
         bar.localScale = Vector3.one;
         if (slider != null) { slider.fillRect = null; slider.handleRect = null; slider.targetGraphic = null; slider.transition = Selectable.Transition.None; slider.interactable = false; }
 
-        var healthy = HeartSprite("healthy");
-        var beatRt = Node("Heart", bar); Stretch(beatRt);
-        var glowRt = Node("Glow", beatRt, typeof(Image)); Stretch(glowRt);
-        var glow = glowRt.GetComponent<Image>(); glow.sprite = healthy; glow.preserveAspect = true; glow.raycastTarget = false; glow.color = new Color(1f, 0.1f, 0.1f, 0.12f);
-        var faceRt = Node("Face", beatRt, typeof(Image)); Stretch(faceRt);
-        var face = faceRt.GetComponent<Image>(); face.sprite = healthy; face.preserveAspect = true; face.raycastTarget = false;
-
         var hb = bar.GetComponent<HeartbeatUI>(); if (hb == null) hb = bar.gameObject.AddComponent<HeartbeatUI>();
-        hb.heart = beatRt; hb.face = face; hb.glow = glow;
-        hb.healthy = healthy; hb.hurt = HeartSprite("hurt"); hb.critical = HeartSprite("critical");
         foreach (var ui in Object.FindObjectsByType<PlayerHealthUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             if (ui.healthSlider == slider) { ui.healthText = null; hb.health = ui.playerHealth; EditorUtility.SetDirty(ui); }
         EditorUtility.SetDirty(hb);
@@ -372,7 +362,7 @@ public static class ModernUIBuilder
             }
         }
 
-        const string dir = "Assets/New Folder/stylized-pixel-fiat-ducato-gen-i-jacex/textures/";
+        const string dir = "Assets/Models/stylized-pixel-fiat-ducato-gen-i-jacex/textures/";
         var clean = AssetDatabase.LoadAssetAtPath<Texture2D>(dir + "Kesller.png");
         var cleanImp = AssetImporter.GetAtPath(dir + "Kesller.png") as TextureImporter;
         if (clean == null || cleanImp == null) return;

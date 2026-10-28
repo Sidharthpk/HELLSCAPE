@@ -21,7 +21,7 @@ public static class RevisedPlot
 
     static void Loaded(Scene scene, LoadSceneMode mode)
     {
-        if (scene.name != "Prologue" && scene.name != "MainGameScene") return;
+        if (scene.name != "Prologue" && scene.name != "MainGameScene" && scene.name != "OfficeSilo") return;
         ReadableSetup.Apply();
         ApplyText(scene);
         if (All<RevisedPlotDirector>(scene).Length == 0)
@@ -74,75 +74,82 @@ public static class RevisedPlot
 
         // Every line below is a row of Resources/HellscapeDialogue.csv (HS.S). The few plain strings left are things
         // the script has no row for and the player needs: time cards, key prompts, what a cutscene shows.
+        // Story V4 (.novel-os/novel/hellscape-story-v4.md): one drop (the KEEP COLD box to Harlow), Maya and Mercer at
+        // the depot, Derek's call, the flat, Mercer in the bedroom, and you die in the living room (no roof).
         foreach (var d in All<DeliveryRun>(scene))
         {
-            d.startLines = "*6:38 AM.*|" + HS.S("20");
+            d.startLines = "";
             d.clockOutCard = "7:00 AM";
-            d.depotLines = HS.S("60-66");
-            if (d.stops.Length > 0) d.stops[0].handOverLines = HS.S("32-42");
-            if (d.stops.Length > 1)
+            d.depotLines = "";
+            // (stops are found by their customer: two ordinary parcels come first - HellScape > Prologue > Build Extra Deliveries -
+            // their own lines are set there; then Harlow, the last delivery; then the cafe, Derek's coffee)
+            foreach (var s in d.stops)
             {
-                d.stops[1].objective = "Collect the KEEP COLD container - Harlow Clinic";
-                d.stops[1].arriveLine = "*6:50 AM. Harlow Clinic, back door.*";
-                d.stops[1].handOverLines = HS.S("43-53");
-                if (d.stops[1].customer != null) d.stops[1].customer.prompt = "Collect the sealed container";
+                string who = s.customer != null ? s.customer.name : "";
+                if (who.Contains("Harlow"))
+                {
+                    s.objective = "Deliver the KEEP COLD box - Harlow Clinic";
+                    s.arriveLine = "*6:40 AM. Harlow Clinic, front door.*";
+                    s.handOverLines = HS5.S("P03_clinic_signed") + "|*Your phone rings: DEREK.*|" + HS5.S("P03_derek_call");
+                    s.customer.prompt = "Hand over the KEEP COLD box";
+                }
+                else if (who.Contains("Cafe"))
+                {
+                    s.objective = "Pick up Derek's coffee - the cafe";
+                    s.arriveLine = "";
+                    s.handOverLines = HS5.S("P03_cafe_pickup");
+                    s.customer.prompt = "Collect Derek's order";
+                }
             }
         }
         foreach (var d in All<PrologueDirector>(scene))
         {
-            d.timeCard = "SATURDAY - 6:38 AM";
+            d.timeCard = "SATURDAY - 6:00 AM";
             d.arriveLines = "*7:00 AM.*";
             d.homeLines = "Flat 2B. Second floor.";
-            d.doorOpenLines = HS.S("67");
-            d.callOut = HS.S("68");
-            d.noAnswer = HS.S("69");
+            d.doorOpenLines = "";
+            d.callOut = HS.S("45");
+            d.noAnswer = "";
             d.settleLines = "";
-            d.newsLines = HS.S("70-73");
-            d.suspicionLines = HS.S("74");
-            d.bodyLines = HS.S("75-77");
-            d.letterBefore = HS.S("78");
-            d.letterBody = "I opened truck four after Tomas did. It wasn't equipment.\n\nVane told me I could save both of us if I said it was a fall. I thought signing it would end it.\n\nThe Saturday box from Harlow is Tomas. If you brought it back, you have to understand what that makes us.\n\nLook in the ledger. Don't trust Kessler.\n\nI tried to tell you. <color=#6a0000>I kept deciding to do it tomorrow.</color>";
-            d.letterAfter = HS.S("79-81");
-            d.stalkLines = HS.S("82-86");
-            d.stabLine = HS.S("87");
-            d.woundedLines = HS.S("88-89");
-            d.upLines = HS.S("90");
-            d.topLines = HS.S("91");
-            d.confrontLines = d.roofLines = HS.S("92-96");
-            d.grabLines = HS.S("97");
+            d.newsLines = HS.S("47-49");
+            d.suspicionLines = "";
+            d.noiseLines = HS.S("50");
+            d.witnessLine = HS.S("51-52");
+            d.caughtLine = HS.S("53-55");
+            d.bathroomLine = HS.S("46");
+            d.mugLine = HS.S("63");
+            d.photoLine = HS.S("44");
+            d.chainLine = HS.S("56");
+            d.deathLines = HS.S("57-62");
+            d.bedroomObjective = "Check the noise - the bedroom";
+            d.runObjective = "RUN - the front door!";
         }
-        foreach (var s in All<SleepSequence>(scene)) s.fallWakeLine = HS.S("126-128");
+        foreach (var s in All<SleepSequence>(scene)) s.fallWakeLine = HS5.Id(78);
         foreach (var car in All<CarInteract>(scene)) car.noKeysLine = HS.S("146");
 
         foreach (var g in All<GhostNPC>(scene)) ConfigureGhost(g);
         foreach (var n in All<ReadableNote>(scene)) ConfigureNote(n);
         foreach (var c in All<KesslerConfrontation>(scene))
         {
-            c.confrontNodes = new[] {
-                N(HS.T(344),
-                    C(HS.T(345), HS.S("346", "Vane"), 1),
-                    C(HS.T(347), HS.S("348", "Vane"), 1),
-                    C(HS.T(349), HS.S("350", "Vane"), 1, -1),
-                    C(HS.T(351), HS.S("352", "Vane"), 1)),
-                N(HS.T(353),
-                    C(HS.T(354), HS.S("355", "Vane")),
-                    C(HS.T(356), HS.S("357", "Vane")),
-                    C(HS.T(358), HS.S("359", "Vane"))) };
-            c.scareLine = HS.S("340-343");
-            c.turnLine = HS.S("360-364");
-            c.keyLine = HS.S("365");
-            c.afterTurnLine = HS.S("366");
+            // V5.1 A3A: he accuses you (Mercer told him you talked), sees your hands, and comes apart
+            var talk = HS5.S("A3A_a3a_start").Split('|');
+            c.confrontNodes = new[] { N(talk[talk.Length - 1]) };
+            c.scareLine = string.Join("|", talk, 0, talk.Length - 1);
+            c.turnLine = "*Something tears open under his skin.*";
+            c.keyLine = "*The city is taking him. A key falls from his coat: the silo.*|*[Q] raises your hands. Flash him when he gets close.*";
+            c.afterTurnLine = "*Run.*";
+            c.defeatedLine = HS5.S("A3A_flash_tutorial");
         }
         foreach (var c in All<KesslerChase>(scene))
         {
-            c.knockLine = HS.S("388,395");
+            c.knockLine = HS5.S("A04_a04_start");
             c.screamLine = HS.S("396");
             c.runLine = HS.S("397");
             c.hitLines = HS.S("398-399");
             c.tomasLine = HS.S("389");
             c.tomasHoldLine = HS.S("390-393");
             c.tomasLostLine = HS.S("394");
-            c.insideLine = HS.S("400");
+            c.insideLine = HS5.S("A04_blast_gate");
             c.quietLine = HS.S("401-402");
         }
         foreach (var k in All<KillerCutscenes>(scene))
@@ -150,7 +157,7 @@ public static class RevisedPlot
             k.scareLine = HS.S("403");
             k.getUpLine = HS.S("404-408");
             k.ambushWarn = "";
-            k.ambushLine = HS.S("413-415");
+            k.ambushLine = HS5.S("A04_vane_taunt");   // V5.1 (was: Derek begged)
         }
         foreach (var e in All<Elevator>(scene)) { e.notInsideLine = HS.S("409"); e.openLine = HS.S("410-411"); }
         foreach (var s in All<SiloEncounter>(scene))
@@ -158,57 +165,45 @@ public static class RevisedPlot
             s.pushLine = HS.S("403");
             s.leapLine = HS.S("412,416");
             s.landLine = HS.S("417-418");
-            s.derekDeathLine = HS.S("419-421");
-            s.throwLine = HS.S("422");
-            s.gunLine = HS.S("423-425");
-            s.outLine = HS.S("426");
-            s.defeatedLine = HS.S("427-429");
-            s.killTalkLine = HS.S("430-434");
-            s.killLine = HS.S("436-437");
-            s.killMayaLine = HS.S("449,451-453");   // (her own rows from the spare route: the ones that don't answer Elias)
-            s.spareLine = HS.S("441-446");
-            s.mayaSnapLine = HS.S("447-451");
-            s.mayaRealiseLine = HS.S("452-453");
-            s.mayaTurnedLine = HS.S("454-455");
-            s.eliasSaveLine = HS.S("456");
-            s.eliasKeysLine = HS.S("457-459");
-            s.keysLine = "";
-            s.confessionLine = HS.S("438-440");
-            s.twistFloodLine = s.floodLine = HS.S("460-461");
+            s.rifleLine = HS.S("419");
+            s.jumpLine = HS5.S("A05_boss_confront");   // V5.1: Vane in the silo, "I moved paperwork"
+            s.fightLine = HS.S("422");
+            s.gunLine = HS.S("423");
+            s.defeatedLine = HS.S("428-429");
+            s.keysLine = HS5.S("A05_boss_defeat");
+            s.kingLine = HS5.S("A06_flood_king") + "|" + HS5.S("A06_flood_voices") + "|" + HS5.S("A06_van_found");
+            s.floodLine = HS5.S("A06_a06_start");
+        }
+        // Vane in the silo (the KillerBoss body): his barks during the fight
+        foreach (var k in All<KillerBoss>(scene))
+        {
+            k.halfLine = HS.S("424-425");
+            k.staggerLine = HS.S("426");
+            k.rushLine = HS.S("427");
         }
         foreach (var f in All<BloodFlood>(scene))
         {
+            // nobody to pull up any more: only you, and the voices of the dead in the blood
             f.firstLine = HS.S("462");
-            f.clingLine = HS.S("463-465");
-            f.clingLineSam = HS.S("464-465");
-            f.lowLine = HS.S("466-469,471-472");
-            f.lowLineSam = HS.S("466-467,470-472");
-            f.mayaDrownLine = HS.S("477-478");
-            f.samDrownLine = HS.S("488-489");
-            f.lostLine = HS.S("491");
-            f.damnedLine = HS.S("482");
+            f.clingLine = f.clingLineSam = HS.S("463-465");
+            f.lowLine = f.lowLineSam = HS.S("466-472");
+            f.mayaDrownLine = f.samDrownLine = f.lostLine = f.damnedLine = "";
         }
-        foreach (var t in All<TurningCutscene>(scene))
-        {
-            t.damnedSpeech = HS.S("479-481");
-            t.damnedAfter = HS.S("482");
-            t.lostSpeech = HS.S("490,492");
-        }
-        foreach (var s in All<Survivor>(scene)) s.joinLine = s.displayName == "Maya" ? HS.S("473-476") : HS.S("483-487");
+        foreach (var t in All<TurningCutscene>(scene)) { t.damnedSpeech = t.damnedAfter = t.lostSpeech = ""; }
+        foreach (var sv in All<Survivor>(scene)) sv.joinLine = "";
         foreach (var h in All<HordeChase>(scene))
         {
-            h.introLine = HS.S("496-497");
-            h.clingLine = HS.S("498-500");
-            h.clingLineAlone = HS.S("499-500");
+            h.introLine = HS5.S("A07_van_start");
+            h.clingLine = h.clingLineAlone = HS.S("498-500");
             h.stopLine = HS.S("502-503");
             h.driveLine = "Go.";
         }
         foreach (var b in All<DemonBoss>(scene))
         {
-            b.displayName = "TOMAS - THE AMALGAMATION";
-            b.burstLines = "*Tomas walks out of the office, dragging Vane and Maya.*|" + HS.S("506-509");
+            b.displayName = "GRAHAM VANE";
+            b.burstLines = "*Vane drags himself out of the office.*|" + HS.S("506-508");   // (509: Derek did it)
             b.driveLine = "Go.";
-            b.transformLine = "*The three bodies pull together into one.*";
+            b.transformLine = "*Every lie tears him open wider. Something else climbs out.*";
             b.tunnelInLine = HS.S("501");
             b.tunnelOutLine = HS.S("527");
             b.arriveLines = HS.S("504-505");
@@ -216,8 +211,9 @@ public static class RevisedPlot
             b.riseLines = HS.S("518-522");
             b.phase2Lines = HS.S("530-531");
             b.phase3Lines = HS.S("523-524");
-            b.sealedName = "TOMAS - BOUND BY THREE HEARTS";
-            b.heartsLines = HS.S("532-535");
+            b.sealedName = "VANE - THREE HEARTS, THREE LIES";
+            b.heartsLines = HS.S("532-533") + "|" + HS5.Id(205);   // V5.1: three hearts, the King says name them
+            b.heartNameLines = new[] { HS5.Id(206) + "|" + HS5.Id(207), HS5.Id(208) + "|" + HS5.Id(209), HS5.Id(210) + "|" + HS5.Id(211) };
             b.heartsHint = "*Break the three hearts.*";
             b.crashLines = "";
             b.deathLines = "";   // (what he says as he comes apart is RevisedPlotDirector.AmalgamationAccounts)
@@ -227,12 +223,16 @@ public static class RevisedPlot
         {
             e.arriveLine = HS.S("581");
             e.brandLine = "";
-            e.boundLine = HS.S("639-641");
-            e.deathLines = HS.S("108-121");
-            e.deathBrandLine = HS.S("123-125");
+            e.boundLine = HS5.S("A08_wake_ditch");
+            e.deathLines = HS5.S("A01_brand") + "|" + HS5.S("A01_brand_hands");   // the void (A01)
+            e.deathBrandLine = "";
         }
         foreach (var c in All<StabCutscene>(scene))
-            if (c.gameObject.name.Contains("Derek kills Tomas")) c.afterLine = HS.S("336-337");
+            if (c.gameObject.name.Contains("Derek kills Tomas")) c.afterLine = "";   // V5.1: Mercer kills Tomas (the object keeps its old name)
+        foreach (var t in All<TomasTape>(scene))
+        {
+            t.talk = "A05_tomas_tape"; t.shot = ""; t.after = ""; t.leaving = ""; t.end = "";   // V5.1: Tomas on the phone, Mercer: put it down
+        }
         DialogueRewrite.Apply(scene);
     }
 
@@ -245,24 +245,12 @@ public static class RevisedPlot
         switch (g.ghostName)
         {
             case "Vane":
-                g.nodes = new[] { N(HS.T(288),
-                    C(HS.T(289), HS.S("290-292", "Vane")),
-                    C(HS.T(293), HS.S("294", "Vane")),
-                    C(HS.T(295), HS.S("296", "Vane"))) };
-                g.afterLine = HS.T(288);
+                g.nodes = new[] { N(HS5.Id(92)) };   // V5.1: Mercer said you gave us up
+                g.afterLine = HS5.Id(92);
                 break;
             case "Tomas":
-                // (the first answer leads into "What do you want from Vane?", whichever it was)
-                g.nodes = new[] {
-                    N(HS.T(241),
-                        C(HS.T(250), HS.S("251,254", "Tomas"), 1, 1),
-                        C(HS.T(252), HS.S("253,254", "Tomas"), 1),
-                        C(HS.T(242), HS.S("243-249,254", "Tomas"), 1)),
-                    N(HS.T(255),
-                        C(HS.T(258), HS.S("259", "Tomas")),
-                        C(HS.T(260), HS.S("261", "Tomas")),
-                        C(HS.T(256), HS.S("257", "Tomas"))) };
-                g.afterLine = HS.T(262);
+                g.nodes = new[] { N(HS5.S("A05_tomas_echo", "Tomas")) };   // V5.1: Mercer found him, Vane covered it up
+                g.afterLine = HS5.Id(176);
                 break;
         }
     }
@@ -271,17 +259,17 @@ public static class RevisedPlot
     {
         switch (n.gameObject.name)
         {
-            case "Derek's phone": n.title = "3 missed calls from Vane"; n.subtitle = "Vane"; n.afterLine = "Three missed calls from Vane. All before three in the morning."; break;
+            case "Derek's phone": n.title = "Last call: Derek"; n.subtitle = "Derek"; n.afterLine = HS5.Id(85); break;
             case "IncidentReport":
                 n.title = "SHIFT WITNESS STATEMENT";
                 n.body = "13 APRIL - SILO 2\nT. ROURKE\n\nOFFICIAL ACCOUNT\nAccidental fall while unsupervised.\n\nSigning confirms that I witnessed this account.\nThis is not an attendance sheet.";
-                n.footer = "Signed: Maya / Sam / Derek / [your signature]\nFiled by Vane.";
+                n.footer = "Signed: Derek / [your signature]\nFiled by Vane.";
                 n.afterLine = HS.S("307-308");
                 break;
             case "KesslerLedger":
                 n.title = "VANE - NIGHT ACCOUNTS";
                 n.body = "City morgue: unclaimed intake -> Silo 2.\nMaterial removed -> Harlow Clinic.\nRemainder -> disposal.\n\nT. Rourke: disposal.\nDriver bonuses included.";
-                n.footer = "Cleaner opened bags. Derek identified.\nResolve it. - V.";
+                n.footer = "Cleaner opened bags. He called the police.\nResolve it. - V.";
                 n.beforeLine = "";
                 n.afterLine = HS.S("309-311");
                 break;
@@ -295,8 +283,8 @@ public static class RevisedPlot
             case "StickyNote": n.body = "THE DAY.\n\nDAY FIRST,\nMONTH SECOND.\n\nDO NOT WRITE DOWN\nTHE CODE."; n.footer = "- K."; n.afterLine = ""; break;
             case "YourDesk_Note":
                 n.beforeLine = HS.S("275-276");
-                n.body = "YOUR KEYS.\nSILO 2.\n\nBRING THE STATEMENT.\nREAD THE LAST NAME.";
-                n.footer = "- ELIAS";
+                n.body = "YOUR KEYS ARE ON MY BELT.\nSILO 2.\n\nCOME AND CLOCK OUT.";
+                n.footer = "- G.V.";
                 n.afterLine = HS.S("277-278");
                 break;
         }

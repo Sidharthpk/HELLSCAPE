@@ -30,7 +30,7 @@ public static class OfficeWalkthroughTest
             if (st != PlayModeStateChange.EnteredPlayMode || SessionState.GetString(Key, "") == "") return;
             SleepSequence.WakeInHell = true;
             SceneManager.sceneLoaded += OnLoaded;
-            SceneManager.LoadScene("MainGameScene");
+            SceneManager.LoadScene("OfficeSilo");
         };
     }
 
@@ -70,8 +70,6 @@ public static class OfficeWalkthroughTest
         for (float t = 0f; t < s; t += Time.deltaTime) { DialogueBox.AutoAdvanceAfter = 1f; yield return null; }
     }
 
-    static string EyeState(OfficeEye eye) => eye == null ? "none" : eye.GetType().GetField("state", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(eye).ToString();
-
     // a floor point 4-6 m from the colleague's home, in the office, reachable on the navmesh
     static Vector3 Near(Vector3 home)
     {
@@ -94,14 +92,13 @@ public static class OfficeWalkthroughTest
         fpc.cameraCanMove = false;   // (or the user's mouse turns the robot)
         var horror = Object.FindFirstObjectByType<OfficeHorrorDirector>();
         if (horror == null) { L("no director"); yield break; }
-        var eye = horror.Eye;
         var names = new[] { "Priya", "Ben", "Nadia", "Omar" };
         var ghosts = Object.FindObjectsByType<GhostNPC>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         var colleagues = names.Select(n => ghosts.FirstOrDefault(g => g.ghostName == n)).ToArray();
         Check(colleagues.All(c => c != null), "all four colleagues exist");
         Check(colleagues.All(c => !c.gameObject.activeSelf), "colleagues are hidden at first");
         Check(Object.FindObjectsByType<Zombie>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Where(z => OfficeHorrorDirector.In(z.transform.position)).Count() == 0, "no Damned in the office");
-        L("eye: " + (eye != null) + ", state " + EyeState(eye));
+        Check(GameObject.Find("EyeBalls") == null, "the Eye is gone from the scene");
 
         // walk in at the first colleague's desk and wait for the scare: turn away once the footsteps have started, then back
         var talked = false;
@@ -135,27 +132,16 @@ public static class OfficeWalkthroughTest
             if (!talked)
             {
                 talked = true;
-                L("eye before talk: " + EyeState(eye));
                 g.Talk();
                 // answer the way a player does (the first answer each time) until the talk is over
                 var select = typeof(ChoiceDialogue).GetMethod("Select", BindingFlags.NonPublic | BindingFlags.Instance);
                 for (int i = 0; i < 40 && GhostNPC.Conversing; i++)
                 {
                     yield return Wait(.6f);
-                    L("  talking, eye " + EyeState(eye) + ", conversing " + GhostNPC.Conversing + ", choices open " + ChoiceDialogue.Instance.Open);
+                    L("  talking, conversing " + GhostNPC.Conversing + ", choices open " + ChoiceDialogue.Instance.Open);
                     if (ChoiceDialogue.Instance.Open) select.Invoke(ChoiceDialogue.Instance, new object[] { 0 });
                 }
-                L("talk over, conversing " + GhostNPC.Conversing);
-                float t1 = Time.time; bool roam = false;
-                while (Time.time - t1 < 25f && !roam)
-                {
-                    yield return Wait(.5f);
-                    string s = EyeState(eye);
-                    roam = s == "Patrol" || s == "Chase" || s == "Search";
-                }
-                L("eye after talk: " + EyeState(eye) + " (" + (Time.time - t1).ToString("0.0") + " s after the talk)");
-                Check(roam, "the Eye is roaming after you speak to one of them");
-                Shot("eye_roaming");
+                Check(!GhostNPC.Conversing, "the talk ends");
             }
         }
 
@@ -172,7 +158,7 @@ public static class OfficeWalkthroughTest
         }
         L("shadow figures: most at once " + most + ", frames with any " + seen + " of " + (int)(watch * 60));
         Check(most > 0, "shadow figures turn up while you wait");
-        L("done, " + fails + " failed; eye " + EyeState(eye) + ", hp " + player.GetComponentInChildren<PlayerHealth>().currentHealth);
+        L("done, " + fails + " failed; hp " + player.GetComponentInChildren<PlayerHealth>().currentHealth);
         File.WriteAllText(Path.Combine(dir, "walkthrough.txt"), log.ToString());
         Debug.Log("[walk] DONE fails=" + fails);
     }

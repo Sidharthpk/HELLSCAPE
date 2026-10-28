@@ -62,7 +62,7 @@ public class OfficeColleagues : MonoBehaviour
         foreach (var c in all)
         {
             if (c.g == null) continue;
-            bool want = c.shown || echo || c.g.IsTalking;
+            bool want = !Truth.Has("Freed" + c.g.ghostName) && (c.shown || echo || c.g.IsTalking);
             if (c.g.gameObject.activeSelf != want) c.g.gameObject.SetActive(want);
         }
     }

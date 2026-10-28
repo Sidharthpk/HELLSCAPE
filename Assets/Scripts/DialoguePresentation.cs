@@ -15,11 +15,13 @@ public class DialoguePresentation : MonoBehaviour
     static readonly Color Muted = new Color(0.66f, 0.69f, 0.72f);
     static readonly Color Ink = new Color(0.035f, 0.042f, 0.052f, 1f);
     static readonly Color Edge = new Color(0.24f, 0.27f, 0.30f, 1f);
+    const float BoxShade = .5f;   // the Text Box art darkened (solid, never see-through) so the words stand out
 
     [SerializeField] RectTransform root;
     [SerializeField] TextMeshProUGUI speaker, body, hint;
     [SerializeField] RectTransform rule, eyebrow, shade;
     bool narration;
+    public const int MaxChoices = 5;   // (the colleagues use four: three questions and leave)
     [SerializeField] Button[] buttons;
     [SerializeField] TextMeshProUGUI[] labels;
     [SerializeField] bool choices;
@@ -57,6 +59,7 @@ public class DialoguePresentation : MonoBehaviour
         dialogue.border = new Graphic[0];
         dialogue.playerColor = Bone;   // (the scenes have the old amber saved on the box)
         v.hint.text = "<color=#C70D0A>[" + dialogue.advanceKey.ToString().ToUpperInvariant() + "]</color>";
+        Shadow(v.body); Shadow(v.speaker);
         return v;
     }
 
@@ -111,6 +114,13 @@ public class DialoguePresentation : MonoBehaviour
         {
             var frame = v.shade.gameObject.AddComponent<Image>();
             frame.sprite = art; frame.raycastTarget = false;
+            frame.color = new Color(BoxShade, BoxShade, BoxShade, 1f);
+            // the art is part see-through: a solid near-black panel behind it, just inside its rounded frame
+            var backing = Node("Backing", v.root).gameObject.AddComponent<Image>();   // (drawn first, under the frame)
+            backing.color = new Color(0.02f, 0.015f, 0.015f, 0.96f); backing.raycastTarget = false;
+            Stretch(backing.rectTransform, 6f, 6f, 6f, 6f);
+            backing.transform.SetAsFirstSibling();
+            frame.type = Image.Type.Sliced;                    // (the art's border is sliced, so the box can be flatter than the art)
             v.rule.gameObject.SetActive(false);   // the art has its own frame; the name keeps the speaker's colour
         }
         else
@@ -125,10 +135,10 @@ public class DialoguePresentation : MonoBehaviour
             v.eyebrow = Text("ResponseLabel", v.root, HeadFont, 18f, Muted, TextAlignmentOptions.TopLeft).rectTransform;
             v.eyebrow.GetComponent<TMP_Text>().text = "YOUR ANSWER";
             v.eyebrow.GetComponent<TMP_Text>().characterSpacing = 4f;
-            v.hint.text = "[1-4] CHOOSE";
-            v.buttons = new Button[4];
-            v.labels = new TextMeshProUGUI[4];
-            for (int i = 0; i < 4; i++)
+            v.hint.text = "[1-" + MaxChoices + "] CHOOSE";
+            v.buttons = new Button[MaxChoices];
+            v.labels = new TextMeshProUGUI[MaxChoices];
+            for (int i = 0; i < MaxChoices; i++)
             {
                 var card = Node("Response " + (i + 1), v.root);
                 var graphic = card.gameObject.AddComponent<DialoguePanelGraphic>();
@@ -171,7 +181,7 @@ public class DialoguePresentation : MonoBehaviour
         speaker.color = color;
         rule.GetComponent<Graphic>().color = color;
         body.text = question;
-        count = Mathf.Min(options.Length, 4);
+        count = Mathf.Min(options.Length, MaxChoices);
         for (int i = 0; i < buttons.Length; i++)
         {
             buttons[i].onClick.RemoveAllListeners();
@@ -196,20 +206,24 @@ public class DialoguePresentation : MonoBehaviour
         speaker.gameObject.SetActive(!on);
         rule.gameObject.SetActive(!on && frameAspect <= 0f);
         if (shade != null) shade.gameObject.SetActive(!on);
-        var m = body.fontMaterial;
-        if (on)
-        {
-            m.EnableKeyword("UNDERLAY_ON");
-            m.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0f, 0f, 0f, 0.95f));
-            m.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 1.2f);
-            m.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -1.2f);
-            m.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.5f);
-            m.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0f);
-        }
-        else m.DisableKeyword("UNDERLAY_ON");
+        var backing = root.Find("Backing"); if (backing != null) backing.gameObject.SetActive(!on);
+        Shadow(body);   // (the words keep their hard shadow in the box too)
         body.alignment = on ? TextAlignmentOptions.Top : TextAlignmentOptions.TopLeft;
         body.UpdateMeshPadding();
         Layout();
+    }
+
+    // a hard black shadow under the words, so they read over a bright scene
+    static void Shadow(TMP_Text t)
+    {
+        var m = t.fontMaterial;
+        m.EnableKeyword("UNDERLAY_ON");
+        m.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0f, 0f, 0f, 0.95f));
+        m.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 1.2f);
+        m.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -1.2f);
+        m.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.5f);
+        m.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0f);
+        t.UpdateMeshPadding();
     }
 
     public void RestoreFocus()
@@ -231,7 +245,7 @@ public class DialoguePresentation : MonoBehaviour
         if (root == null || body == null) return;
         var available = ((RectTransform)transform).rect;
         lastWidth = available.width; lastHeight = available.height;
-        float width = Mathf.Min(1180f, Mathf.Max(280f, available.width * 0.82f));
+        float width = choices ? Mathf.Min(1180f, Mathf.Max(280f, available.width * 0.82f)) : Mathf.Min(1500f, Mathf.Max(280f, available.width * 0.9f));
         float bottom = Mathf.Max(32f, available.height * 0.075f);
         root.anchoredPosition = new Vector2(0f, bottom);
         const float pad = 32f;
@@ -239,17 +253,19 @@ public class DialoguePresentation : MonoBehaviour
         float bodyHeight = Mathf.Max(34f, body.GetPreferredValues(body.text, textWidth, Mathf.Infinity).y + 6f);
         if (!choices && frameAspect > 0f && !narration)
         {
-            // the Text Box art at its own proportions (taller only for a very long line), the text inside its frame,
-            // clear of the ornaments in the middle of the top and bottom edges
-            float inset = width * 0.045f;
+            // the Text Box art, wide and low (just tall enough for the line): its border is sliced at the art's own
+            // scale, so the frame and ornaments keep their shape and only the middle is squashed; the text inside the
+            // frame, clear of the ornaments in the middle of the top and bottom edges
+            float inset = width * 0.03f;
             float framedText = width - inset * 2f;
             bodyHeight = Mathf.Max(34f, body.GetPreferredValues(body.text, framedText, Mathf.Infinity).y + 6f);
-            root.sizeDelta = new Vector2(width, Mathf.Max(width / frameAspect, bodyHeight + 132f));
-            Place(speaker.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(inset, -30f), new Vector2(framedText * 0.42f, 32f));
+            root.sizeDelta = new Vector2(width, bodyHeight + 104f);
+            if (shade.TryGetComponent<Image>(out var frame) && frame.sprite != null) frame.pixelsPerUnitMultiplier = frame.sprite.rect.width / width * (100f / frame.sprite.pixelsPerUnit);
+            Place(speaker.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(inset, -24f), new Vector2(framedText * 0.42f, 32f));
             speaker.rectTransform.pivot = new Vector2(0f, 1f);
-            Place(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(inset, -74f), new Vector2(framedText, bodyHeight));
+            Place(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(inset, -60f), new Vector2(framedText, bodyHeight));
             body.rectTransform.pivot = new Vector2(0f, 1f);
-            Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-inset, 22f), new Vector2(120f, 26f));
+            Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-inset, 14f), new Vector2(120f, 26f));
             hint.rectTransform.pivot = new Vector2(1f, 0f);
             return;
         }
@@ -272,7 +288,7 @@ public class DialoguePresentation : MonoBehaviour
 
         int columns = width >= 850f && available.width >= available.height * 1.2f ? 2 : 1;
         float cardWidth = (width - (columns - 1) * 14f) / columns;
-        float[] rowHeights = new float[4];
+        float[] rowHeights = new float[MaxChoices];
         for (int i = 0; i < count; i++)
             rowHeights[i / columns] = Mathf.Max(rowHeights[i / columns], 78f,
                 labels[i].GetPreferredValues(labels[i].text, cardWidth - 110f, Mathf.Infinity).y + 32f);

@@ -83,7 +83,7 @@ public static class NewCars
             }
             var t = AssetDatabase.LoadAssetAtPath<Texture2D>(EstateDir + tex[i]);
             var imp = AssetImporter.GetAtPath(EstateDir + tex[i]) as TextureImporter;
-            if (imp != null && imp.filterMode != FilterMode.Point) { imp.filterMode = FilterMode.Point; imp.SaveAndReimport(); }   // crisp PS1 texels
+            if (imp != null && imp.filterMode == FilterMode.Point) { imp.filterMode = FilterMode.Trilinear; imp.SaveAndReimport(); }   // smooth PS3-era texels
             m.mainTexture = t;
             if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", t);
             if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.25f);

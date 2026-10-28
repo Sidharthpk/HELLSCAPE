@@ -8,7 +8,20 @@ public class PlayerHealth : MonoBehaviour
     public DamageVignette vignette;
     public GameOverScreen gameOver;
 
+    [Header("Regeneration")]
+    public float regenDelay = 5f;           // seconds without a hit before it starts
+    public float regenPerSecond = 2f;       // slow: about 50 s from empty to full
+
     private bool isDead = false;
+    private float lastHit = -999f;
+
+    public bool Regenerating { get; private set; }
+
+    void Update()
+    {
+        Regenerating = !isDead && currentHealth < maxHealth && Time.time - lastHit >= regenDelay;
+        if (Regenerating) Heal(regenPerSecond * Time.deltaTime);
+    }
 
     void Start()
     {
@@ -38,6 +51,7 @@ public class PlayerHealth : MonoBehaviour
         if (isDead) return;
 
         currentHealth = Mathf.Max(0f, currentHealth - amount);
+        if (amount > 0f) lastHit = Time.time;
 
         if (vignette != null)
             vignette.SetDamage(1f - (currentHealth / maxHealth));

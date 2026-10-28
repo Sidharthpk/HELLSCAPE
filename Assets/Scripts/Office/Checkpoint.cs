@@ -71,6 +71,7 @@ public class Checkpoint : MonoBehaviour
         foreach (var encounter in FindObjectsByType<KesslerConfrontation>(FindObjectsInactive.Include, FindObjectsSortMode.None)) encounter.AbortAmbush();
         foreach (var puzzle in FindObjectsByType<TapLock>(FindObjectsInactive.Include, FindObjectsSortMode.None)) puzzle.Cancel();
         foreach (var puzzle in FindObjectsByType<LockPick>(FindObjectsInactive.Include, FindObjectsSortMode.None)) puzzle.Cancel();
+        foreach (var puzzle in FindObjectsByType<VaultDial>(FindObjectsInactive.Include, FindObjectsSortMode.None)) puzzle.Cancel();
         foreach (var ghost in FindObjectsByType<GhostNPC>(FindObjectsInactive.Include, FindObjectsSortMode.None)) ghost.CancelConversation();
         if (ChoiceDialogue.Instance != null) ChoiceDialogue.Instance.Close();
         if (DialogueBox.Instance != null) DialogueBox.Instance.Clear();

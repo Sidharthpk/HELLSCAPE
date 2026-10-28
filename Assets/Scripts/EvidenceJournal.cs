@@ -21,6 +21,7 @@ public static class EvidenceJournal
         Collected = null;
         found.Clear(); accounts.Clear();
         ContainerInspected = VaneConfessed = PlayerConfessed = TomasDamned = false;
+        Truth.Reset();
     }
 
     public static void ResetHell()
@@ -37,8 +38,8 @@ public static class EvidenceJournal
             case Invoice: return "Harlow Clinic. KEEP COLD collection. Approved by Vane, code V-0500. Disposal of T. Rourke appears on the linked account.";
             case Statement: return "Every night-shift worker signed the account calling Tomas's death a fall. My signature is there. I did not witness an accident.";
             case Ledger: return "Vane paid Harlow, sold material taken from unclaimed bodies, and used the silo to destroy what remained.";
-            case Tape: return "Derek caught Tomas opening the body bags. Vane threatened both brothers and ordered Derek to deal with him. Derek killed Tomas.";
-            case Phone: return "05:00. Vane: Arthur, the Rourke brother is on his way. Kessler: Then you'd better not be there. He knew, and he left Vane to it.";
+            case Tape: return "13 April, 03:10. Tomas found the shipments in Silo Two and said he was going to the police. Mercer shot him. Vane helped cover it up.";
+            case Phone: return "Derek's last call. Get the coffee, he said. See you there.";
             default: return id;
         }
     }

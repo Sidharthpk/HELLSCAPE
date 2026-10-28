@@ -23,7 +23,7 @@ public class CutsceneSkip : MonoBehaviour
 
     static bool InCutscene()
     {
-        if (Extra > 0 || EndingSequence.Playing || OfficeFlashback.Playing) return true;
+        if (Extra > 0 || EndingSequence.Playing || OfficeFlashback.Playing || FirstSightCutscene.Playing) return true;
         foreach (var k in FindObjectsByType<KillerCutscenes>(FindObjectsSortMode.None)) if (k.Playing) return true;
         foreach (var s in FindObjectsByType<StabCutscene>(FindObjectsSortMode.None)) if (s.Playing) return true;
         foreach (var t in FindObjectsByType<TurningCutscene>(FindObjectsSortMode.None)) if (t.Playing) return true;

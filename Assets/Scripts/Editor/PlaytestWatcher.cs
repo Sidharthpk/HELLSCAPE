@@ -57,7 +57,7 @@ static class PlaytestWatcher
 
         // each dialogue line, once it has finished typing (logged when the next one replaces it, or the box closes)
         var d = DialogueBox.Instance;
-        string t = d != null && d.text != null && d.Busy ? d.text.text : "";
+        string t = d != null && d.text != null && d.Busy ? d.text.text ?? "" : "";
         if (lastLine.Length > 0 && !t.StartsWith(lastLine)) Write("SAY " + lastLine.Replace('\n', ' '));
         lastLine = t ?? "";
 

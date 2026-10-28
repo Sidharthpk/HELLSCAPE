@@ -16,24 +16,19 @@ Check that nothing is missing or unwired: **HellScape > Tests > Dialogue CSV** (
 | 11-13 | Flashback: Priya's desk | `OfficeFlashback` |
 | 14-16 | Flashback: Ben at the vending machine | `OfficeFlashback` |
 | 17-19 | Flashback: Maya's radio check as you walk out | `OfficeFlashback` |
-| 20 | Delivery run starts (after the 6:38 card) | RP > `DeliveryRun.startLines` |
-| 21-27, 28-31 | Radio briefing, then the radio cutting out | RPD `RadioBriefing` |
-| 32-42 | Hand the parcel to Mrs. Okafor | RP > `DeliveryRun.stops[0].handOverLines` |
-| 43-53 | Collect at Harlow Clinic | RP > `stops[1].handOverLines` |
-| 54-57 | Optional: inspect the KEEP COLD label (sets `EvidenceJournal.ContainerInspected`) | RPD `SetupPrologue` |
-| 58-59 | Collected without inspecting (added to the end of the clinic talk) | RPD `SetupPrologue` |
-| 60-65 (66 = static cue) | Van parked at the depot | RP > `DeliveryRun.depotLines` |
-| 67 / 68 / 69 | Flat door open / calling out / no answer | RP > `PrologueDirector.doorOpenLines`, `callOut`, `noAnswer` |
-| 70-73 | TV switched on | RP > `newsLines` |
-| 74 | After the news | RP > `suspicionLines` |
-| 75-77 | Derek's body in view | RP > `bodyLines` |
-| 78 / 79-81 | Before / after reading the letter | RP > `letterBefore`, `letterAfter` |
-| 82-86 | Elias reaches you, face to face, before the knife | RP > `stalkLines` (new field) |
-| 87 | The stab | RP > `stabLine` |
-| 88-89 | Wounded, control returns | RP > `woundedLines` |
-| 90 / 91 | Stairwell above 9 m / top landing | RP > `upLines`, `topLines` |
-| 92-96 | Cornered at the roof edge | RP > `roofLines` |
-| 97 | Grab prompt taken | RP > `grabLines` |
+| 20-23 | Harlow back door: you hand over the KEEP COLD box (Story V4: Mrs. Okafor's stop is cut) | RP > `DeliveryRun.stops[0].handOverLines` |
+| 24 | Looking at the delivered box | RPD `SetupPrologue` |
+| 25-31, 32-42 | Depot: Maya and Mercer, then Derek's phone call | RP > `DeliveryRun.depotLines` |
+| 43 | Fridge note | `ReadableSetup` |
+| 44 / 63 | Beach photo / your mug | RP > `PrologueDirector.photoLine`, `mugLine` |
+| 45 | Calling out in the flat | RP > `callOut` |
+| 46 | Locked bathroom door, shower running | RP > `bathroomLine` |
+| 47-49 | TV news | RP > `newsLines` |
+| 50 | Thud from the bedroom | RP > `noiseLines` |
+| 51-52 / 53-55 | The bedroom door / Mercer turns round | RP > `witnessLine`, `caughtLine` |
+| 56 | The front door's chain jams | RP > `chainLine` |
+| 57-62 | Mercer kills you in the living room (no roof any more) | RP > `deathLines` |
+| 64-97 | Free rows (`[unused]`, empty text) | - |
 
 ## Void, red street (MainGameScene.unity)
 
@@ -44,8 +39,8 @@ Check that nothing is missing or unwired: **HellScape > Tests > Dialogue CSV** (
 | 107 | The King stops you (plate reads ???) | `DeathVision` |
 | 108-121 | The King's questioning | RP > `EndingSequence.deathLines` |
 | 122 | [screams] cue: the brand | no line; see Missing Assets |
-| 123-125 | After the brand | RP > `deathBrandLine` |
-| 126-128 | Waking on the street | RP > `SleepSequence.fallWakeLine` |
+| 123-125, 653-655 | After the brand | RP > `deathBrandLine` |
+| 126-128 | Waking on the street (128: a Lost whispers) | RP > `SleepSequence.fallWakeLine` |
 | 129-147 | Cutscene: 129 over the Lost Souls, 130-145 on Tomas, 146-147 over the depot's door (the objective comes up there) | RPD `OpeningMark` |
 | 146 | Trying the locked van | RP > `CarInteract.noKeysLine` |
 

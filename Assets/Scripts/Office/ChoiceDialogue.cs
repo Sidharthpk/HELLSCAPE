@@ -5,7 +5,7 @@ using TMPro;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
 
-// A conversation: the speaker's line (their name on a plate in their colour, the words in white) and up to 4
+// A conversation: the speaker's line (their name on a plate in their colour, the words in white) and up to 5
 // answers of yours (amber, like everything you say), picked with the number keys. While it's open you can't walk
 // or look around, the picture is letterboxed (DialogueBox does the bars) and the camera turns to whoever you're
 // talking to. GhostNPC drives it.
@@ -50,7 +50,7 @@ public class ChoiceDialogue : MonoBehaviour
         onTimeout = null; SecondsLeft = 0f;
         onPick = pick;
         if (DialogueBox.Instance != null) DialogueBox.Instance.Raise();   // the cutscene letterbox must not cover the answers
-        count = Mathf.Min(options.Length, 4);
+        count = Mathf.Min(options.Length, DialoguePresentation.MaxChoices);
 
         Color plate = DialogueBox.Instance != null ? DialogueBox.Instance.Plate(speaker) : speakerColor;
         if (!Open)

@@ -9,26 +9,26 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Events;
 
-// The office act in the Kessler & Vane office model ("Office Ground Floor", ~100 x 71 m; NewOfficeSupplies.cs puts
-// it in the scene). Nothing is rebuilt: every puzzle, witness and prop of OfficeAct/Office is MOVED into the rooms
-// with its wiring intact. Safe to run again after editing the tables below: every placement is absolute.
+// The office act in the user's v3 office model ("Office Ground Floor", ~60 x 44 m; OfficeV3.cs puts it in the
+// scene). Nothing is rebuilt: every puzzle, witness and prop of OfficeAct/Office is MOVED into the rooms with its
+// wiring intact. Safe to run again after editing the tables below: every placement is absolute. Things the model
+// has (desks, Vane's safe, the pantry tables) are found by name: At("Vane desk").
 //
-// Coordinates in this file are PLAN coordinates: metres east and north of the front door (P() converts), the way
-// the floor plan is drawn.
+// Coordinates in this file are PLAN coordinates: metres east and north of the front door (P() converts).
 //
-//   entrance lobby  e -8..6    n 1..13    arrival, the way out (the front doors)
-//   corridor        e 3..6     n 14..26   fuse box (east wall); north to the open-plan door (bolted on the far
-//                                         side), east to the store room door (locked: reception has the key)
-//   reception       e -16..-6  n 14..30   your desk, Derek's keyboard (fuse 2), the store room key, Priya
-//   store room      e 18..29   n 12..24   Tomas's locker (fuse 3), his rota, a body bag
-//   open office     e 0..28    n 27.5..45 the hub: Nadia; the guard
-//   kitchen         e -6..14   n 45..58   the cake (fuse 1), the calendar, Ben
-//   conference      e 19..35   n 54..64   the locker key, the other body bag
-//   main hall       the corridor round the open office and east to Vane's door (e 59.6, n 34.5): keypad beside it
-//   Vane's office   e 60..77   n 28..42   the safe, the ledger, the security pass
-//   records         e 43..60   n 41..52   the incident report
-//   security        e 35..48   n 20..30   the CCTV terminal (wants the pass)
-//   service         e 49..78   n 14..23   the silo door closes its east end
+// (OfficeV3.V3Rooms has every room's rectangle, measured off the model's floors)
+//   entrance lobby  e -8..8    n 0..6     arrival, the way out (the front doors), the fuse box (east wall)
+//   reception       e -8..8    n 10..15   your name plate, Derek's keyboard (fuse 2), Priya
+//   main hall       e -21..21  n 6..15    round reception; the lounge off its west end
+//   open office     e -21..21  n 15..30   the hub: your desk (OfficeDocumentBuilder: calendar, report, note), Nadia, Omar, the guard
+//   east column     e 21..30   Kessler's armory n 7..13 (vault-dial door off Kessler's office: the pistol; the
+//                              colleagues have the numbers), Kessler's office n 13..21, Vane's office n 21..28 (his
+//                              door + keypad off the open office: the safe, the ledger, the security pass), maintenance
+//                              n 32..38 (Tomas's locker with fuse 3, his rota, a body bag)
+//   boardroom       e -30..-21 n 15..30   the locker key
+//   pantry          e -13..3   n 30..36   the cake (fuse 1), Ben
+//   security        e 14..22   n 30..38   the CCTV terminal (wants the pass)
+//   loading         e -13..4   n 36..44   the silo door closes its widest bay
 public static partial class NewOfficeFit
 {
     public const string ModelName = "Office Ground Floor";
@@ -43,21 +43,16 @@ public static partial class NewOfficeFit
     // one lamp of each kind over every room and stretch of corridor
     static readonly Vector2[] Rooms =
     {
-        new Vector2(-4f, 4f), new Vector2(2.5f, 4f), new Vector2(-1f, 10f), new Vector2(0f, 15f),          // entrance lobby
-        new Vector2(4.2f, 21f), new Vector2(11f, 21.5f),                                                    // corridor
-        new Vector2(-11f, 17.5f), new Vector2(-11f, 26f), new Vector2(-5.5f, 32.2f),                        // reception
-        new Vector2(21f, 20f), new Vector2(25.5f, 15f),                                                     // store room
-        new Vector2(5f, 30.5f), new Vector2(14f, 30.5f), new Vector2(23f, 30.5f),                           // open office
-        new Vector2(5f, 40f), new Vector2(14f, 40f), new Vector2(23f, 40f),
-        new Vector2(-1f, 50f), new Vector2(8f, 51f), new Vector2(2f, 55f),                                  // kitchen
-        new Vector2(20f, 47.7f), new Vector2(29f, 50f), new Vector2(29f, 42f),                              // main hall, north and east of the open office
-        new Vector2(23f, 59f), new Vector2(31f, 59f),                                                       // conference
-        new Vector2(33f, 36f), new Vector2(42f, 36f), new Vector2(51f, 36f), new Vector2(57f, 36f),         // main hall, east to Vane's door
-        new Vector2(47f, 46f), new Vector2(55f, 46f), new Vector2(40.7f, 45f),                              // records
-        new Vector2(39f, 24.5f), new Vector2(45f, 24.5f), new Vector2(51f, 27f),                            // security, the passage beside it
-        new Vector2(38f, 13.2f), new Vector2(47f, 16f),                                                     // return hall
-        new Vector2(55f, 18.5f), new Vector2(65f, 18.5f), new Vector2(74f, 19f),                            // service corridor
-        new Vector2(64f, 32f), new Vector2(70f, 38f), new Vector2(74f, 31f),                                // Vane's office
+        new Vector2(0f, 3f), new Vector2(0f, 12.6f), new Vector2(-12f, 8.5f), new Vector2(12f, 8.5f),       // lobby, reception, main hall
+        new Vector2(-24f, 11f),                                                                             // lounge
+        new Vector2(-10f, 18f), new Vector2(0f, 18f), new Vector2(10f, 18f),                                // open office
+        new Vector2(-10f, 26f), new Vector2(0f, 26f), new Vector2(10f, 26f), new Vector2(19f, 22f),
+        new Vector2(27f, 10f), new Vector2(27f, 17f), new Vector2(27f, 24.6f), new Vector2(27f, 29.7f),     // armory, Kessler, Vane, west corridor
+        new Vector2(27f, 35f),                                                                              // maintenance
+        new Vector2(-24f, 19f), new Vector2(-24f, 26f),                                                     // boardroom
+        new Vector2(18.8f, 34f), new Vector2(12f, 32.5f),                                                   // security, archive
+        new Vector2(-8f, 33f), new Vector2(1f, 33f),                                                        // pantry
+        new Vector2(-6f, 40.5f), new Vector2(8f, 39f),                                                      // loading
     };
 
     [MenuItem("HellScape/Office/Fit To New Office")]
@@ -68,7 +63,8 @@ public static partial class NewOfficeFit
         if (a == null || a.transform.Find("Office") == null) { Debug.LogError("Needs OfficeAct/Office in the open scene."); return; }
         log.Clear();
         Undo.RegisterFullObjectHierarchyUndo(a, "Fit office");
-        model = Install(false); act = a.transform; office = act.Find("Office");
+        act = a.transform; office = act.Find("Office");
+        model = InstallV3();
         var m = model.gameObject;
 
         // the walls are one-sided: without this a probe from behind goes straight through
@@ -77,18 +73,24 @@ public static partial class NewOfficeFit
         try
         {
             PlaceModel();
+            EmergencySpots();
             Physics.SyncTransforms();
+            BakeNavMesh();   // (ClearWall wants a walk map of this floor)
             Layout();
             Extras();
+            if (AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/OfficeDocuments/AprilCalendar.png") != null)
+                OfficeDocumentBuilder.Build();
+            Physics.SyncTransforms();
             Plates();
+            BakeNavMesh();   // (the document builder saves and refreshes: that drops the walk map Props checks against)
+            Props();
             BakeNavMesh();
+            Reach();
         }
         finally { Physics.queriesHitBackfaces = backfaces; }
         EditorSceneManager.MarkSceneDirty(m.scene);
         Report = log.ToString();
         Debug.Log("New office fitted.\n" + Report);
-        if (AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/OfficeDocuments/AprilCalendar.png") != null)
-            OfficeDocumentBuilder.Build();
     }
 
     // only the walk map again, after furniture has been moved by hand (nothing is re-placed)
@@ -97,7 +99,7 @@ public static partial class NewOfficeFit
     {
         var m = GameObject.Find(ModelName);
         var a = GameObject.Find("OfficeAct");
-        if (EditorApplication.isPlaying || m == null || !IsKv(m.transform) || a == null || a.transform.Find("Office") == null) { Debug.LogError("Needs '" + ModelName + "' and OfficeAct/Office in the open scene, out of Play."); return; }
+        if (EditorApplication.isPlaying || m == null || !IsOffice(m.transform) || a == null || a.transform.Find("Office") == null) { Debug.LogError("Needs '" + ModelName + "' and OfficeAct/Office in the open scene, out of Play."); return; }
         model = m.transform; act = a.transform; office = act.Find("Office");
         log.Clear();
         BakeNavMesh();
@@ -113,7 +115,7 @@ public static partial class NewOfficeFit
         if (EditorApplication.isPlaying) { Debug.LogError("Stop Play first."); return; }
         var m = GameObject.Find(ModelName);
         var a = GameObject.Find("OfficeAct");
-        if (m == null || !IsKv(m.transform) || a == null || a.transform.Find("Office") == null) { Debug.LogError("Needs '" + ModelName + "' and OfficeAct/Office in the open scene."); return; }
+        if (m == null || !IsOffice(m.transform) || a == null || a.transform.Find("Office") == null) { Debug.LogError("Needs '" + ModelName + "' and OfficeAct/Office in the open scene."); return; }
         model = m.transform; act = a.transform; office = act.Find("Office");
         log.Clear();
         bool backfaces = Physics.queriesHitBackfaces;
@@ -175,7 +177,7 @@ public static partial class NewOfficeFit
         var hits = Physics.RaycastAll(from, dir, dist, ~0, QueryTriggerInteraction.Ignore);
         System.Array.Sort(hits, (p, q) => p.distance.CompareTo(q.distance));
         foreach (var h in hits)
-            if (h.collider.transform.IsChildOf(model) && h.collider.name != "Chair") { hit = h; return true; }   // (a chair is neither a wall nor a table top)
+            if (h.collider.transform.IsChildOf(model) && h.collider.name != "Chair" && !h.collider.transform.parent.name.StartsWith("Seals")) { hit = h; return true; }   // (a chair is neither a wall nor a table top; the invisible walls outside are neither)
         hit = default;
         return false;
     }
@@ -439,21 +441,23 @@ public static partial class NewOfficeFit
 
     static void Layout()
     {
-        // ---- ENTRANCE LOBBY: you come in by the front doors and look up the lobby at the corridor
+        // ---- ENTRANCE LOBBY: you come in by the front doors and look up the lobby at reception
         var arrival = act.Find("OfficeArrival");
-        arrival.SetPositionAndRotation(P(.5f, Floor + 1.1f, 2.6f), Quaternion.identity);
+        arrival.SetPositionAndRotation(P(0f, Floor + 1.1f, 2.6f), Quaternion.identity);
         // the way out is the front doors themselves: the old door slab is only what you click on
         var exit = office.Find("ExitDoor");
-        var exitWall = Wall(.5f, 1.25f, 2.6f, Vector3.back, "exit door");
-        Move(exit, exitWall + Vector3.forward * .07f, Quaternion.LookRotation(Vector3.back));
-        exit.localScale = new Vector3(4.3f, 2.5f, .1f);
+        float exitWidth = 4.3f;
+        var exitWall = Wall(-6f, 1.25f, 2.6f, Vector3.back, "exit door");
+        if (Opening(P(-7.5f, Floor + 1.2f, 2.6f), Vector3.back, Vector3.right, 15f, out var fd, out float fw, out _)) { exitWall = fd; exitWidth = fw + .3f; }
+        else log.AppendLine("NO DOORWAY at the front: the exit is on the wall");
+        Move(exit, new Vector3(exitWall.x, Floor + 1.25f, exitWall.z) + Vector3.forward * .07f, Quaternion.LookRotation(Vector3.back));
+        exit.localScale = new Vector3(exitWidth, 2.5f, .1f);
         exit.GetComponent<Renderer>().enabled = false;
 
-        // the rooms are big and the lamps far apart: strong, long reach
         Relight("EmergencyLights", 2.7f, 3.2f, 11f);
         Relight("PowerLights", 2.85f, 7f, 13f);
 
-        // ---- FUSE BOX: on the corridor's east wall, same way round as ever (you face +x to use it)
+        // ---- FUSE BOX: on the lobby's east wall, same way round as ever (you face +x to use it)
         var fuseRoot = Root("Fuse").transform;
         var fbNode = office.Find("FuseBox (breaker)");
         var fb = fbNode.GetComponent<FuseBox>();
@@ -462,7 +466,7 @@ public static partial class NewOfficeFit
         var picks = new[] { fbNode.Find("FusePickup 1"), fbNode.Find("FusePickup 2"), fbNode.Find("FusePickup 3") };
         var at = loose.Select(f => f.position).ToArray();   // the loose fuses are the box's children, but lie elsewhere
         var box = fuseRoot.Find("PowerBox").GetComponent<Renderer>().bounds;
-        var boxWall = Wall(4.5f, 1.54f, 18.2f, Vector3.right, "fuse box");
+        var boxWall = Wall(5f, 1.54f, 3.6f, Vector3.right, "fuse box");
         var by = new Vector3(boxWall.x - .005f - box.max.x, 0f, boxWall.z - box.center.z);
         Shove(by, fuseRoot, breaker, Kid("Breaker label", "Label", breaker.position), Kid("Breaker glow", "Light", breaker.position));
         fb.seatedPos += by;
@@ -471,52 +475,42 @@ public static partial class NewOfficeFit
         EditorUtility.SetDirty(fb);
         for (int i = 0; i < 3; i++) loose[i].position = at[i];
 
-        // ---- KITCHEN: the cake with fuse 1 in it on a table, the calendar on the north wall
+        // ---- PANTRY (the kitchen): the cake with fuse 1 in it on a table (the calendar is at your desk: OfficeDocumentBuilder)
         var cake = Root("Cake Out Sub").transform;
         var cb = cake.GetComponentInChildren<Renderer>().bounds;
         foreach (var r in cake.GetComponentsInChildren<Renderer>()) cb.Encapsulate(r.bounds);
-        var table = Desk(-1.9f, 47.3f, "cake", .26f);
+        var pt = At("Pantry table 1");
+        var table = Desk(pt.x, pt.y, "cake", .26f);
         Shove(new Vector3(table.x - cb.center.x, table.y - cb.min.y, table.z - cb.center.z), cake, loose[0]);
         picks[0].position = loose[0].GetComponent<Renderer>().bounds.center;
 
-        var cal = office.Find("Calendar");
-        var calWall = Wall(5f, 1.75f, 54.5f, Vector3.forward, "calendar");
-        Move(cal, calWall + Vector3.back * .02f, Quaternion.LookRotation(Vector3.forward),
-             Kid("Calendar label", "Label", cal.position), Kid("Calendar glow", "Light", cal.position));
-
-        // ---- RECEPTION: your desk on the counter island, Derek's keyboard (fuse 2) on the side table
-        var note = office.Find("YourDesk_Note");
-        var sign = Kid("Your desk sign", "Cube", note.position);
-        note.position = Desk(-10.3f, 21.4f, "your desk", .1f, note) + Vector3.up * .01f;
-        Physics.SyncTransforms();
-        if (sign != null)   // the name plate stands on the counter beside it
+        // ---- RECEPTION: your name plate on one desk, Derek's keyboard (fuse 2) on the other
+        var sign = office.Find("Your desk sign");
+        if (sign != null)
         {
             var sb = sign.GetComponent<Renderer>().bounds;
-            var on = Desk(-10.3f, 22.4f, "your name plate", Mathf.Max(sb.extents.x, sb.extents.z) + .03f, sign);
+            var rd = At("Reception desk 27.5");
+            var on = Desk(rd.x, rd.y, "your name plate", Mathf.Max(sb.extents.x, sb.extents.z) + .03f, sign);
             sign.position += new Vector3(on.x - sb.center.x, on.y + .004f - sb.min.y, on.z - sb.center.z);
+            Physics.SyncTransforms();
         }
-        PutFuse(loose[1], picks[1], Desk(-6.8f, 29.6f, "Derek's desk", .08f));
+        var dd = At("Reception desk 31");
+        PutFuse(loose[1], picks[1], Desk(dd.x, dd.y, "Derek's desk", .08f));
 
-        // ---- STORE ROOM (the cleaner's): a body bag on the floor (his locker and rota are in Extras)
+        // ---- MAINTENANCE (the cleaner's room): a body bag on the floor (his locker and rota are in Extras)
         var crate = office.Find("Crate");
         if (crate != null) crate.gameObject.SetActive(false);   // fuse 3 sat on it; it's in the locker now
-        Bag("Body bag (store room)", default, P(25f, 0f, 19.5f));
-        // ...and the other in the conference room: the westmost one, so it's the one OfficeLurkers drops off the ceiling
-        Bag("Body bag (boardroom)", default, P(20.4f, 0f, 61.6f));
+        Bag("Body bag (store room)", default, FreeFloor(26f, 34f, .9f, "maintenance bag"));   // (the name is older than the room)
+        // ...and the other in the boardroom (OfficeLurkers drops the westmost one off the ceiling)
+        Bag("Body bag (boardroom)", default, FreeFloor(-21f, 27f, .9f, "boardroom bag"));
         var pool = office.Find("BloodPool");
-        if (pool != null) pool.position = P(4.2f, pool.position.y, 15.5f);
+        if (pool != null) pool.position = P(3f, pool.position.y, 8f);
 
-        // ---- VANE'S DOOR is the door of his office, at the end of the main hall: the model's own leaf comes off
-        // and the door model stands in the doorway; its wall panels disappear into the jambs
-        var doorAt = P(59.6f, 0f, 34.5f); float doorway = 1.94f;
-        var own = Leaf("D21");
-        if (own != null)
-        {
-            var ob = own.GetComponent<Renderer>().bounds;   // (as it hangs shut: the doorway, jamb to jamb)
-            doorAt = ob.center; doorway = ob.size.z;
-            own.gameObject.SetActive(false);
-        }
-        Physics.SyncTransforms();
+        // ---- VANE'S DOOR is the doorway of his office, off the west corridor: the door model stands in it
+        Vector3 doorAt = P(22.8f, 0f, 25.5f); float doorway = 1.2f;
+        if (Opening(P(19.5f, Floor + 1.2f, 21.6f), Vector3.right, Vector3.forward, 6f, out var dc, out float dw, out _))
+        { doorAt = dc + Vector3.right * .12f; doorway = dw; }   // (the middle of the wall: it is .24 thick)
+        else log.AppendLine("NO DOORWAY for Vane's door");
         var doorRoot = Root(DoorModel).transform;
         var kd = office.Find("KesslerDoor");
         var frameT = doorRoot.Find("Plane_002");
@@ -537,70 +531,105 @@ public static partial class NewOfficeFit
             if (c == null) c = fill.gameObject.AddComponent<BoxCollider>();
             c.size = new Vector3(.3f, 2.7f, gap + .1f);
         }
+        // the door model's own wall panels were cut for the last office: what reaches past this wall's ends would
+        // stand free in the corridor (this office's wall has its own doorway)
+        Physics.SyncTransforms();
+        foreach (var r in doorRoot.GetComponentsInChildren<Renderer>(true))
+            if (r.transform != frameT && r.bounds.size.y > 2.6f && r.bounds.size.z > doorway + 3f) r.gameObject.SetActive(false);
         log.AppendLine("Vane's door: doorway " + doorway.ToString("F2") + " at " + doorAt);
         var pad = office.Find("Keypad");
-        var padWall = Wall(58f, 1.65f, 36.6f, Vector3.right, "keypad");
+        var padWall = Wall(19.5f, 1.65f, doorAt.z - DoorZ + Mathf.Max(1.3f, doorway * .5f + .45f), Vector3.right, "keypad");
         pad.SetPositionAndRotation(padWall + Vector3.left * .03f, doorRot);
 
-        // ---- VANE'S OFFICE, behind the door: the safe, and on his desk the second set of books
+        // ---- VANE'S OFFICE, behind the door: the safe where his own stood, and on his desk the second set of books
         var safe = office.Find("Safe");
-        if (ClearWall(safe, 69f, 30f, 5f, 1.05f, .8f, 0f, 1.05f, out var sw0, out var sf0, "safe"))
+        var ms = At("Vane safe");
+        foreach (Transform c in model) if (c.name.StartsWith("Vane safe")) c.gameObject.SetActive(false);
+        Physics.SyncTransforms();
+        if (ClearWall(safe, ms.x, ms.y, 3f, 1.05f, .8f, 0f, 1.05f, out var sw0, out var sf0, "safe"))
             Move(safe, sw0 - sf0 * .46f, Quaternion.LookRotation(sf0));
         Physics.SyncTransforms();
-        var report = office.Find("IncidentReport");
         var ledger = office.Find("KesslerLedger");
-        var lamps = office.Cast<Transform>().Where(c => c.name == "Light" && Vector3.Distance(c.position, report.position) < 1.6f)
-                          .OrderBy(c => Vector3.Distance(c.position, report.position)).ToArray();
-        var reportLamp = office.Find("Report lamp"); var ledgerLamp = office.Find("Ledger lamp");
-        if (reportLamp == null && lamps.Length > 0) { reportLamp = lamps[0]; reportLamp.name = "Report lamp"; }
-        if (ledgerLamp == null && lamps.Length > 1) { ledgerLamp = lamps[1]; ledgerLamp.name = "Ledger lamp"; }
-        ledger.position = Desk(66.4f, 36.2f, "ledger", .26f, ledger) + Vector3.up * .03f;
-        // ---- RECORDS: the report he made everyone sign, on the reading table
-        report.position = Desk(50.3f, 49.4f, "incident report", .22f, report) + Vector3.up * .01f;
-        if (reportLamp != null) reportLamp.position = report.position + Vector3.up * .8f;
+        var vd = At("Vane desk");
+        ledger.position = Desk(vd.x, vd.y, "ledger", .26f, ledger) + Vector3.up * .03f;
+        var ledgerLamp = office.Find("Ledger lamp");
         if (ledgerLamp != null) ledgerLamp.position = ledger.position + Vector3.up * .8f;
         Physics.SyncTransforms();
 
-        // ---- SECURITY: the CCTV terminal against a wall of the room
+        // ---- SECURITY / SERVER ROOM: the CCTV terminal against a wall
         var cctv = office.Find("CCTV");
-        if (ClearWall(cctv, 44f, 23f, 7f, 1.7f, .95f, 0f, 1.95f, out var cw, out var cf, "CCTV terminal", 1.2f))
+        if (ClearWall(cctv, 19f, 35f, 4f, 1.7f, .95f, 0f, 1.95f, out var cw, out var cf, "CCTV terminal", 1.2f))
             Move(cctv, cw - cf * .1f, Quaternion.LookRotation(cf));
-        else Move(cctv, P(47.6f, Floor, 21.4f), Quaternion.LookRotation(Vector3.right));
+        else Move(cctv, P(19f, Floor, 35f), Quaternion.LookRotation(Vector3.right));
         Physics.SyncTransforms();
 
-        // ---- the SILO DOOR closes the east end of the service corridor: past it the model just ends
+        // ---- the SILO DOOR closes the widest bay of the loading dock (the north wall: past it the model just ends)
         var silo = office.Find("SiloDoor");
-        if (Opening(P(76.5f, Floor + 1.2f, 16.3f), Vector3.right, Vector3.forward, 5.6f, out var so, out float sw, out float sh))
+        if (Opening(P(-13f, Floor + 1.2f, 43.3f), Vector3.forward, Vector3.right, 16f, out var so, out float sw, out float sh))
         {
             var label = Kid("Silo label", "Label", silo.position);
             sh = Mathf.Min(sh, 2.8f);
-            silo.SetPositionAndRotation(so + Vector3.up * sh * .5f + Vector3.right * .05f, Quaternion.LookRotation(Vector3.right));
+            silo.SetPositionAndRotation(so + Vector3.up * sh * .5f + Vector3.forward * .05f, Quaternion.LookRotation(Vector3.forward));
             silo.localScale = new Vector3(sw + .06f, sh, .1f);
-            if (label != null) label.SetPositionAndRotation(so + Vector3.up * (sh + .28f) + Vector3.left * .03f, Quaternion.LookRotation(Vector3.right));
+            if (label != null) label.SetPositionAndRotation(so + Vector3.up * (sh + .28f) + Vector3.back * .03f, Quaternion.LookRotation(Vector3.forward));
             log.AppendLine("silo door: doorway " + sw.ToString("F2") + " x " + sh.ToString("F2") + " at " + so);
         }
         else log.AppendLine("NO DOORWAY for the silo door");
 
         // ---- the dead: where each one worked
-        Ghost("Priya", -12.6f, 25.3f);      // front desk: reception (beside her chair)
-        Ghost("Ben", 3f, 50f);              // the kitchen, with the cake
-        Ghost("Nadia", 13.5f, 37.2f);       // the open-plan floor
-        Ghost("Omar", 21.5f, 41.2f);        // its north row
-        var vane = Ghost("Vane", 57.6f, 34.6f);   // (Echo only) in front of his own door
-        Ghost("Tomas", 66.5f, 32f);         // inside Vane's office
+        var chair = At("Reception chair 31");
+        Ghost("Priya", FreeFloor(chair.x + .9f, chair.y + .4f, .35f, "Priya"));   // front desk: beside her chair
+        Ghost("Ben", FreeFloor(-2.5f, 34.5f, .35f, "Ben"));                          // the pantry, with the cake
+        Ghost("Nadia", FreeFloor(-7f, 19f, .35f, "Nadia"));                          // the open-plan floor, west bank
+        Ghost("Omar", FreeFloor(8.5f, 26.5f, .35f, "Omar"));                         // its east bank
+        var vane = Ghost("Vane", FreeFloor(28f, 26.5f, .35f, "Vane"));               // inside his own office
+        var tomasGhost = Object.FindObjectsByType<GhostNPC>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(g => g.ghostName == "Tomas");
+        var tomas = tomasGhost != null ? tomasGhost.transform : null;
+        if (tomas != null)
+        {
+            var siloRoot = act.Find("SiloComplex");
+            if (siloRoot != null) tomas.SetParent(siloRoot, true);
+            tomas.SetPositionAndRotation(new Vector3(918f, 90.19f, 1049f), Quaternion.identity);
+        }
+        if (vane != null) vane.GetComponent<GhostNPC>().driftRadius = 0f;
+        if (tomas != null) tomas.GetComponent<GhostNPC>().driftRadius = 0f;
         var damned = office.Find("KesslerConfrontation/Kessler (damned)");
         if (damned != null && vane != null) damned.position = vane.position;
 
-        // the colleagues' name plates go where their desks are now
+        // the colleagues' name plates (OfficeColleagues starts its scare at them) onto a desk near each one
         foreach (var who in new[] { "Priya", "Ben", "Nadia", "Omar" })
         {
             var plate = office.Find("Desk sign - " + who);
-            if (plate != null) Object.DestroyImmediate(plate.gameObject);
+            var g = office.Find("Ghost - " + who);
+            if (plate == null || g == null) continue;
+            var pb = plate.GetComponent<Renderer>().bounds;
+            var on = Desk(g.position.x - DoorX, g.position.z - DoorZ, who + "'s name plate", Mathf.Max(pb.extents.x, pb.extents.z) + .03f, plate, 6f);
+            plate.position += new Vector3(on.x - pb.center.x, on.y + .004f - pb.min.y, on.z - pb.center.z);
+            Physics.SyncTransforms();
         }
         // the guard starts out on the open-plan floor (OfficeEye takes it from there)
         var eye = Root("EyeBalls");
-        if (eye != null) eye.transform.position = P(14f, eye.transform.position.y, 28.5f);
+        if (eye != null) eye.transform.position = P(0f, eye.transform.position.y, 27.5f);
         Physics.SyncTransforms();
+    }
+
+    // a bare bit of floor near a point, `half` each way with nothing of the model or the act on it
+    static Vector3 FreeFloor(float e, float n, float half, string what, float reach = 3f)
+    {
+        for (float r = 0f; r <= reach; r += .25f)
+        {
+            int steps = Mathf.Max(1, Mathf.RoundToInt(r * 25f));
+            for (int k = 0; k < steps; k++)
+            {
+                float a = k * Mathf.PI * 2f / steps;
+                var p = P(e + Mathf.Cos(a) * r, Floor, n + Mathf.Sin(a) * r);
+                if (Mathf.Abs(Top(p).y - Floor) > .05f) continue;
+                if (!Blocked(p + Vector3.up * 1f, new Vector3(half, .9f, half), Quaternion.identity, null)) return p;
+            }
+        }
+        log.AppendLine("NO FLOOR for " + what);
+        return P(e, Floor, n);
     }
 
     static void Relight(string node, float height, float intensity, float range)
@@ -643,15 +672,15 @@ public static partial class NewOfficeFit
         box.size = new Vector3(size.x / k.x, Mathf.Min(size.y, .45f) / k.y, size.z / k.z);
     }
 
-    static Transform Ghost(string who, float x, float z)
+    static Transform Ghost(string who, Vector3 at)
     {
         var g = office.Find("Ghost - " + who);
         if (g == null) { log.AppendLine("MISSING ghost " + who); return null; }
-        g.position = P(x, Floor, z);
+        g.position = new Vector3(at.x, Floor, at.z);
         return g;
     }
 
-    // ---------------------------------------------------------------- what the bigger floor has room for
+    // ---------------------------------------------------------------- the locker, the keys, the pass, the locked door
 
     static void Extras()
     {
@@ -662,9 +691,10 @@ public static partial class NewOfficeFit
         var pick3 = fbNode.Find("FusePickup 3");
         var labelProto = office.Find("Breaker label");
 
-        // ---- TOMAS'S LOCKER (store room): fuse 3 is padlocked in it; the key is a "souvenir" on the conference table
+        // ---- TOMAS'S LOCKER (maintenance, the cleaner's room): fuse 3 is padlocked in it; the key is a "souvenir" on
+        // the boardroom table
         var locker = Node(office, "Tomas's locker");
-        if (ClearWall(locker, 19f, 18.6f, 4f, .78f, .58f, 0f, 1.95f, out var lw, out var lf, "locker"))
+        if (ClearWall(locker, 25f, 35f, 3.5f, .78f, .58f, 0f, 1.95f, out var lw, out var lf, "locker"))
             locker.SetPositionAndRotation(lw - lf * .06f, Quaternion.LookRotation(lf));
         Box(locker, "Back", new Vector3(0f, .95f, -.02f), new Vector3(.7f, 1.9f, .03f), metal);
         Box(locker, "Left", new Vector3(-.335f, .95f, -.26f), new Vector3(.03f, 1.9f, .5f), metal);
@@ -694,11 +724,12 @@ public static partial class NewOfficeFit
         Physics.SyncTransforms();
         var rota = office.Find("CleaningRota");
         var rotaGlow = Kid("Rota glow", "Light", rota.position);
-        if (ClearWall(rota, 20.5f, 19f, 4f, .6f, .08f, 1.25f, 1.95f, out var rw, out var rf, "rota"))
+        if (ClearWall(rota, 27f, 35f, 3.5f, .6f, .08f, 1.25f, 1.95f, out var rw, out var rf, "rota"))
             Move(rota, rw + Vector3.up * 1.6f - rf * .02f, Quaternion.LookRotation(rf), rotaGlow);
 
         var key = Box(office, "LockerKey", Vector3.zero, new Vector3(.05f, .015f, .12f), gold);
-        key.transform.position = Desk(27.5f, 58f, "locker key", .12f, key.transform) + Vector3.up * .01f;
+        var ct = At("Extended blue conference table");
+        key.transform.position = Desk(ct.x, ct.y, "locker key", .12f, key.transform, 2.5f) + Vector3.up * .01f;
         key.GetComponent<BoxCollider>().size = new Vector3(6f, 20f, 3f);   // easy to aim at a tiny key
         Inter(key, "Take the key", "A padlock key on a lanyard: T. ROURKE.|Left on the boardroom table like a paperweight.", give: "LockerKey", hide: true);
         Glow(key.transform, new Vector3(0f, 20f, 0f), new Color(1f, .7f, .2f));
@@ -720,43 +751,61 @@ public static partial class NewOfficeFit
         Glow(reader.transform, new Vector3(0f, 3f, 0f), new Color(1f, .15f, .1f));
 
         var pass = Box(office, "SecurityPass", Vector3.zero, new Vector3(.09f, .008f, .06f), paper);
-        pass.transform.position = Desk(69.3f, 35.7f, "security pass", .12f, pass.transform) + Vector3.up * .006f;
+        var vd = At("Vane desk");
+        pass.transform.position = Desk(vd.x, vd.y, "security pass", .12f, pass.transform) + Vector3.up * .006f;
         pass.GetComponent<BoxCollider>().size = new Vector3(4f, 40f, 6f);
         Inter(pass, "Take the pass", "A security pass on a burnt lanyard.|VANE - ALL AREAS. The photo has melted off.", give: "SecurityPass", hide: true);
         Glow(pass.transform, new Vector3(0f, 40f, 0f), new Color(1f, .7f, .2f));
 
-        var shutter = office.Find("Loading shutter");   // (the last office's loading dock: this one has none)
-        if (shutter != null) Object.DestroyImmediate(shutter.gameObject);
+        foreach (var gone in new[] { "Loading shutter", "Open-plan door (lobby side)", "Open-plan door (bolt)" })   // (the last offices' doors)
+        {
+            var t = office.Find(gone);
+            if (t != null) Object.DestroyImmediate(t.gameObject);
+        }
 
-        // ---- the floor plan's LOCKED DOORS off the lobby. The store room opens with the key reception keeps...
-        var stores = Leaf("D06");
-        if (stores != null)
+        // ---- KESSLER'S ARMORY, the secure room off his office: a bank-vault dial on the door. He gave each colleague
+        // one number so nobody could open it alone (OfficeWitness: Priya 31, Ben 7, Nadia 18; Omar knows the order).
+        foreach (var gone in new[] { "StoreKey", "Store room door" })   // (the store room it used to be)
         {
-            stores.gameObject.SetActive(true);
-            var sk = Box(office, "StoreKey", Vector3.zero, new Vector3(.05f, .015f, .12f), gold);
-            sk.transform.position = Desk(-9.6f, 25f, "store room key", .12f, sk.transform) + Vector3.up * .01f;
-            sk.GetComponent<BoxCollider>().size = new Vector3(6f, 20f, 3f);
-            Inter(sk, "Take the key", "A key on a red tag: STORES.|Reception kept the spares. Nobody signed this one out.", give: "StoreKey", hide: true);
-            Glow(sk.transform, new Vector3(0f, 20f, 0f), new Color(1f, .7f, .2f));
-            Inter(stores.gameObject, "Unlock the door", "The key turns.|The store room. The cleaner's.", req: "StoreKey",
-                locked: "STORES - STAFF ONLY. Locked.|Reception keeps the spare keys.", hide: true);
+            var t = office.Find(gone);
+            if (t != null) Object.DestroyImmediate(t.gameObject);
         }
-        // ...the open-plan floor is bolted on its far side: a way back to the lobby once you are through
-        var bolted = Leaf("D05");
-        if (bolted != null)
+        if (Opening(P(24.3f, Floor + 1.5f, 14.2f), Vector3.back, Vector3.right, 6f, out var sc, out float sdw, out float sdh))
         {
-            bolted.gameObject.SetActive(true);
-            var lb = bolted.GetComponent<Renderer>().bounds;
-            var lobbySide = Box(office, "Open-plan door (lobby side)", lb.center + Vector3.back * .14f, new Vector3(lb.size.x, 2.2f, .08f), black);
-            var farSide = Box(office, "Open-plan door (bolt)", lb.center + Vector3.forward * .14f, new Vector3(lb.size.x, 2.2f, .08f), black);
-            lobbySide.GetComponent<Renderer>().enabled = farSide.GetComponent<Renderer>().enabled = false;
-            Inter(lobbySide, "Try the door", "It gives a finger's width and stops.|Bolted on the other side.", once: false);
-            var slide = Inter(farSide, "Slide the bolt", "The bolt grinds back.|The lobby, and the way out.", hide: true);
-            UnityEventTools.AddBoolPersistentListener(slide.onUse, bolted.gameObject.SetActive, false);
-            UnityEventTools.AddBoolPersistentListener(slide.onUse, lobbySide.SetActive, false);
+            sdh = Mathf.Min(sdh, 2.3f);
+            var door = Box(office, "Armory door", Vector3.zero, new Vector3(sdw + .04f, sdh, .06f), black);
+            door.transform.position = sc + Vector3.up * sdh * .5f + Vector3.back * .1f;
+            var dial = door.GetComponent<VaultDial>();
+            if (dial == null) dial = door.AddComponent<VaultDial>();
+            dial.code = new[] { 18, 7, 31 };
+            dial.lockedText = "KESSLER - ARMORY. A vault dial, three numbers.";
+            dial.openText = "The bolts slide back.|Kessler's armory. One pistol left on the rack.";
+            while (dial.onSolved.GetPersistentEventCount() > 0) UnityEventTools.RemovePersistentListener(dial.onSolved, 0);
+            UnityEventTools.AddBoolPersistentListener(dial.onSolved, door.SetActive, false);
+            var turn = Inter(door, "Turn the dial", once: false);
+            UnityEventTools.AddVoidPersistentListener(turn.onUse, dial.Use);
+            var carve = door.GetComponent<NavMeshObstacle>();
+            if (carve == null) carve = door.AddComponent<NavMeshObstacle>();
+            carve.shape = NavMeshObstacleShape.Box; carve.carving = true; carve.center = Vector3.zero; carve.size = Vector3.one;
+            log.AppendLine("armory door: " + sdw.ToString("F2") + " x " + sdh.ToString("F2") + " at " + sc);
         }
-        var closet = Leaf("D13");
-        if (closet != null) Inter(closet.gameObject, "Try the door", "PLANT ROOM. Locked, and the lock has run in the heat.", once: false);
+        else log.AppendLine("NO DOORWAY for the armory door");
+
+        // the pistol, lying on the middle safe: taking it is taking the gun (GunController.Equip)
+        var pistol = Node(office, "Armory pistol");
+        foreach (var c in pistol.Cast<Transform>().ToList()) Object.DestroyImmediate(c.gameObject);
+        var safeTop = Top(Of("Secure safe 1").center);
+        pistol.SetPositionAndRotation(safeTop + Vector3.up * .02f, Quaternion.Euler(0f, 90f, 90f));
+        PistolBuilder.Prop(pistol, "Beretta");
+        var grab = pistol.GetComponent<BoxCollider>();
+        if (grab == null) grab = pistol.gameObject.AddComponent<BoxCollider>();
+        grab.center = Vector3.zero; grab.size = Vector3.one * .5f;   // easy to aim at
+        var take = Inter(pistol.gameObject, "Take the pistol", "A Beretta. Loaded.|[R] reload   [I] inspect", hide: true);
+        var gunCtl = Object.FindObjectsByType<GunController>(FindObjectsInactive.Include, FindObjectsSortMode.None).FirstOrDefault();
+        if (gunCtl != null) UnityEventTools.AddVoidPersistentListener(take.onUse, gunCtl.Equip);
+        else log.AppendLine("no GunController: the armory pistol equips nothing");
+        Glow(pistol, new Vector3(0f, .3f, 0f), new Color(1f, .7f, .2f));
+        log.AppendLine("armory pistol on the safe at " + pistol.position);
 
         // ---- Vane's door cuts the navmesh while it is shut (no Damned in the office any more: OfficeDamned is only this)
         var node = Node(office, "Damned spawners");
@@ -796,19 +845,21 @@ public static partial class NewOfficeFit
         }
         var b = ModelBounds();
         var slab = new Bounds(new Vector3(b.center.x, Floor + .9f, b.center.z), new Vector3(b.size.x + 2f, 2.6f, b.size.z + 2f));
-        var data = UnityEngine.AI.NavMeshBuilder.BuildNavMeshData(NavMesh.GetSettingsByID(0), sources, slab, Vector3.zero, Quaternion.identity);
+        var settings = NavMesh.GetSettingsByID(0);
+        settings.agentRadius = Mathf.Min(settings.agentRadius, .3f);   // (the v3 office's doors are 1 m: a 0.5 m agent fits none of them; the player is 0.3)
+        var data = UnityEngine.AI.NavMeshBuilder.BuildNavMeshData(settings, sources, slab, Vector3.zero, Quaternion.identity);
         if (data == null) { log.AppendLine("NAVMESH bake failed"); return; }
         if (!AssetDatabase.IsValidFolder(GenDir)) AssetDatabase.CreateFolder("Assets/Generated", "Office");
         const string path = GenDir + "/OfficeNavMesh.asset";
-        AssetDatabase.DeleteAsset(path);
-        AssetDatabase.CreateAsset(data, path);
         var node = Node(office, "Office navmesh");
         node.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
         var surface = node.GetComponent<NavMeshSurface>();
         if (surface == null) surface = node.gameObject.AddComponent<NavMeshSurface>();
         surface.collectObjects = CollectObjects.Children;
         surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
-        surface.RemoveData();
+        surface.RemoveData();   // (before the old asset goes: a surface still holding deleted data adds nothing new)
+        AssetDatabase.DeleteAsset(path);
+        AssetDatabase.CreateAsset(data, path);
         surface.navMeshData = data;
         surface.AddData();
         EditorUtility.SetDirty(surface);

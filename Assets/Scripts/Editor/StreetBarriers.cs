@@ -228,7 +228,7 @@ public static class StreetBarriers
             Object.DestroyImmediate(tex);
             AssetDatabase.ImportAsset(texPath);
             var imp = (TextureImporter)AssetImporter.GetAtPath(texPath);
-            imp.filterMode = FilterMode.Point; imp.wrapMode = TextureWrapMode.Repeat; imp.mipmapEnabled = true;
+            imp.filterMode = FilterMode.Trilinear; imp.wrapMode = TextureWrapMode.Repeat; imp.mipmapEnabled = true;
             imp.textureCompression = TextureImporterCompression.Uncompressed;
             imp.SaveAndReimport();
         }

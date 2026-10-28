@@ -114,6 +114,7 @@ public class DemonBoss : MonoBehaviour
     public float crashStun = 7f;            // how long it lies stunned (double damage) after the last heart goes
     public string sealedName = "KESSLER - SEALED BY THE BLACK HEARTS";
     [TextArea] public string heartsLines = "KESSLER: You can't kill what doesn't beat in me anymore.|KESSLER: Three hearts. Three sins I buried. Come and dig them up.";
+    public string[] heartNameLines;           // V5.1: what is said as the 1st, 2nd, 3rd heart goes (the Driver names a soul, Vane answers)
     [TextArea] public string heartsHint = "It's tied to those black hearts. Nothing touches it until they're gone!";
     [TextArea] public string crashLines = "KESSLER: No--! My hearts--!";
 
@@ -240,6 +241,7 @@ public class DemonBoss : MonoBehaviour
     class Drowned { public Zombie z; public Transform t; public Animator a; public float hitAt; public float climb; public Vector3 climbFrom, climbTo; }
 
     public bool Defeated => defeated;
+    public bool IsChasing => chasing;   // the run from the office to the bridge (EscapeRoute marks it)
     public static bool InFight => Active != null && Active.fighting && !Active.chasing && !Active.defeated;   // the boss fight itself, not the run from it
 
     void Awake()
@@ -347,7 +349,7 @@ public class DemonBoss : MonoBehaviour
             body = Instantiate(damnedCopy, doorStep, Quaternion.LookRotation(Flat(standAtDoor - doorStep).normalized));
             body.name = "Kessler (damned, cutscene)";
             body.SetActive(true);
-            bodyAnim = body.GetComponentInChildren<Animator>();
+            bodyAnim = body.GetComponentsInChildren<Animator>().FirstOrDefault(a => a.enabled) ?? body.GetComponentInChildren<Animator>();   // (the Cry Wolf body: its own animator; the old one is off)
         }
         int scream = Animator.StringToHash(damnedScreamState);
         bool canScream = bodyAnim != null && bodyAnim.HasState(0, scream);
@@ -486,6 +488,7 @@ public class DemonBoss : MonoBehaviour
         if (fader != null) StartCoroutine(fader.FadeTo(0f, 0.4f));
 
         chaseSeg = NearestRoad(transform.position);
+        routeS = null;   // (measured again from where it stands now)
         lastVan = Flat(carRb.position);
         catchReady = Time.time + 2f;
         chaseBoltAt = Time.time + Random.Range(chaseBoltEvery.x, chaseBoltEvery.y);
@@ -634,6 +637,84 @@ public class DemonBoss : MonoBehaviour
         tunnelState = 2;
     }
 
+    // ---- the escape road as a line with a length: where along it the van is, and where it is
+    float[] routeS;                 // metres along the road at each point
+    float bossS, vanS;
+    float watchAt, watchS;
+
+    void BuildRoute()
+    {
+        if (routeS != null && chaseRoad != null && routeS.Length == chaseRoad.Length) return;
+        if (chaseRoad == null || chaseRoad.Length < 2) { routeS = null; return; }
+        routeS = new float[chaseRoad.Length];
+        for (int i = 1; i < chaseRoad.Length; i++) routeS[i] = routeS[i - 1] + Flat(chaseRoad[i].position - chaseRoad[i - 1].position).magnitude;
+        bossS = ProjectOnRoute(transform.position, 0f, float.MaxValue);
+        vanS = carRb != null ? ProjectOnRoute(carRb.position, 0f, float.MaxValue) : 0f;
+        watchAt = Time.time + 1.5f; watchS = bossS;
+    }
+
+    Vector3 RoutePoint(float s, out Vector3 dir)
+    {
+        int last = chaseRoad.Length - 1;
+        s = Mathf.Clamp(s, 0f, routeS[last]);
+        int i = 0; while (i < last - 1 && routeS[i + 1] < s) i++;
+        Vector3 a = chaseRoad[i].position, b = chaseRoad[i + 1].position;
+        dir = Flat(b - a).normalized;
+        return Vector3.Lerp(a, b, Mathf.InverseLerp(routeS[i], routeS[i + 1], s));
+    }
+
+    // the metres along the road of the nearest point on it, looking only within `window` of where it was last
+    float ProjectOnRoute(Vector3 p, float near, float window)
+    {
+        float best = float.MaxValue, at = near;
+        for (int i = 0; i < chaseRoad.Length - 1; i++)
+        {
+            Vector3 a = Flat(chaseRoad[i].position), ab = Flat(chaseRoad[i + 1].position) - a;
+            float len = ab.magnitude; if (len < 0.01f) continue;
+            float t = Mathf.Clamp01(Vector3.Dot(Flat(p) - a, ab) / (len * len));
+            float s = routeS[i] + len * t;
+            if (Mathf.Abs(s - near) > window) continue;
+            float d = (a + ab * t - Flat(p)).sqrMagnitude;
+            if (d < best) { best = d; at = s; }
+        }
+        return at;
+    }
+
+    // the ground under it on the road: what is within a step of the road's own height (not the roof of a tunnel or
+    // a building it passes), so it can't climb onto things
+    float ChaseGround(Vector3 p)
+    {
+        if (routeS == null) return Ground(p);
+        float refY = RoutePoint(bossS, out _).y;
+        float best = float.MinValue;
+        foreach (var h in Physics.RaycastAll(new Vector3(p.x, refY + 3f, p.z), Vector3.down, 12f, ~0, QueryTriggerInteraction.Ignore))
+        {
+            if (h.collider.transform.IsChildOf(transform) || h.collider.GetComponentInParent<Zombie>() != null) continue;
+            if (player != null && h.collider.transform.IsChildOf(player)) continue;
+            if (carRb != null && h.collider.transform.IsChildOf(carRb.transform)) continue;
+            if (h.point.y > refY + 1.5f) continue;
+            best = Mathf.Max(best, h.point.y);
+        }
+        return best > float.MinValue ? best : refY;
+    }
+
+    // held up for any reason (a mesh, a prop): after a second and a half without getting anywhere it is put on the
+    // road a few metres further on
+    void ChaseWatchdog(float speed, float dist)
+    {
+        if (routeS == null || Time.time < watchAt) return;
+        watchAt = Time.time + 1.5f;
+        bool behind = bossS < vanS - 12f && dist > catchDistance + 4f && Time.time >= staggerUntil;
+        if (behind && speed > 2f && bossS - watchS < 1f)
+        {
+            bossS = Mathf.Min(bossS + 12f, vanS);
+            Vector3 at = RoutePoint(bossS, out Vector3 dir);
+            at.y = ChaseGround(at);
+            transform.SetPositionAndRotation(at, Quaternion.LookRotation(dir));
+        }
+        watchS = bossS;
+    }
+
     int NearestRoad(Vector3 p)
     {
         int best = 0; float bd = float.MaxValue;
@@ -668,16 +749,14 @@ public class DemonBoss : MonoBehaviour
             StartCoroutine(ChaseBolts(target, dist > 40f ? 4 : 3));
         }
 
-        // along the road to where the van is, then straight at it
+        // along the road to where the van is, then straight at it. The road is walked by distance along it (not
+        // point to point), so nothing between the points - a building, a rail, a tunnel mouth - can hold it up
         Vector3 goal = target.position;
-        if (chaseRoad != null && chaseRoad.Length > 0 && dist > 30f)
+        BuildRoute();
+        if (routeS != null && dist > 30f)
         {
-            int vanSeg = NearestRoad(target.position);
-            if (chaseSeg < vanSeg)
-            {
-                goal = chaseRoad[chaseSeg].position;
-                if (Flat(goal - transform.position).magnitude < 6f) chaseSeg++;
-            }
+            vanS = ProjectOnRoute(target.position, vanS, 150f);
+            if (bossS < vanS - 12f) goal = RoutePoint(Mathf.Min(bossS + 14f, vanS), out _);
         }
         float speed = Mathf.Lerp(chaseNear, chaseFar, dist / chaseFarDistance);
         if (dist < chaseClose && target != player)
@@ -685,11 +764,13 @@ public class DemonBoss : MonoBehaviour
         if (dist < catchDistance * 0.8f) speed = 0f;
         Vector3 step = Flat(goal - transform.position);
         Vector3 next = transform.position + step.normalized * Mathf.Min(step.magnitude, speed * Time.deltaTime);
-        next.y = Mathf.Lerp(transform.position.y, Ground(next), 10f * Time.deltaTime);
+        next.y = Mathf.Lerp(transform.position.y, ChaseGround(next), 10f * Time.deltaTime);
         transform.position = next;
         if (step.sqrMagnitude > 0.01f) FaceToward(transform.position + step, 5f);
         busy = false;
         Locomote(speed);
+        if (routeS != null) bossS = ProjectOnRoute(transform.position, bossS, 60f);
+        ChaseWatchdog(speed, dist);
 
         // the damned in its way are trampled
         if (Time.time >= trampleAt)
@@ -922,6 +1003,7 @@ public class DemonBoss : MonoBehaviour
         VanFragility(1f);
         chasing = false;
         chaseBegun = false;
+        routeS = null;
         tunnelState = 0;
         if (Time.timeScale < 1f && Time.timeScale > 0f) Time.timeScale = 1f;
         if (model != null) model.localScale = modelScale0;
@@ -1825,7 +1907,10 @@ public class DemonBoss : MonoBehaviour
         Boom(h.transform.position, 1.3f);
         BloodFx.Spray(h.transform.position, Vector3.up, 60, 8f);
         Roar(0.6f);
-        if (hearts.Exists(x => x != null && x != h && !x.Dead) && DialogueBox.Instance != null) DialogueBox.Instance.SayNow("One down!");
+        int broken = hearts.FindAll(x => x != null && (x == h || x.Dead)).Count;
+        Truth.Set("Heart" + broken + "Freed");
+        if (heartNameLines != null && broken >= 1 && broken <= heartNameLines.Length && DialogueBox.Instance != null) DialogueBox.Instance.SayNow(heartNameLines[broken - 1]);
+        else if (hearts.Exists(x => x != null && x != h && !x.Dead) && DialogueBox.Instance != null) DialogueBox.Instance.SayNow("One down!");
     }
 
     // the rings, beams, orbs and bolts of whatever attack was running

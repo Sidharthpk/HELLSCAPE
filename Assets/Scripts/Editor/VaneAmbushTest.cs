@@ -23,7 +23,7 @@ public static class VaneAmbushTest
             if (st != PlayModeStateChange.EnteredPlayMode || SessionState.GetString(Key, "") == "") return;
             SleepSequence.WakeInHell = true;
             SceneManager.sceneLoaded += OnLoaded;
-            SceneManager.LoadScene("MainGameScene");
+            SceneManager.LoadScene("OfficeSilo");
         };
     }
 

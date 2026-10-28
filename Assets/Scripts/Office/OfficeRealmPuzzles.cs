@@ -29,12 +29,17 @@ public class OfficeRealmPuzzles : MonoBehaviour
         if (player == null) return true;
         foreach (var door in doors ?? new KesslerDoor[0])
         {
-            if (door.blocker == null) continue;
+            if (door.blocker == null || !door.echoOnly) continue;
             // Disabled collider bounds are empty; use its box geometry instead.
             var box = door.blocker as BoxCollider;
             if (box == null) continue;
             Vector3 local = box.transform.InverseTransformPoint(player.position) - box.center;
-            Vector3 pad = new Vector3(.6f, 1.2f, .6f);
+            // Door imports use centimetres and rotated axes. Convert the player's world-space
+            // clearance into the box's local space; a literal .6 here can become sixty metres.
+            var inverse = box.transform.worldToLocalMatrix;
+            Vector3 pad = Abs(inverse.MultiplyVector(Vector3.right * .6f))
+                + Abs(inverse.MultiplyVector(Vector3.up * 1.2f))
+                + Abs(inverse.MultiplyVector(Vector3.forward * .6f));
             Vector3 half = box.size * .5f + pad;
             if (Mathf.Abs(local.x) < half.x && Mathf.Abs(local.y) < half.y && Mathf.Abs(local.z) < half.z)
             {
@@ -44,6 +49,8 @@ public class OfficeRealmPuzzles : MonoBehaviour
         }
         return true;
     }
+
+    static Vector3 Abs(Vector3 value) => new Vector3(Mathf.Abs(value.x), Mathf.Abs(value.y), Mathf.Abs(value.z));
 
     public void SetEcho(bool on)
     {

@@ -13,7 +13,7 @@ public class GameOverScreen : MonoBehaviour
     [Header("Dying: you drop before the screen comes up")]
     public Camera playerCam;             // PlayerCamera: it buckles and hits the ground
     public float collapseTime = 1.6f;    // (real seconds)
-    public float eyeHeightOnGround = 0.25f;
+    public float kneelHeight = 0.85f;    // eye above the ground on your knees
 
     private bool shown = false;
     public static bool Open { get; private set; }   // dying or dead: no pausing over it
@@ -75,7 +75,7 @@ public class GameOverScreen : MonoBehaviour
         yield return FadeIn();
     }
 
-    // the legs go: a lurch forward, the world tips sideways, the ground comes up; the last heartbeat
+    // the legs go: down onto your knees, then the head falls back and you're looking at the sky; the last heartbeat
     IEnumerator Collapse()
     {
         camT = playerCam.transform;
@@ -98,34 +98,38 @@ public class GameOverScreen : MonoBehaviour
         Vector3 fwd = camT.forward; fwd.y = 0f;
         if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward;
         fwd.Normalize();
-        Vector3 endPos = new Vector3(startPos.x, groundY + eyeHeightOnGround, startPos.z) + fwd * 0.5f;
-        // lying on your side, looking along the ground
-        Quaternion endRot = Quaternion.LookRotation(fwd, Vector3.up) * Quaternion.Euler(8f, 0f, 78f);
+        Quaternion level = Quaternion.LookRotation(fwd, Vector3.up);
+        Vector3 kneelPos = new Vector3(startPos.x, Mathf.Min(startPos.y, groundY + kneelHeight), startPos.z);
+        Quaternion kneelRot = level * Quaternion.Euler(18f, 0f, 3f);               // head dropping as the knees hit
+        Vector3 skyPos = kneelPos - fwd * 0.15f;                                    // sagging back on your heels
+        Quaternion skyRot = level * Quaternion.Euler(-72f, 0f, 5f);                // ...and up at the sky
 
         // (the camera stays on your body: anything still shaking your head writes a pose that means something. Pinned
         // where the fall puts it, every frame after the shakes have had their say, until you're stood back up)
         pinned = true;
-        bool hit = false;
-        for (float t = 0f; t < collapseTime; t += Time.unscaledDeltaTime)
+        float down = collapseTime * 0.45f;
+        for (float t = 0f; t < down; t += Time.unscaledDeltaTime)
         {
-            float k = t / collapseTime;
-            float drop = k * k * k;                                            // knees first, then the fall
-            float sway = Mathf.Sin(k * Mathf.PI) * 0.2f;
-            pinPos = Vector3.Lerp(startPos, endPos, drop) + Vector3.Cross(Vector3.up, fwd) * sway;
-            pinRot = Quaternion.Slerp(startRot, endRot, Mathf.SmoothStep(0f, 1f, k));
+            float k = t / down;
+            pinPos = Vector3.Lerp(startPos, kneelPos, k * k);                      // the legs give, faster as you go
+            pinRot = Quaternion.Slerp(startRot, kneelRot, Mathf.SmoothStep(0f, 1f, k));
             camT.SetPositionAndRotation(pinPos, pinRot);
-            if (!hit && drop > 0.97f)
-            {
-                hit = true;
-                var thud = Sounds.Clip("Silo Fight/Push and fall thud", null);
-                if (thud != null) AudioSource.PlayClipAtPoint(thud, endPos, 1f);
-            }
             yield return null;
         }
-        pinPos = endPos; pinRot = endRot;
-        camT.SetPositionAndRotation(endPos, endRot);
-        // a moment on the ground, the world going dark
-        yield return new WaitForSecondsRealtime(0.8f);
+        var thud = Sounds.Clip("Silo Fight/Push and fall thud", null);
+        if (thud != null) AudioSource.PlayClipAtPoint(thud, kneelPos, 0.8f);
+        for (float t = 0f; t < collapseTime; t += Time.unscaledDeltaTime)
+        {
+            float k = Mathf.SmoothStep(0f, 1f, t / collapseTime);
+            pinPos = Vector3.Lerp(kneelPos, skyPos, k);
+            pinRot = Quaternion.Slerp(kneelRot, skyRot, k);
+            camT.SetPositionAndRotation(pinPos, pinRot);
+            yield return null;
+        }
+        pinPos = skyPos; pinRot = skyRot;
+        camT.SetPositionAndRotation(skyPos, skyRot);
+        // a moment looking up, the world going dark
+        yield return new WaitForSecondsRealtime(1f);
     }
 
     IEnumerator FadeIn()

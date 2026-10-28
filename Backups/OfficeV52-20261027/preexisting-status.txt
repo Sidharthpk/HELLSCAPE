@@ -1,0 +1,757 @@
+ M Assets/Enemies/animated-zombie-cop-running-loop/source/FuzZombie_body_diffuse.png.meta
+ M Assets/Enemies/animated-zombie-cop-running-loop/source/FuzZombie_diffuse.png.meta
+ M Assets/Enemies/animated-zombie-cop-running-loop/source/FuzZombie_normal.png.meta
+ D Assets/Enemies/vision-monster.meta
+ D Assets/Enemies/vision-monster/source.meta
+ D Assets/Enemies/vision-monster/source/4933cb36b22a4ce6bdbbb264329cec7f.zip.blend
+ D Assets/Enemies/vision-monster/source/4933cb36b22a4ce6bdbbb264329cec7f.zip.blend.meta
+ D Assets/Enemies/vision-monster/source/EyeBalls.controller
+ D Assets/Enemies/vision-monster/source/EyeBalls.controller.meta
+ D Assets/Enemies/vision-monster/source/EyeMove.anim
+ D Assets/Enemies/vision-monster/source/EyeMove.anim.meta
+ D Assets/Enemies/vision-monster/textures.meta
+ D Assets/Enemies/vision-monster/textures/DifuseMapEye3.jpg
+ D Assets/Enemies/vision-monster/textures/DifuseMapEye3.jpg.meta
+ D Assets/Enemies/vision-monster/textures/MaterialCentro.mat
+ D Assets/Enemies/vision-monster/textures/MaterialCentro.mat.meta
+ D Assets/Enemies/vision-monster/textures/MaterialExterior.mat
+ D Assets/Enemies/vision-monster/textures/MaterialExterior.mat.meta
+ D Assets/Enemies/vision-monster/textures/MaterialIris.mat
+ D Assets/Enemies/vision-monster/textures/MaterialIris.mat.meta
+ M Assets/Generated/Ending/arms_marked.png
+ M Assets/Generated/Ending/arms_marked.png.meta
+ M Assets/Generated/MapColliders/RoadBarrier.png.meta
+ M Assets/Generated/modular-door-08/textures/default_material.mat
+ M "Assets/KesslerVane/low-poly-office-cubicle-assets/source/Office Supplies.fbx.meta"
+ M Assets/Materials/5c3c627727e1b.jpg.meta
+ M Assets/Materials/Fog/FogParticles.mat
+ M Assets/Materials/OfficeAct/Anim/KesslerChase.controller.meta
+ M "Assets/Materials/OfficeAct/birthday-cake/source/Cake Out Sub.fbx.meta"
+ M Assets/Materials/Prologue/MorningSky.mat
+ M Assets/Materials/Prologue_Beacon.mat
+ M Assets/Materials/Skybox.mat
+ M Assets/ModularFirstPersonController/FirstPersonController/FirstPersonController.cs
+ M "Assets/New Folder/AIT01W2W7/b_hotr04_W2W7_t2_l1.mat"
+ M "Assets/New Folder/FuseBox/Fuse.fbx.meta"
+ M "Assets/New Folder/Resources/Water_mat_01.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/100m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/101m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/102m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/10m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/12m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/15m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/16m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/17m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/1m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/21m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/24m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/25m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/26m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/28m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/2m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/30m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/33m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/34m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/35m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/36m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/3m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/40m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/41m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/42m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/43m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/44m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/45m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/46m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/47m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/48m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/49m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/4m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/50m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/51m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/52m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/53m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/54m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/55m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/56m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/57m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/59m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/5m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/60m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/61m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/62m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/65m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/66m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/67m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/68m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/69m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/6m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/70m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/71m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/73m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/74m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/75m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/76m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/77m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/78m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/79m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/7m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/80m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/81m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/82m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/83m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/84m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/86m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/87m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/88m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/89m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/8m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/90m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/91m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/92m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/93m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/94m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/95m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/96m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/97m 1.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/97m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/98m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/99m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/9m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/door1m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/eldoor_m.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/elevator_m1.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/elevator_m2.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/elevator_m3.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/elevator_m4.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/elevator_m5.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/elevator_m6.mat"
+ M "Assets/New Folder/blood-pool-location/Extracted/Materials/rollud_door_m.mat"
+ M "Assets/New Folder/blood-pool-location/source/2m.mat"
+ M "Assets/New Folder/crates-and-barrels/source/CratesAndBarrels.fbx.meta"
+ D "Assets/New Folder/jason-manhattan-no-mask.meta"
+ D "Assets/New Folder/jason-manhattan-no-mask/source.meta"
+ D "Assets/New Folder/jason-manhattan-no-mask/source/Jason_Manhattan.fbx"
+ D "Assets/New Folder/jason-manhattan-no-mask/source/Jason_Manhattan.fbx.meta"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures.meta"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Eye_D.jpeg"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Eye_D.jpeg.meta"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Head_D.jpeg"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Head_D.jpeg.meta"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Head_N.jpeg"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Head_N.jpeg.meta"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Pants_D.jpeg"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Pants_D.jpeg.meta"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Pants_N.jpeg"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Pants_N.jpeg.meta"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Torso_D.jpeg"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Torso_D.jpeg.meta"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Torso_N.jpeg"
+ D "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_Torso_N.jpeg.meta"
+ M "Assets/New Folder/lowpoly-mobile-cartoon-office-rooms/textures/floor1.png.meta"
+ M "Assets/New Folder/lowpoly-mobile-cartoon-office-rooms/textures/misc.png.meta"
+ M "Assets/New Folder/lowpoly-mobile-cartoon-office-rooms/textures/wall1.png.meta"
+ M "Assets/New Folder/modern-furniture-pack/source/furniture pack/furniture/pack.fbx.meta"
+ M "Assets/New Folder/room-door-animation/source/4bfaca4c4a794e9393a413e88dd5611a.fbx.fbx.meta"
+ M "Assets/PROMETEO - Car Controller/Scripts/CameraFollow.cs"
+ M "Assets/PROMETEO - Car Controller/Textures/PCC_TextureAtlas.png.meta"
+ M "Assets/Perishables/Grandma rides a Vintage Vespa/Grandma rides a Vintage Vespa-color.png.meta"
+ M "Assets/Perishables/PSX Sedan - @jonniemadeit/cartexture 1.png.meta"
+ M "Assets/Perishables/PSX Sedan - @jonniemadeit/cartexture 2.png.meta"
+ M "Assets/Perishables/PSX Sedan - @jonniemadeit/cartexture.png.meta"
+ M Assets/Perishables/free-barrel/textures/Barrel_D.tga.png.meta
+ M Assets/Perishables/old-modular-bridge/source/TEXTURES_FOR_SKETCH.fbx.meta
+ M Assets/Perishables/street-city-7-for-games-free/textures/00336deb8594ea33f4be414f52aadfd0.jpg.meta
+ M Assets/Perishables/street-city-7-for-games-free/textures/01f6faa734989bf81fbb9822aca86ef8.jpg.meta
+ M Assets/Perishables/street-city-7-for-games-free/textures/3fdcf0328a2e3d83dcf5ab68001c0a32.jpg.meta
+ M Assets/Perishables/street-city-7-for-games-free/textures/42894a5bc8224e56daa2bfe29530eef6.jpg.meta
+ M Assets/Perishables/street-city-7-for-games-free/textures/83ea3a0e816ee287017553eb7f49b3b4.jpg.meta
+ M Assets/Perishables/street-city-7-for-games-free/textures/8b923ee39646c83d8b7d8ae0632756b7.jpg.meta
+ M Assets/Perishables/street-city-7-for-games-free/textures/ab8618507172d33c46c532575672f83b.jpg.meta
+ M Assets/Perishables/street-city-7-for-games-free/textures/bdf2e0496b5f7e4ec7801c8d04531677.jpg.meta
+ M Assets/Perishables/street-city-7-for-games-free/textures/d952d2a8b61477640e011f4f56505031.jpg.meta
+ M "Assets/Perishables/tunnel-road/textures/tunnel road.jpg.meta"
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/04c521635340f456b1a1b7ffcfe38666.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/0ac39d5407782d7f9913a147192438d3.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/11e6cc769bc6eab34f32b04af07b9fea.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/1c8b06f4d9b11f090ea699e42ff29312.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/1ddd56170432f4869c43d2d2dd6cf448.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/21e0e8f5367fa7a4e7741b1aa46a9137.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/2d17c3fc0507ee0f7dacc2a033eb7a69.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/429ec21f9d333e285dd4051bbfc070c8.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/481f8a1ca4c386f6d4f0ed0dadf2e1d7.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/538ac49330d8125f6bb290052eb4c868.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/5fb9ae91a08ddb50d716c6ad033f9dbb.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/6964a8ed4a73eae4c03eed59ffa60428.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/70793f0d6373f63d8708cc2a0292d957.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/82d795c21d021edcd5d8dda35f300094.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/8dd24fba86851cb18e909e53e3c2485b.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/93b18e4881115d3ad8bef2fa8f14a1c0.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/94e66dfd6f7967e3b717eae17f2261ff.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/9a8fb96e2c434e67ebab85555ade9927.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/9d57602ea881648e2e1de004da636d02.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/a4b0699e7589486a6f3f4193ac5f9891.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/ce2fc82422dbec3e67b120b89512e517.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/d0788b625604d374ee71f5f3fc8236f5.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/e3149c7a3bae4902bc00551fcf8d80dc.jpg.meta
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/e8dc51e6a09e8c048d2724d8f9ba71aa.jpg.meta
+ M "Assets/Perishables/warehouse-free-low-poly-for-games/textures/e907da883f6decc1f6aede2087259d8a93f71379 1.png.meta"
+ M Assets/Perishables/warehouse-free-low-poly-for-games/textures/f7b9e29755f1af362ed4a15f0aba61da.jpg.meta
+ M "Assets/Perishables/warehouse-free-low-poly-for-games/textures/image (1) 1.jpeg.meta"
+ M "Assets/Perishables/warehouse-free-low-poly-for-games/textures/image (3) 1.jpeg.meta"
+ M "Assets/Perishables/warehouse-free-low-poly-for-games/textures/image 1.jpeg.meta"
+ M "Assets/Perishables/warehouse-free-low-poly-for-games/textures/image333 1.jpeg.meta"
+ M Assets/Resources/HellscapeDialogue.csv
+ M "Assets/Resources/HellscapeUI/Text Box.png.meta"
+ M Assets/Resources/OfficeDocuments/AprilCalendar.png.meta
+ M Assets/Resources/OfficeDocuments/DeskNote.png.meta
+ M Assets/Resources/OfficeDocuments/WitnessStatement.png.meta
+ M Assets/Resources/SoundLibrary.asset
+ M "Assets/Resources/SpecialElite SDF.asset"
+ M Assets/Scenes/MainGameScene.unity
+ M Assets/Scenes/MainGameScene/LightingData.asset
+ M Assets/Scenes/Prologue.unity
+ M Assets/Scenes/Prologue/LightingData.asset
+ M Assets/Scenes/Prologue/ReflectionProbe-0.exr
+ M Assets/Scripts/CityWalkers.cs
+ M Assets/Scripts/CutsceneSkip.cs
+ M Assets/Scripts/DialogueBox.cs
+ M Assets/Scripts/DialoguePresentation.cs
+ M Assets/Scripts/EchoOfficeMemory.cs
+ D Assets/Scripts/Editor/AmalgamationRegression.cs
+ D Assets/Scripts/Editor/AmalgamationRegression.cs.meta
+ M Assets/Scripts/Editor/BurntOffice.cs
+ M Assets/Scripts/Editor/CheckpointRetryTest.cs
+ M Assets/Scripts/Editor/DeliveryBuilder.cs
+ M Assets/Scripts/Editor/DialogueCsvCheck.cs
+ M Assets/Scripts/Editor/EndingPreview.cs
+ M Assets/Scripts/Editor/KesslerChaseBuilder.cs
+ M Assets/Scripts/Editor/ModernUIBuilder.cs
+ M Assets/Scripts/Editor/NewCars.cs
+ M Assets/Scripts/Editor/NewOfficeFit.cs
+ M Assets/Scripts/Editor/OfficeDocumentBuilder.cs
+ M Assets/Scripts/Editor/OfficeHorrorTest.cs
+ M Assets/Scripts/Editor/OfficeWalkthroughTest.cs
+ M Assets/Scripts/Editor/PeopleSwap.cs
+ M Assets/Scripts/Editor/PlaytestWatcher.cs
+ M Assets/Scripts/Editor/PostCreditsTest.cs
+ M Assets/Scripts/Editor/PrologueBuilder.cs
+ M Assets/Scripts/Editor/QuickStart.cs
+ M Assets/Scripts/Editor/SoundManagerMenu.cs
+ M Assets/Scripts/Editor/StartInOffice.cs
+ M Assets/Scripts/Editor/StoryRegression.cs
+ M Assets/Scripts/Editor/StreetBarriers.cs
+ M Assets/Scripts/Editor/VaneAmbushTest.cs
+ M Assets/Scripts/EndingSequence.cs
+ M Assets/Scripts/EvidenceJournal.cs
+ M Assets/Scripts/GameOverScreen.cs
+ M Assets/Scripts/HeartbeatUI.cs
+ M Assets/Scripts/Notes/ReadableSetup.cs
+ M Assets/Scripts/Objectives.cs
+ M Assets/Scripts/Office/ChoiceDialogue.cs
+ M Assets/Scripts/Office/DemonBoss.cs
+ M Assets/Scripts/Office/EchoVisit.cs
+ M Assets/Scripts/Office/FuseBox.cs
+ M Assets/Scripts/Office/GhostNPC.cs
+ M Assets/Scripts/Office/GunController.cs
+ M Assets/Scripts/Office/HangingBody.cs
+ M Assets/Scripts/Office/Interactable.cs
+ M Assets/Scripts/Office/InteriorDarkness.cs
+ M Assets/Scripts/Office/Inventory.cs
+ M Assets/Scripts/Office/KesslerChase.cs
+ M Assets/Scripts/Office/KesslerConfrontation.cs
+ M Assets/Scripts/Office/KesslerDoor.cs
+ M Assets/Scripts/Office/Keypad.cs
+ M Assets/Scripts/Office/KillerBoss.cs
+ M Assets/Scripts/Office/LostSoul.cs
+ D Assets/Scripts/Office/OfficeEye.cs
+ D Assets/Scripts/Office/OfficeEye.cs.meta
+ D Assets/Scripts/Office/OfficeEyeCapture.cs
+ D Assets/Scripts/Office/OfficeEyeCapture.cs.meta
+ M Assets/Scripts/Office/OfficeHorrorDirector.cs
+ D Assets/Scripts/Office/OfficeLurkers.cs
+ D Assets/Scripts/Office/OfficeLurkers.cs.meta
+ D Assets/Scripts/Office/OfficeMemoryLoop.cs
+ D Assets/Scripts/Office/OfficeMemoryLoop.cs.meta
+ M Assets/Scripts/Office/OfficeMinimap.cs
+ M Assets/Scripts/Office/OfficeRealmPuzzles.cs
+ M Assets/Scripts/Office/OfficeWitness.cs
+ M Assets/Scripts/Office/PalmLight.cs
+ M Assets/Scripts/Office/PlayerInteractor.cs
+ M Assets/Scripts/Office/PuzzleCounter.cs
+ M Assets/Scripts/Office/RealmBlink.cs
+ M Assets/Scripts/Office/SequencePuzzle.cs
+ M Assets/Scripts/Office/SiloEncounter.cs
+ M Assets/Scripts/Office/StabCutscene.cs
+ M Assets/Scripts/Office/Teleporter.cs
+ M Assets/Scripts/Office/WitnessLook.cs
+ M Assets/Scripts/PauseMenu.cs
+ M Assets/Scripts/PlayerHealth.cs
+ M Assets/Scripts/Prologue/DeliveryRun.cs
+ M Assets/Scripts/Prologue/LoopDriver.cs
+ M Assets/Scripts/Prologue/OfficeFlashback.cs
+ M Assets/Scripts/Prologue/PrologueDirector.cs
+RM Assets/psx-first-person-arms/source/PunchController.cs -> Assets/Scripts/PunchController.cs
+R  Assets/psx-first-person-arms/source/PunchController.cs.meta -> Assets/Scripts/PunchController.cs.meta
+ M Assets/Scripts/RetroLook.cs
+ M Assets/Scripts/RevisedPlot.cs
+ M Assets/Scripts/RevisedPlotDirector.cs
+ M Assets/Scripts/ScreenFader.cs
+ M Assets/Scripts/SleepSequence.cs
+ M Assets/Scripts/TitleScreen.cs
+ M Assets/Scripts/UI/BossHUDLayout.cs
+ M Assets/Scripts/ZombieAI.cs
+ M Assets/Settings/HellVolumeProfile.asset
+ M Assets/Settings/High_PipelineAsset.asset
+ M Assets/Settings/High_PipelineAsset_ForwardRenderer.asset
+ M Assets/Settings/Low_PipelineAsset.asset
+ M Assets/Settings/Low_PipelineAsset_ForwardRenderer.asset
+ M Assets/Settings/Medium_PipelineAsset.asset
+ M Assets/Settings/Medium_PipelineAsset_ForwardRenderer.asset
+ M Assets/Settings/Ultra_PipelineAsset.asset
+ M Assets/Settings/Ultra_PipelineAsset_ForwardRenderer.asset
+ M "Assets/Settings/Very High_PipelineAsset.asset"
+ M "Assets/Settings/Very High_PipelineAsset_ForwardRenderer.asset"
+ M "Assets/Settings/Very Low_PipelineAsset.asset"
+ M "Assets/Settings/Very Low_PipelineAsset_ForwardRenderer.asset"
+ M "Assets/TextMesh Pro/Examples & Extras/Resources/Fonts & Materials/Bangers SDF.asset"
+ M "Assets/TextMesh Pro/Examples & Extras/Resources/Fonts & Materials/Oswald Bold SDF.asset"
+ M "Assets/TextMesh Pro/Examples & Extras/Resources/Fonts & Materials/Roboto-Bold SDF.asset"
+ M "Assets/TextMesh Pro/Examples & Extras/Textures/Sunny Days - Seamless.jpg.meta"
+ M "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset"
+D  Assets/psx-first-person-arms.meta
+D  Assets/psx-first-person-arms/source.meta
+D  Assets/psx-first-person-arms/source/ArmsController.controller
+D  Assets/psx-first-person-arms/source/ArmsController.controller.meta
+D  Assets/psx-first-person-arms/source/ArmsRig_guard_draw.anim
+D  Assets/psx-first-person-arms/source/ArmsRig_guard_draw.anim.meta
+D  Assets/psx-first-person-arms/source/ArmsRig_guard_idle.anim
+D  Assets/psx-first-person-arms/source/ArmsRig_guard_idle.anim.meta
+D  Assets/psx-first-person-arms/source/ArmsRig_push.R.anim
+D  Assets/psx-first-person-arms/source/ArmsRig_push.R.anim.meta
+D  Assets/psx-first-person-arms/source/arms_01.png
+D  Assets/psx-first-person-arms/source/arms_01.png.meta
+D  Assets/psx-first-person-arms/source/arms_rig.fbx
+D  Assets/psx-first-person-arms/source/arms_rig.fbx.meta
+ M ProjectSettings/DynamicsManager.asset
+ M ProjectSettings/EditorBuildSettings.asset
+ M ProjectSettings/ProjectSettings.asset
+ M ProjectSettings/QualitySettings.asset
+ M ProjectSettings/TagManager.asset
+RM Tools/ending/make_marked_arms.py -> Tools/ending/make_marked_fists.py
+ M docs/HELLSCAPE_Dialogue_Trigger_Map.md
+ M docs/media/echo/echo.png
+ M docs/media/echo/red-city.png
+ M docs/media/finale/tomas-fusion.png
+ M docs/media/finale/tomas-three-heads.png
+ M docs/media/office/CleaningRota.png
+ M docs/media/office/IncidentReport.png
+ M docs/media/office/KEEP-COLD---collection.png
+ M docs/media/office/KesslerLedger.png
+ M docs/media/office/Vanes-Echo-telephone.png
+ M docs/media/office/YourDesk_Note.png
+ M docs/media/office/cctv-1.png
+ M docs/media/office/cctv-2.png
+ M docs/media/office/cctv-3.png
+ M docs/media/office/desk-echo-Ben.png
+ M docs/media/office/desk-echo-Nadia.png
+ M docs/media/office/desk-echo-Omar.png
+ M docs/media/office/desk-echo-Priya.png
+ M docs/media/office/realm-blink.png
+ M docs/media/office/tomas-tape.png
+ M docs/media/office/vane-ambush.png
+?? .novel-os/
+?? "Assets/Audio/10 Minutes of Rain and Thunderstorm Sounds For Focus, Relaxing and Sleep \342\233\210\357\270\217 Epidemic ASMR.mp3"
+?? "Assets/Audio/10 Minutes of Rain and Thunderstorm Sounds For Focus, Relaxing and Sleep \342\233\210\357\270\217 Epidemic ASMR.mp3.meta"
+?? "Assets/Audio/Fire Sound Effect (no copyright) \360\237\224\245\360\237\224\245.mp3"
+?? "Assets/Audio/Fire Sound Effect (no copyright) \360\237\224\245\360\237\224\245.mp3.meta"
+?? Assets/Audio/HellScapeSting.wav
+?? Assets/Audio/HellScapeSting.wav.meta
+?? "Assets/Audio/Horror Dramatic Hit then Violin Stinger Screech (Sound Effect).mp3"
+?? "Assets/Audio/Horror Dramatic Hit then Violin Stinger Screech (Sound Effect).mp3.meta"
+?? "Assets/Audio/My Original Jumpscare sound effect.mp3"
+?? "Assets/Audio/My Original Jumpscare sound effect.mp3.meta"
+?? "Assets/Fists 2025 [First Person Animations] by 1Matzh.meta"
+?? "Assets/Fists 2025 [First Person Animations] by 1Matzh/"
+?? Assets/Floating.meta
+?? Assets/Floating/
+?? Assets/Generated/Burnt/Props.meta
+?? Assets/Generated/Burnt/Props/
+?? Assets/Generated/BurntCity.meta
+?? Assets/Generated/BurntCity/
+?? Assets/Generated/CarPack.meta
+?? Assets/Generated/CarPack/
+?? Assets/Generated/CitySurfaces.meta
+?? Assets/Generated/CitySurfaces/
+?? Assets/Generated/DemoCity.meta
+?? Assets/Generated/DemoCity/
+?? Assets/Generated/Gun.meta
+?? Assets/Generated/Gun/
+?? Assets/Generated/HellCity.meta
+?? Assets/Generated/HellCity/
+?? Assets/Generated/HellTrees.meta
+?? Assets/Generated/HellTrees/
+?? Assets/Generated/HomeApproach.meta
+?? Assets/Generated/HomeApproach/
+?? Assets/Generated/LightShaft.meta
+?? Assets/Generated/LightShaft/
+?? Assets/Generated/Meshy.meta
+?? Assets/Generated/Meshy/
+?? Assets/Generated/Office/KV/sup_Swingline_Stapler.mat
+?? Assets/Generated/Office/KV/sup_Swingline_Stapler.mat.meta
+?? Assets/Generated/Office/OfficeNavMesh.asset
+?? Assets/Generated/Office/OfficeNavMesh.asset.meta
+?? Assets/Generated/Office/Perishables.meta
+?? Assets/Generated/Office/Perishables/
+?? Assets/Generated/Office/V3.meta
+?? Assets/Generated/Office/V3/
+?? Assets/Generated/OfficeLook.meta
+?? Assets/Generated/OfficeLook/
+?? Assets/Generated/PrologueOffice.meta
+?? Assets/Generated/PrologueOffice/
+?? Assets/Generated/Rain.meta
+?? Assets/Generated/Rain/
+?? Assets/Generated/VW.meta
+?? Assets/Generated/VW/
+?? Assets/Generated/VaneHunt.meta
+?? Assets/Generated/VaneHunt/
+?? Assets/Generated/Wrecks.meta
+?? Assets/Generated/Wrecks/
+?? Assets/Materials/Clinic.meta
+?? Assets/Materials/Clinic/
+?? Assets/Materials/Escape_Marker.mat
+?? Assets/Materials/Escape_Marker.mat.meta
+?? Assets/Materials/HellMist.mat
+?? Assets/Materials/HellMist.mat.meta
+?? Assets/Materials/HellMist.png
+?? Assets/Materials/HellMist.png.meta
+?? Assets/Materials/OfficeAct/6103.jpg
+?? Assets/Materials/OfficeAct/6103.jpg.meta
+?? Assets/Materials/OfficeAct/Anim/VaneCryWolf.controller
+?? Assets/Materials/OfficeAct/Anim/VaneCryWolf.controller.meta
+?? Assets/Materials/OfficeAct/Anim/VaneSiloBoss.controller
+?? Assets/Materials/OfficeAct/Anim/VaneSiloBoss.controller.meta
+?? Assets/Materials/OfficeAct/CryWolf_Main.mat
+?? Assets/Materials/OfficeAct/CryWolf_Main.mat.meta
+?? Assets/Materials/OfficeAct/CryWolf_SEC.mat
+?? Assets/Materials/OfficeAct/CryWolf_SEC.mat.meta
+?? Assets/Materials/OfficeAct/SiloBlood.mat
+?? Assets/Materials/OfficeAct/SiloBlood.mat.meta
+?? "Assets/Materials/OfficeAct/Silo_Rust 1.mat"
+?? "Assets/Materials/OfficeAct/Silo_Rust 1.mat.meta"
+?? "Assets/Materials/Panoramic Sunlit Cumulus Sky.png"
+?? "Assets/Materials/Panoramic Sunlit Cumulus Sky.png.meta"
+?? Assets/Materials/Prologue/NewHome.meta
+?? Assets/Materials/Prologue/NewHome/
+?? Assets/Materials/Prologue/PrologueAtmosphere.asset
+?? Assets/Materials/Prologue/PrologueAtmosphere.asset.meta
+?? Assets/Materials/Prologue/PrologueSky.mat
+?? Assets/Materials/Prologue/PrologueSky.mat.meta
+?? Assets/Materials/Prologue/Rain.mat
+?? Assets/Materials/Prologue/Rain.mat.meta
+?? Assets/Materials/Prologue_ParkingP.mat
+?? Assets/Materials/Prologue_ParkingP.mat.meta
+?? "Assets/Materials/Rainy Storm Clouds Over Reflective Waters.png"
+?? "Assets/Materials/Rainy Storm Clouds Over Reflective Waters.png.meta"
+?? Assets/Materials/RedHome.meta
+?? Assets/Materials/RedHome/
+?? "Assets/New Folder/Gun.meta"
+?? "Assets/New Folder/Gun/"
+?? "Assets/New Folder/ak47.meta"
+?? "Assets/New Folder/ak47/"
+?? "Assets/New Folder/apartment.meta"
+?? "Assets/New Folder/apartment/"
+?? "Assets/New Folder/cry-wolf-game-character.meta"
+?? "Assets/New Folder/cry-wolf-game-character/"
+?? "Assets/New Folder/demon-king-throne-dark-fantasy-gothic-chair.meta"
+?? "Assets/New Folder/demon-king-throne-dark-fantasy-gothic-chair/"
+?? "Assets/New Folder/hospital.meta"
+?? "Assets/New Folder/hospital/"
+?? "Assets/New Folder/interior test.fbx"
+?? "Assets/New Folder/interior test.fbx.meta"
+?? "Assets/New Folder/old_residential_building.meta"
+?? "Assets/New Folder/old_residential_building/"
+?? "Assets/New Folder/volkswagen-van-t6.meta"
+?? "Assets/New Folder/volkswagen-van-t6/"
+?? "Assets/New Office.meta"
+?? "Assets/New Office/"
+?? Assets/PSXShaderKit.meta
+?? Assets/PSXShaderKit/
+?? Assets/Perishables/Avatar.meta
+?? Assets/Perishables/Avatar/
+?? Assets/Perishables/DeadTreePack.meta
+?? Assets/Perishables/DeadTreePack/
+?? Assets/Perishables/control-room-by-amogusstrikesback2.meta
+?? Assets/Perishables/control-room-by-amogusstrikesback2/
+?? Assets/Perishables/doctor-lab.meta
+?? Assets/Perishables/doctor-lab/
+?? Assets/Perishables/generic-passenger-car-pack.meta
+?? Assets/Perishables/generic-passenger-car-pack/
+?? Assets/Perishables/loft-18-mini-office-venvironment.meta
+?? Assets/Perishables/loft-18-mini-office-venvironment/
+?? Assets/Perishables/mersus-office.meta
+?? Assets/Perishables/mersus-office/
+?? Assets/Perishables/office-props.meta
+?? Assets/Perishables/office-props/
+?? Assets/Perishables/private-detectives-office.meta
+?? Assets/Perishables/private-detectives-office/
+?? Assets/Perishables/reception-desk-01.meta
+?? Assets/Perishables/reception-desk-01/
+?? Assets/Perishables/service_room.meta
+?? Assets/Perishables/service_room/
+?? Assets/Prefabs/Cars.meta
+?? Assets/Prefabs/Cars/
+?? Assets/Prefabs/Obstacles/WreckPackCompact.prefab
+?? Assets/Prefabs/Obstacles/WreckPackCompact.prefab.meta
+?? Assets/Prefabs/Obstacles/WreckPackCoupe.prefab
+?? Assets/Prefabs/Obstacles/WreckPackCoupe.prefab.meta
+?? Assets/Prefabs/Obstacles/WreckPackHatchback.prefab
+?? Assets/Prefabs/Obstacles/WreckPackHatchback.prefab.meta
+?? Assets/Prefabs/Obstacles/WreckPackMinivan.prefab
+?? Assets/Prefabs/Obstacles/WreckPackMinivan.prefab.meta
+?? Assets/Prefabs/Obstacles/WreckPackOffroad.prefab
+?? Assets/Prefabs/Obstacles/WreckPackOffroad.prefab.meta
+?? Assets/Prefabs/Obstacles/WreckPackPickup.prefab
+?? Assets/Prefabs/Obstacles/WreckPackPickup.prefab.meta
+?? Assets/Prefabs/Obstacles/WreckPackSUV.prefab
+?? Assets/Prefabs/Obstacles/WreckPackSUV.prefab.meta
+?? Assets/Prefabs/Obstacles/WreckPackSedan.prefab
+?? Assets/Prefabs/Obstacles/WreckPackSedan.prefab.meta
+?? Assets/Prefabs/Obstacles/WreckPackSport.prefab
+?? Assets/Prefabs/Obstacles/WreckPackSport.prefab.meta
+?? Assets/Prefabs/Obstacles/WreckPackWagon.prefab
+?? Assets/Prefabs/Obstacles/WreckPackWagon.prefab.meta
+?? Assets/Resources/DreamHall.prefab
+?? Assets/Resources/DreamHall.prefab.meta
+?? Assets/Resources/DreamSilhouette.shader
+?? Assets/Resources/DreamSilhouette.shader.meta
+?? Assets/Resources/HellscapeDialogueV5.csv
+?? Assets/Resources/HellscapeDialogueV5.csv.meta
+?? Assets/Resources/OfficeDust.shader
+?? Assets/Resources/OfficeDust.shader.meta
+?? Assets/Resources/TitleKaleidoscope.shader
+?? Assets/Resources/TitleKaleidoscope.shader.meta
+?? Assets/Resources/VaneBlur.asset
+?? Assets/Resources/VaneBlur.asset.meta
+?? Assets/Resources/VaneHuman.prefab
+?? Assets/Resources/VaneHuman.prefab.meta
+?? Assets/Samples.meta
+?? Assets/Samples/
+?? Assets/Scenes/MainGameScene/Lightmap-0_comp_light.exr
+?? Assets/Scenes/MainGameScene/Lightmap-0_comp_light.exr.meta
+?? Assets/Scenes/MainGameScene/Lightmap-1_comp_light.exr
+?? Assets/Scenes/MainGameScene/Lightmap-1_comp_light.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-0.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-0.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-1.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-1.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-10.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-10.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-11.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-11.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-12.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-12.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-13.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-13.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-2.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-2.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-3.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-3.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-4.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-4.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-5.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-5.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-6.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-6.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-7.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-7.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-8.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-8.exr.meta
+?? Assets/Scenes/MainGameScene/ReflectionProbe-9.exr
+?? Assets/Scenes/MainGameScene/ReflectionProbe-9.exr.meta
+?? Assets/Scenes/OfficeSilo.meta
+?? Assets/Scenes/OfficeSilo.unity
+?? Assets/Scenes/OfficeSilo.unity.meta
+?? Assets/Scenes/OfficeSilo/
+?? Assets/Scripts/ApartmentEyeHeight.cs
+?? Assets/Scripts/ApartmentEyeHeight.cs.meta
+?? Assets/Scripts/ArmSpread.cs
+?? Assets/Scripts/ArmSpread.cs.meta
+?? Assets/Scripts/BurntCityAppearance.cs
+?? Assets/Scripts/BurntCityAppearance.cs.meta
+?? Assets/Scripts/BurntHomeAppearance.cs
+?? Assets/Scripts/BurntHomeAppearance.cs.meta
+?? Assets/Scripts/DamnedAtFire.cs
+?? Assets/Scripts/DamnedAtFire.cs.meta
+?? Assets/Scripts/DreamHall.cs
+?? Assets/Scripts/DreamHall.cs.meta
+?? Assets/Scripts/DreamStalker.cs
+?? Assets/Scripts/DreamStalker.cs.meta
+?? Assets/Scripts/Editor/AfternoonLighting.cs
+?? Assets/Scripts/Editor/AfternoonLighting.cs.meta
+?? Assets/Scripts/Editor/BurntHomeBuilder.cs
+?? Assets/Scripts/Editor/BurntHomeBuilder.cs.meta
+?? Assets/Scripts/Editor/CafeBuilder.cs
+?? Assets/Scripts/Editor/CafeBuilder.cs.meta
+?? Assets/Scripts/Editor/CarPack.cs
+?? Assets/Scripts/Editor/CarPack.cs.meta
+?? Assets/Scripts/Editor/CityBake.cs
+?? Assets/Scripts/Editor/CityBake.cs.meta
+?? Assets/Scripts/Editor/CityCars.cs
+?? Assets/Scripts/Editor/CityCars.cs.meta
+?? Assets/Scripts/Editor/CityCollisionRepair.cs
+?? Assets/Scripts/Editor/CityCollisionRepair.cs.meta
+?? Assets/Scripts/Editor/CityLightingRepair.cs
+?? Assets/Scripts/Editor/CityLightingRepair.cs.meta
+?? Assets/Scripts/Editor/CitySurfaceReview.cs
+?? Assets/Scripts/Editor/CitySurfaceReview.cs.meta
+?? Assets/Scripts/Editor/ClinicWalkIn.cs
+?? Assets/Scripts/Editor/ClinicWalkIn.cs.meta
+?? Assets/Scripts/Editor/ColleagueSwap.cs
+?? Assets/Scripts/Editor/ColleagueSwap.cs.meta
+?? Assets/Scripts/Editor/DemoCityMigration.cs
+?? Assets/Scripts/Editor/DemoCityMigration.cs.meta
+?? Assets/Scripts/Editor/DreamHallBuilder.cs
+?? Assets/Scripts/Editor/DreamHallBuilder.cs.meta
+?? Assets/Scripts/Editor/EscapeRouteBuilder.cs
+?? Assets/Scripts/Editor/EscapeRouteBuilder.cs.meta
+?? Assets/Scripts/Editor/ExtraDeliveries.cs
+?? Assets/Scripts/Editor/ExtraDeliveries.cs.meta
+?? Assets/Scripts/Editor/FireTapeBuilder.cs
+?? Assets/Scripts/Editor/FireTapeBuilder.cs.meta
+?? Assets/Scripts/Editor/FirstSightPreview.cs
+?? Assets/Scripts/Editor/FirstSightPreview.cs.meta
+?? Assets/Scripts/Editor/FistsBuilder.cs
+?? Assets/Scripts/Editor/FistsBuilder.cs.meta
+?? Assets/Scripts/Editor/GameplaySceneRegression.cs
+?? Assets/Scripts/Editor/GameplaySceneRegression.cs.meta
+?? Assets/Scripts/Editor/HellCityPass.cs
+?? Assets/Scripts/Editor/HellCityPass.cs.meta
+?? Assets/Scripts/Editor/HellMistBuilder.cs
+?? Assets/Scripts/Editor/HellMistBuilder.cs.meta
+?? Assets/Scripts/Editor/HellTreeBuilder.cs
+?? Assets/Scripts/Editor/HellTreeBuilder.cs.meta
+?? Assets/Scripts/Editor/HomeApproach.cs
+?? Assets/Scripts/Editor/HomeApproach.cs.meta
+?? Assets/Scripts/Editor/MercerWalkBuilder.cs
+?? Assets/Scripts/Editor/MercerWalkBuilder.cs.meta
+?? Assets/Scripts/Editor/MeshyCastBuilder.cs
+?? Assets/Scripts/Editor/MeshyCastBuilder.cs.meta
+?? Assets/Scripts/Editor/NewHomeBuilder.cs
+?? Assets/Scripts/Editor/NewHomeBuilder.cs.meta
+?? Assets/Scripts/Editor/OfficeEchoDoors.cs
+?? Assets/Scripts/Editor/OfficeEchoDoors.cs.meta
+?? Assets/Scripts/Editor/OfficeLook.cs
+?? Assets/Scripts/Editor/OfficeLook.cs.meta
+?? Assets/Scripts/Editor/OfficePerishables.cs
+?? Assets/Scripts/Editor/OfficePerishables.cs.meta
+?? Assets/Scripts/Editor/OfficePerishablesLayout.cs
+?? Assets/Scripts/Editor/OfficePerishablesLayout.cs.meta
+?? Assets/Scripts/Editor/OfficePerishablesPrologue.cs
+?? Assets/Scripts/Editor/OfficePerishablesPrologue.cs.meta
+?? Assets/Scripts/Editor/OfficeSceneSplit.cs
+?? Assets/Scripts/Editor/OfficeSceneSplit.cs.meta
+?? Assets/Scripts/Editor/OfficeSplitTest.cs
+?? Assets/Scripts/Editor/OfficeSplitTest.cs.meta
+?? Assets/Scripts/Editor/OfficeSpotLights.cs
+?? Assets/Scripts/Editor/OfficeSpotLights.cs.meta
+?? Assets/Scripts/Editor/OfficeV3.cs
+?? Assets/Scripts/Editor/OfficeV3.cs.meta
+?? Assets/Scripts/Editor/PistolBuilder.cs
+?? Assets/Scripts/Editor/PistolBuilder.cs.meta
+?? Assets/Scripts/Editor/PrologueOfficePass.cs
+?? Assets/Scripts/Editor/PrologueOfficePass.cs.meta
+?? Assets/Scripts/Editor/RedCityArtPass.cs
+?? Assets/Scripts/Editor/RedCityArtPass.cs.meta
+?? Assets/Scripts/Editor/RedHazeLook.cs
+?? Assets/Scripts/Editor/RedHazeLook.cs.meta
+?? Assets/Scripts/Editor/SharedCompactCity.cs
+?? Assets/Scripts/Editor/SharedCompactCity.cs.meta
+?? Assets/Scripts/Editor/SiloBloodPool.cs
+?? Assets/Scripts/Editor/SiloBloodPool.cs.meta
+?? Assets/Scripts/Editor/TomasTapeBuilder.cs
+?? Assets/Scripts/Editor/TomasTapeBuilder.cs.meta
+?? Assets/Scripts/Editor/VaneCryWolf.cs
+?? Assets/Scripts/Editor/VaneCryWolf.cs.meta
+?? Assets/Scripts/Editor/VolkswagenBuilder.cs
+?? Assets/Scripts/Editor/VolkswagenBuilder.cs.meta
+?? Assets/Scripts/Editor/WreckedCars.cs
+?? Assets/Scripts/Editor/WreckedCars.cs.meta
+?? Assets/Scripts/EndingDream.cs
+?? Assets/Scripts/EndingDream.cs.meta
+?? Assets/Scripts/FireFlicker.cs
+?? Assets/Scripts/FireFlicker.cs.meta
+?? Assets/Scripts/FirstSightCutscene.cs
+?? Assets/Scripts/FirstSightCutscene.cs.meta
+?? Assets/Scripts/HS5.cs
+?? Assets/Scripts/HS5.cs.meta
+?? Assets/Scripts/HellMist.cs
+?? Assets/Scripts/HellMist.cs.meta
+?? Assets/Scripts/HellOutline.cs
+?? Assets/Scripts/HellOutline.cs.meta
+?? Assets/Scripts/HellTrees.cs
+?? Assets/Scripts/HellTrees.cs.meta
+?? Assets/Scripts/Office/CctvDesk.cs
+?? Assets/Scripts/Office/CctvDesk.cs.meta
+?? Assets/Scripts/Office/EvidenceProp.cs
+?? Assets/Scripts/Office/EvidenceProp.cs.meta
+?? Assets/Scripts/Office/FireTape.cs
+?? Assets/Scripts/Office/FireTape.cs.meta
+?? Assets/Scripts/Office/LightShaft.cs
+?? Assets/Scripts/Office/LightShaft.cs.meta
+?? Assets/Scripts/Office/OfficeAtmosphere.cs
+?? Assets/Scripts/Office/OfficeAtmosphere.cs.meta
+?? Assets/Scripts/Office/OfficeDread.cs
+?? Assets/Scripts/Office/OfficeDread.cs.meta
+?? Assets/Scripts/Office/OfficeOutlineGate.cs
+?? Assets/Scripts/Office/OfficeOutlineGate.cs.meta
+?? Assets/Scripts/Office/SceneArrival.cs
+?? Assets/Scripts/Office/SceneArrival.cs.meta
+?? Assets/Scripts/Office/SiloBodyParts.cs
+?? Assets/Scripts/Office/SiloBodyParts.cs.meta
+?? Assets/Scripts/Office/TomasTape.cs
+?? Assets/Scripts/Office/TomasTape.cs.meta
+?? Assets/Scripts/Office/VaneHunt.cs
+?? Assets/Scripts/Office/VaneHunt.cs.meta
+?? Assets/Scripts/Office/VaultDial.cs
+?? Assets/Scripts/Office/VaultDial.cs.meta
+?? Assets/Scripts/Prologue/DeliveryHud.cs
+?? Assets/Scripts/Prologue/DeliveryHud.cs.meta
+?? Assets/Scripts/Prologue/DriverRecorder.cs
+?? Assets/Scripts/Prologue/DriverRecorder.cs.meta
+?? Assets/Scripts/Prologue/OfficeOpeningSequence.cs
+?? Assets/Scripts/Prologue/OfficeOpeningSequence.cs.meta
+?? Assets/Scripts/Prologue/PackCar.cs
+?? Assets/Scripts/Prologue/PackCar.cs.meta
+?? Assets/Scripts/Prologue/RainFollow.cs
+?? Assets/Scripts/Prologue/RainFollow.cs.meta
+?? Assets/Scripts/Prologue/RainGround.cs
+?? Assets/Scripts/Prologue/RainGround.cs.meta
+?? Assets/Scripts/RedFlat.cs
+?? Assets/Scripts/RedFlat.cs.meta
+?? Assets/Scripts/Road/EscapeRoute.cs
+?? Assets/Scripts/Road/EscapeRoute.cs.meta
+?? Assets/Scripts/SceneProgress.cs
+?? Assets/Scripts/SceneProgress.cs.meta
+?? Assets/Scripts/ShadeStare.cs
+?? Assets/Scripts/ShadeStare.cs.meta
+?? Assets/Scripts/TreeDamned.cs
+?? Assets/Scripts/TreeDamned.cs.meta
+?? Assets/Scripts/Truth.cs
+?? Assets/Scripts/Truth.cs.meta
+?? "Assets/Settings/City Baked Lighting.lighting"
+?? "Assets/Settings/City Baked Lighting.lighting.meta"
+?? Assets/Shaders.meta
+?? Assets/Shaders/
+?? "Assets/Versatile Studio Assets.meta"
+?? "Assets/Versatile Studio Assets/"
+?? Backups/
+?? Tools/ending/Judgement.png
+?? docs/AfternoonLighting.md
+?? docs/CityLightingRepair.md
+?? docs/CitySurfaceCleanup.md
+?? docs/DemoCityMigration.md
+?? docs/PrologueOfficeOpening.md
+?? docs/RedCityArt.md
+?? docs/ThreeSceneGameplay.md
+?? docs/media/city-cleanup/
+?? docs/media/map-20261019/

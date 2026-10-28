@@ -1,49 +1,65 @@
 using UnityEngine;
 
-// Optional witnesses never own keys or puzzle completion. Losing a memory costs its testimony.
+// V5.1: the four colleagues are innocent. Each stays Lost until the Driver has (a) found their evidence in the office,
+// (b) seen their memory in the Echo, and (c) told them the truth (the A3B_<name>_talk rows of HellscapeDialogueV5.csv).
+// Any order. Flags live in Truth ("FoundPriya", "SawPriya", "FreedPriya"); evidence also goes in the journal [J].
 public class OfficeWitness : MonoBehaviour
 {
     GhostNPC ghost;
-    string admission, greeting;
-    string[] questions, redReplies;
-    bool greeted;
+    GameObject evidence;
+    bool releasing;
+    string Name => ghost.ghostName;
+    public enum InvestigationState { NotEncountered, Encountered, EvidenceAvailable, TruthRevealed, Released }
+    public InvestigationState State => Truth.Has("Freed" + Name) ? InvestigationState.Released
+        : Truth.Has("TruthRevealed" + Name) ? InvestigationState.TruthRevealed
+        : Truth.Has("Found" + Name) ? InvestigationState.EvidenceAvailable
+        : Truth.Has("Encountered" + Name) ? InvestigationState.Encountered : InvestigationState.NotEncountered;
 
-    // Rows of the script (HS): 3.2 the red-city talk, 3.3 the shared Echo questioning, 3.4 each one's three ends.
-    // HS-rows: 160,164,166,169,173,175,178,182,184,187,191,193,213-236
+    // what each colleague's evidence says, and what their Echo memory shows
+    static readonly string[,] Case =
+    {
+        // name, evidence title, evidence body, journal account, echo memory
+        { "Priya", "RECORD U-0117", "U-0117\nName field: REMOVED\nEdited by: P. (front desk)\n\nShift extension approved after the shutdown was scheduled.", "U-0117 was Ruth Ellery. Priya's shift was extended after the shutdown was scheduled.", "*The Echo. Priya at the records terminal, taking a name out of U-0117. Her extension is approved. Nobody tells her to leave.*" },
+        { "Ben", "ADMIN LOG", "ADMIN LOGIN: SECURITY (emergency account)\nCAMERAS: OFF\nALARMS: OFF\nDOORS: LOCKED\n\nBuilding occupancy: 4", "Mercer used the emergency administrator login. The cameras went first, then the alarms. Four people were inside.", "*The Echo. Ben at the servers. The emergency account logs in. The cameras die first, then the alarms.*" },
+        { "Nadia", "INCIDENT REPORT", "FIRE - ELECTRICAL FAULT\nPrepared 05:20\nFire logged 06:40\n\nEvacuation order: CANCELLED (security)", "The electrical-fault report was written before the fire. The evacuation order was cancelled from security.", "*The Echo. Nadia's report, printed an hour before the fire. Someone cancels the evacuation order.*" },
+        { "Omar", "ALARM PANEL", "Main loop: CUT\nCuts are clean. Not fire damage.\n\nAll exits: SECURITY LOCK", "The alarm wires were cut cleanly. Security locked every exit.", "*The Echo. Omar at the alarm panel. The wires are already cut. The exits lock one by one.*" },
+    };
+
+    int Row() { for (int i = 0; i < 4; i++) if (Case[i, 0] == Name) return i; return 0; }
+
+    // HS5-rows: A3B_priya_talk A3B_ben_talk A3B_nadia_talk A3B_omar_talk A3B_all_freed A3B_tunnel_direction
     public void Initialize(GhostNPC npc)
     {
         ghost = npc;
-        string n = ghost.ghostName;
-        int own;   // first row of this colleague's confessed / damned / lost pairs
-        switch (n)
-        {
-            case "Priya": own = 213; greeting = HS.S("157-159", n); Red(n, 160, "161-163", 164, "165", 166, "167"); break;
-            case "Ben": own = 219; greeting = HS.S("168", n); Red(n, 169, "170-172", 173, "174", 175, "176"); break;
-            case "Nadia": own = 225; greeting = HS.S("177", n); Red(n, 178, "179-181", 182, "183", 184, "185"); break;
-            default: own = 231; greeting = HS.S("186", n); Red(n, 187, "188-190", 191, "192", 193, "194"); break;
-        }
-        admission = HS.T(own);
-        string confessed = HS.S(own + "-" + (own + 1), n), damned = HS.S((own + 2) + "-" + (own + 3), n), lost = HS.S((own + 4) + "-" + (own + 5), n);
-        ghost.answerSeconds = 30f;
-        ghost.opening = HS.S("195-198", n);
-        ghost.Replace(new[] {
-            Node(HS.T(199),
-                Choice("What did you do?", HS.S("200-201", n), 1),
-                Choice("Vane ordered you. Is that enough?", HS.S("202-203", n), 1),
-                Choice("Forget it. You were not there.", HS.S("204-206", n) + "|" + lost, -1, 1)),
-            Node("...",
-                Choice("Tell me exactly what you did.", HS.S("207-208", n) + "|" + confessed, -1, 3),
-                Choice("Tell me why you had to.", HS.S("209-210", n) + "|" + damned, -1, 2),
-                Choice("Nothing happened.", HS.S("211-212", n) + "|" + lost, -1, 1))
-        });
-        ghost.afterLine = "...";
-        // (no more standing at desks: they walk the office in pain, PainWalk)
+        ghost.answerSeconds = 0f;
+        EchoMemory();
+        PlaceEvidence();
+        if (Truth.Has("Freed" + Name)) ghost.gameObject.SetActive(false);   // already at peace (a retry or reload)
     }
 
-    void Red(string n, int q1, string a1, int q2, string a2, int q3, string a3)
+    // in the Echo they stand and show what happened; seeing it is what counts (replayable: a timeout never closes it)
+    void EchoMemory()
     {
-        questions = new[] { HS.T(q1), HS.T(q2), HS.T(q3), "Leave" };
-        redReplies = new[] { HS.S(a1, n), HS.S(a2, n), HS.S(a3, n) };
+        string who = Name;
+        ghost.Replace(new[] { new GhostNode { line = Case[Row(), 4] } });
+        ghost.opening = null;
+        ghost.afterLine = Case[Row(), 4];
+        ghost.onFinished.RemoveAllListeners();
+        ghost.onFinished.AddListener(() => { Truth.Set("Encountered" + who); Truth.Set("Saw" + who); });
+    }
+
+    // the evidence lies on the desk nearest to where they were placed
+    void PlaceEvidence()
+    {
+        if (!FindDesk(ghost.transform.position, out Vector3 spot, out Vector3 facing))
+        { spot = ghost.transform.position; facing = ghost.transform.forward; }
+        int i = Row();
+        string who = Name;
+        evidence = EvidenceProp.Spawn(spot + facing * .75f, who + " evidence", Case[i, 1], Case[i, 2], Case[i, 3], "*Evidence recorded. [J] to review.*", () =>
+        {
+            Truth.Set("Found" + who);
+            if (who == "Priya") Truth.Set("KnowsRuth");
+        });
     }
 
     static readonly System.Collections.Generic.List<Vector3> taken = new System.Collections.Generic.List<Vector3>();
@@ -84,33 +100,78 @@ public class OfficeWitness : MonoBehaviour
         if (hit.collider.GetComponentInParent<GhostNPC>() != null) return false;
         height = hit.point.y - floorY; return true;
     }
-    static GhostNode Node(string line, params GhostChoice[] choices) => new GhostNode { line = line, choices = choices };
-    static GhostChoice Choice(string text, string reply, int next, int fate = 0) => new GhostChoice { text = text, reply = reply, next = next, fate = fate };
-
     public bool RedTalk()
     {
         if (RevisedPlotDirector.Instance == null || RevisedPlotDirector.Instance.Echo) return false;
-        if (ghost.fate != GhostNPC.Fate.Undecided) { DialogueBox.Instance?.Say(ghost.ghostName + ": " + ghost.afterLine); return true; }
-        if (greeted) Ask();
-        else { greeted = true; DialogueBox.Instance?.Say(greeting); StartCoroutine(AskAfter()); }
+        string who = Name;
+        Truth.Set("Encountered" + who);
+        if (releasing) return true;
+        if (OfficeV52Sequence.Instance != null && !Truth.Has("OfficeV52.CCTV"))
+        {
+            DialogueBox.Instance?.Say(HS5.S("A3V53_" + who.ToLowerInvariant() + "_early", who));
+            return true;
+        }
+        if (OfficeV52Sequence.Instance != null && !Truth.Has("OfficeV52.RedEncounter"))
+        {
+            DialogueBox.Instance?.Say(HS5.S("A3V52_worker_wait", who));
+            return true;
+        }
+        if (Truth.Has("Freed" + who)) { DialogueBox.Instance?.Say(who + ": Keep going."); return true; }
+        bool ready = OfficeV52Sequence.Instance != null
+            ? Truth.Has("OfficeV52.CCTV")
+            : Truth.Ready(who);
+        if (!ready)
+        {
+            DialogueBox.Instance?.Say(who + ": " + (Truth.Has("Found" + who) ? "I can almost see it. The Echo might show me." : "I don't remember how it ended. There must be something of mine left in this office."));
+            return true;
+        }
+        Release();
         return true;
     }
 
-    System.Collections.IEnumerator AskAfter()
+    void Release()
     {
-        yield return RevisedPlotDirector.WaitForDialogue();
-        if (RevisedPlotDirector.Instance != null && !RevisedPlotDirector.Instance.Echo && !ChoiceDialogue.Instance.Open) Ask();
+        string who = Name;
+        releasing = true;
+        if (OfficeV52Sequence.Instance == null) Truth.Set("Freed" + who);
+        ghost.fate = GhostNPC.Fate.Confessed;   // (the soul is at peace: WitnessLook's released mode)
+        if (TryGetComponent<WitnessLook>(out var look)) look.Set(WitnessLook.Mode.Confessed);
+        string lines = HS5.S((OfficeV52Sequence.Instance != null ? "A3V52_" : "A3B_") + who.ToLowerInvariant() + "_talk", who);
+        if (OfficeV52Sequence.Instance == null && Truth.AllFreed) lines += "|" + HS5.S("A3B_all_freed") + "|" + HS5.S("A3B_tunnel_direction");
+        DialogueBox.Instance?.Say(lines);
+        FindFirstObjectByType<OfficeHorrorDirector>()?.WitnessResolved(GhostNPC.Fate.Confessed);
+        StartCoroutine(Ascend());
     }
 
-    void Ask() => ChoiceDialogue.Instance.Show(ghost.ghostName, "...", questions, i =>
+    // V5.1 soul release: once the truth is said they rise slowly and are gone
+    System.Collections.IEnumerator Ascend()
     {
-        if (i < redReplies.Length) DialogueBox.Instance?.Say(redReplies[i]);
-    }, transform);
+        yield return null;
+        while (DialogueBox.Instance != null && DialogueBox.Instance.Busy) yield return null;
+        Truth.Set("TruthRevealed" + Name);
+        yield return new WaitForSeconds(.8f);
+        ghost.enabled = false;   // (no more drifting; the whisper stops with it)
+        foreach (var walk in GetComponents<PainWalk>()) walk.enabled = false;
+        var light = GetComponentInChildren<Light>();
+        Vector3 from = transform.position;
+        for (float t = 0f; t < 4f; t += Time.deltaTime)
+        {
+            float k = t / 4f;
+            transform.position = from + Vector3.up * (k * k * 3f);
+            if (light != null) light.intensity *= 1f - .6f * Time.deltaTime;
+            foreach (var r in GetComponentsInChildren<Renderer>()) r.enabled = k < .85f || Mathf.FloorToInt(t * 12f) % 2 == 0;   // (a last flicker)
+            yield return null;
+        }
+        Truth.Set("Freed" + Name);
+        EvidenceJournal.Record(Name + " released", Name + " remembered the deliberate fire and was released.");
+        gameObject.SetActive(false);
+    }
 
+    // a timeout in the Echo is not the end of their memory: stand them up for another look (no softlock)
     public void Resolved(GhostNPC.Fate fate)
     {
-        ghost.afterLine = fate == GhostNPC.Fate.Confessed ? HS.T(237) : fate == GhostNPC.Fate.Damned ? HS.T(238) : fate == GhostNPC.Fate.Gone ? "..." : HS.T(239);
-        if (fate == GhostNPC.Fate.Confessed) EvidenceJournal.Record(ghost.ghostName + " testimony", admission);
-        FindFirstObjectByType<OfficeHorrorDirector>()?.WitnessResolved(fate);
+        if (fate != GhostNPC.Fate.Gone) return;
+        EchoMemory();
+        ghost.fate = GhostNPC.Fate.Undecided;
     }
 }

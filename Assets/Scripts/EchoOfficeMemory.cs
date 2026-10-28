@@ -16,8 +16,11 @@ public class EchoOfficeMemory : MonoBehaviour
     UnityEngine.UI.RawImage glow;
     Texture2D tex;
     Material glowMaterial;
-    float glowTime;
-    const float GlowPeriod = 3.8f;
+    float glowPhase;                      // 0..1 through one breath of the edge glow
+    const float GlowPeriod = 3.8f;        // seconds per breath, normally
+    const float RushFrom = 2f;            // the last seconds of a visit: the breath speeds up...
+    const float RushPeriod = 1.2f, LastPeriod = .35f;   // ...from this to a flicker as it runs out
+    EchoVisit visit;
     public int RendererCount => memory.Count;
     public float Weight => volume != null ? volume.weight : 0f;
 
@@ -102,7 +105,7 @@ public class EchoOfficeMemory : MonoBehaviour
 
     public void SetEcho(bool on)
     {
-        if (on && !echo && Weight <= 0f) glowTime = 0f;
+        if (on && !echo && Weight <= 0f) glowPhase = 0f;
         echo = on;
         foreach (var pair in on ? memory : original)
             if (pair.Key != null) pair.Key.sharedMaterials = pair.Value;
@@ -117,8 +120,13 @@ public class EchoOfficeMemory : MonoBehaviour
         {
             // Start each visit gently; keep the phase continuous during an exit or
             // a quick reversal so toggling realms cannot flash the border.
-            glowTime = Mathf.Repeat(glowTime + Time.unscaledDeltaTime, GlowPeriod);
-            float breath = .5f - .5f * Mathf.Cos(glowTime * (2f * Mathf.PI / GlowPeriod));
+            // the Echo clock is in the glow: the last two seconds it breathes faster and faster
+            if (visit == null) visit = FindFirstObjectByType<EchoVisit>();
+            float period = GlowPeriod;
+            if (echo && visit != null && !visit.HeldForVane && visit.Remaining <= RushFrom)
+                period = Mathf.Lerp(LastPeriod, RushPeriod, visit.Remaining / RushFrom);
+            glowPhase = Mathf.Repeat(glowPhase + Time.unscaledDeltaTime / period, 1f);
+            float breath = .5f - .5f * Mathf.Cos(glowPhase * 2f * Mathf.PI);
             float pulse = Mathf.Lerp(.06f, .95f, Mathf.SmoothStep(0f, 1f, breath));
             float fade = Mathf.SmoothStep(0f, 1f, volume.weight);
             glow.color = new Color(1f, 1f, 1f, fade * pulse);

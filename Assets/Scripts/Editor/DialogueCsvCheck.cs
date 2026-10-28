@@ -10,7 +10,7 @@ using UnityEngine;
 // numbers are worked out in code. Result in Library/DialogueCsvCheck.result.
 public static class DialogueCsvCheck
 {
-    const int Expected = 652;
+    const int Expected = 665, ExpectedV5 = 314;
 
     [MenuItem("HellScape/Tests/Dialogue CSV")]
     public static string Run()
@@ -31,7 +31,7 @@ public static class DialogueCsvCheck
         var literal = new Regex("\"(\\d+(?:-\\d+)?(?:,\\d+(?:-\\d+)?)*)\"");
         foreach (string file in Directory.GetFiles("Assets/Scripts", "*.cs", SearchOption.AllDirectories))
         {
-            if (file.EndsWith("DialogueCsvCheck.cs") || file.EndsWith("HS.cs")) continue;
+            if (file.EndsWith("DialogueCsvCheck.cs") || file.EndsWith("HS.cs") || file.EndsWith("HS5.cs")) continue;
             string src = File.ReadAllText(file);
             if (!src.Contains("HS.") && !src.Contains("HS-rows")) continue;
             foreach (Match m in spec.Matches(src))
@@ -43,7 +43,20 @@ public static class DialogueCsvCheck
         }
         // (a row that is only a sound cue, like [gunshot], has no text to show: see HELLSCAPE_Missing_Assets.md)
         var unused = Enumerable.Range(1, Expected).Where(id => !used.Contains(id) && rows.TryGetValue(id, out var r) && r.text.Length > 0).ToList();
-        if (unused.Count > 0) problems.Add(unused.Count + " rows are not wired to anything: " + string.Join(",", unused.Select(i => i.ToString())));
+        // (V5.1 migration: V4 rows that no script names any more are superseded, listed in the result but not a failure)
+        string superseded = unused.Count > 0 ? "\nNote: " + unused.Count + " V4 rows are not wired to anything (superseded by HS5?): " + string.Join(",", unused.Select(i => i.ToString())) : "";
+
+        // V5.1 script (HS5_ ids, own file so the V4 rows keep working until the story code is migrated)
+        var v5 = AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Resources/HellscapeDialogueV5.csv");
+        if (v5 == null) problems.Add("Resources/HellscapeDialogueV5.csv is missing");
+        else
+        {
+            var lines = v5.text.Split('\n').Where(l => l.Trim().Length > 0).Skip(1).ToList();
+            if (lines.Count != ExpectedV5) problems.Add("V5: expected " + ExpectedV5 + " rows, found " + lines.Count);
+            for (int i = 0; i < lines.Count; i++)
+                if (!lines[i].StartsWith("HS5_" + (i + 1).ToString("0000") + ",")) { problems.Add("V5: row " + (i + 1) + " is not HS5_" + (i + 1).ToString("0000")); break; }
+            if (v5.text.Any(c => c > 126)) problems.Add("V5: a character the pixel font may not have");
+        }
 
         string result = (problems.Count == 0 ? "PASS" : "FAIL") + ": " + rows.Count + " rows, " + used.Count + " wired\n" + string.Join("\n", problems);
         File.WriteAllText("Library/DialogueCsvCheck.result", result);

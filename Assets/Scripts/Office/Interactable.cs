@@ -3,7 +3,7 @@ using UnityEngine.Events;
 
 // Anything the player can look at and press F on: notes, pickups, doors, keypad buttons.
 // Needs a non-trigger collider on it or a child so PlayerInteractor's ray can hit it.
-public class Interactable : MonoBehaviour
+public class Interactable : MonoBehaviour, ISceneProgress
 {
     public string prompt = "Inspect";
     [TextArea] public string line;              // said on use ('|' splits lines)
@@ -17,11 +17,21 @@ public class Interactable : MonoBehaviour
 
     private bool used;
 
+    public object CaptureProgress() => used;
+    public void RestoreProgress(object state)
+    {
+        used = (bool)state;
+        if (used && hideOnUse) gameObject.SetActive(false);
+    }
+
     public bool Available => isActiveAndEnabled && !(once && used);
 
     public void Use()
     {
         if (!Available) return;
+        if (OfficeV52Sequence.Instance != null && OfficeV52Sequence.Instance.Opening != null
+            && !OfficeV52Sequence.Instance.Opening.BeforeInteract(this)) return;
+        if (TryGetComponent(out OfficeProgressGate officeGate) && !officeGate.Allow()) return;
         if (TryGetComponent(out RealmInteraction gate) && !gate.Allow()) return;   // burnt mechanism: nothing spent, nothing fired
 
         if (!string.IsNullOrEmpty(requiredItem))

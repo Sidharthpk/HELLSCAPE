@@ -56,9 +56,9 @@ public static class ReadableSetup
             case "Fridge note": return n =>
             {
                 n.style = ReadableNote.Style.Paper;
-                n.body = "Bro -\n\nRent's due Friday.\nDon't touch my leftovers.\n\nBreakfast's on me when you're back from your run.";
+                n.body = "EAT SOMETHING THAT ISN'T\nFROM A PETROL STATION";
                 n.footer = "- D";
-                n.afterLine = "He was waiting up for me.";
+                n.afterLine = HS.S("43");
             };
             case "Derek's phone": return n =>
             {
@@ -102,7 +102,7 @@ public static class ReadableSetup
                 n.style = ReadableNote.Style.BloodySticky;
                 n.beforeLine = "My desk. My keys should be right... here.|Gone.|There's a sticky note. It's wet.";
                 n.body = "YOUR KEYS.\nSILO 2.\n\nBRING THE STATEMENT.\nREAD THE LAST NAME.";
-                n.footer = "- ELIAS";
+                n.footer = "- G.V.";
             };
             case "IncidentReport": return n =>
             {

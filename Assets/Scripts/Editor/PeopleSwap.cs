@@ -7,13 +7,13 @@ using UnityEngine.SceneManagement;
 
 // HellScape > People: Use PSX Character Pack
 // The street people, the delivery customers and the hell city's lost souls were copies of the same three models.
-// This gives each of them their own body from the user's PSX character pack (New Folder/characters-psx, 65 people,
+// This gives each of them their own body from the user's PSX character pack (Models/characters-psx, 65 people,
 // converted to Humanoid), no two alike in a scene. Only the model changes: the root keeps its scripts and pose, the
 // new model gets the old one's Animator controller, root motion, culling, local pose and (for ghosts) the ghost
 // material; anything in the scene that pointed at the old model's Animator/transform is pointed at the new one.
 public static class PeopleSwap
 {
-    const string Pack = "Assets/New Folder/characters-psx";
+    const string Pack = "Assets/Models/characters-psx";
 
     [MenuItem("HellScape/People: Use PSX Character Pack")]
     public static void Run()
@@ -133,8 +133,8 @@ public static class PeopleSwap
         foreach (var scene in new[] { main, pro })
         {
             var roots = scene.GetRootGameObjects();
-            var who = roots.SelectMany(r => r.GetComponentsInChildren<KillerBoss>(true)).Select(k => k.transform)
-                .Concat(roots.SelectMany(r => r.GetComponentsInChildren<FleeingKiller>(true)).Select(k => k.transform)).ToList();
+            // (the prologue's killer is Mercer now: MercerSwap)
+            var who = roots.SelectMany(r => r.GetComponentsInChildren<KillerBoss>(true)).Select(k => k.transform).ToList();
             var map = new Dictionary<Object, Object>();
             foreach (var root in who)
             {
@@ -151,11 +151,42 @@ public static class PeopleSwap
         return "Elias is Character_Killer. " + string.Join("; ", log);
     }
 
+    // Story V4: the man in the flat is Mercer, company security (the pack's Character_16: black sweater, cargo
+    // trousers), not Elias. The Prologue's FleeingKiller gets the model; his controller (Locomotion, Stab, StabOver)
+    // is Humanoid, so it plays on him as it did on Elias. The depot's Mercer is a copy made at runtime.
+    [MenuItem("HellScape/People: Mercer is the prologue killer")]
+    public static void MercerMenu() => Debug.Log(MercerSwap());
+
+    public static string MercerSwap()
+    {
+        if (EditorApplication.isPlaying) return "Stop Play mode first.";
+        string path = AssetDatabase.FindAssets("Character_16 t:Model", new[] { Pack }).Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault(p => p.EndsWith("/Character_16.fbx"));
+        if (path == null) return "No Character_16.fbx in the pack.";
+        var avatar = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Avatar>().FirstOrDefault();
+        if (avatar == null || !avatar.isValid || !avatar.isHuman) return "Character_16 is not a valid Humanoid.";
+        var pro = SceneManager.GetSceneByName("Prologue");
+        bool opened = false;
+        if (!pro.isLoaded) { pro = EditorSceneManager.OpenScene("Assets/Scenes/Prologue.unity", OpenSceneMode.Additive); opened = true; }
+        var map = new Dictionary<Object, Object>();
+        var who = pro.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<FleeingKiller>(true)).ToList();
+        foreach (var k in who)
+        {
+            var was = k.GetComponentInChildren<Animator>(true);
+            if (was == null || was.avatar == avatar) continue;
+            Swap(k.transform, path, null, map, 0f);
+        }
+        Remap(pro, map);
+        Bury();
+        if (map.Count > 0) { EditorSceneManager.MarkSceneDirty(pro); EditorSceneManager.SaveScene(pro); }
+        if (opened) EditorSceneManager.CloseScene(pro, true);
+        return $"Mercer is Character_16: {map.Count / 3} of {who.Count} swapped.";
+    }
+
     // The prologue's stab through the bedroom door was played by the killer baked into "machete stab.fbx" (a different
     // man from Elias now). This takes that killer's half of the clip as a Humanoid clip (a copy of the FBX, imported
     // Humanoid: the avatar maps its first skeleton, the killer's) and adds it to PrologueKiller.controller as
     // "StabOver", which PrologueDirector plays on Elias himself, stood on the rig's origin.
-    const string StabFbx = "Assets/New Folder/jason-voorhees-machete-stab-animation/source/machete stab.fbx";
+    const string StabFbx = "Assets/Models/jason-voorhees-machete-stab-animation/source/machete stab.fbx";
     const string StabCopy = "Assets/Enemies/Elias Boss/Stab Over Derek.fbx";
     const string PrologueKillerController = "Assets/Materials/Prologue/PrologueKiller.controller";
 
@@ -212,7 +243,7 @@ public static class PeopleSwap
     // as a Humanoid clip (a copy of the FBX whose avatar maps his skeleton) and played on the police model, stood on
     // the rig's origin; the rig's prep-guy meshes are hidden. MainGameScene open; the Prologue is opened alongside.
     const string DerekDir = "Assets/Materials/Derek";
-    const string KnifeFbx = "Assets/New Folder/tommy-jarvis-multiple-stab-animation/source/kitchenknife multistab.fbx";
+    const string KnifeFbx = "Assets/Models/tommy-jarvis-multiple-stab-animation/source/kitchenknife multistab.fbx";
 
     [MenuItem("HellScape/People: Derek is Character_20_Police")]
     public static void DerekMenu() => Debug.Log(DerekSwap());
@@ -352,7 +383,7 @@ public static class PeopleSwap
     }
 
     // replace the model under root (the child holding the Animator) with the pack model at modelPath
-    static void Swap(Transform root, string modelPath, Material overrideMat, Dictionary<Object, Object> map, float vary = 0.08f)
+    internal static void Swap(Transform root, string modelPath, Material overrideMat, Dictionary<Object, Object> map, float vary = 0.08f)
     {
         var oldAnim = root.GetComponentInChildren<Animator>(true);
         if (oldAnim == null) return;
@@ -408,14 +439,14 @@ public static class PeopleSwap
 
     static readonly List<GameObject> doomed = new List<GameObject>();
 
-    static void Bury()
+    internal static void Bury()
     {
         foreach (var g in doomed) if (g != null) Undo.DestroyObjectImmediate(g);
         doomed.Clear();
     }
 
     // everything in the scene that pointed at an old model now points at its replacement
-    static void Remap(Scene scene, Dictionary<Object, Object> map)
+    internal static void Remap(Scene scene, Dictionary<Object, Object> map)
     {
         if (map.Count == 0) return;
         var byId = map.ToDictionary(kv => kv.Key.GetInstanceID(), kv => kv.Value);

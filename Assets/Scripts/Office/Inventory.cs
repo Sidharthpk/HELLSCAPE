@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 // Key items the player carries (fuses, silo key, car keys). Counted, so three "Fuse" pickups stack.
 public static class Inventory
@@ -21,12 +20,11 @@ public static class Inventory
         if (Has(id)) items[id]--;
     }
 
-    // statics survive a restart (GameOverScreen reloads the scene), so wipe them on every load
+    // A run spans Prologue, MainGameScene and OfficeSilo. Only a new run clears carried items.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Init()
     {
         items.Clear();
-        SceneManager.sceneLoaded += (s, m) => items.Clear();
     }
 }
 
@@ -44,8 +42,6 @@ public static class Judgement
         if (SparedKiller) sin--;
         if (Karma >= 2) sin--;
         if (Karma <= -2) sin++;
-        foreach (var s in Survivor.All)
-            if (s != null && !s.Turned) sin += s.Rescued ? -1 : 1;   // (someone the city took was never yours to save)
         return sin > 0;
     }
 
@@ -59,6 +55,5 @@ public static class Judgement
     static void Init()
     {
         Reset();
-        SceneManager.sceneLoaded += (s, m) => Reset();
     }
 }

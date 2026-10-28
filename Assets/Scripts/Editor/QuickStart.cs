@@ -1,5 +1,6 @@
 using System.Linq;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -17,7 +18,7 @@ public static class QuickStart
 
     // HellScape > Play > Elias Fight: onto the silo floor, as if you'd just jumped. The landing plays, Elias drops in,
     // Maya throws the rifle down: pick it up (F) and the fight is on.
-    [MenuItem("HellScape/Play/Elias Fight (silo floor)")]
+    [MenuItem("HellScape/Play/Vane Fight (silo floor)")]
     public static void EliasFight() => Begin("fight");
 
     // HellScape > Play > Kessler Chase: through the office's silo door with the key in your hand, into the tunnel.
@@ -29,6 +30,7 @@ public static class QuickStart
     public static void FinalBoss()
     {
         if (EditorApplication.isPlaying) { Debug.LogWarning("Stop Play first."); return; }
+        if (!OpenScene("MainGameScene")) return;
         SessionState.SetBool("HellScape.TestHearts", true);
         EditorApplication.isPlaying = true;
     }
@@ -36,9 +38,17 @@ public static class QuickStart
     static void Begin(string what)
     {
         if (EditorApplication.isPlaying) { Debug.LogWarning("Stop Play first."); return; }
-        if (SceneManager.GetActiveScene().name != "MainGameScene") { Debug.LogWarning("Open MainGameScene first."); return; }
+        if (!OpenScene(what == "fight" || what == "tunnel" ? "OfficeSilo" : "MainGameScene")) return;
         SessionState.SetString(Key, what);
         EditorApplication.isPlaying = true;
+    }
+
+    static bool OpenScene(string scene)
+    {
+        if (SceneManager.GetActiveScene().name == scene) return true;
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return false;
+        EditorSceneManager.OpenScene("Assets/Scenes/" + scene + ".unity");
+        return true;
     }
 
     [InitializeOnLoadMethod]

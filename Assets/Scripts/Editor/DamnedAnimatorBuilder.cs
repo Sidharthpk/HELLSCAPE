@@ -9,8 +9,8 @@ public static class DamnedAnimatorBuilder
 {
     const string Source = "Assets/Enemies/Scary Zombie Pack/";
     const string Dir = "Assets/Enemies/Dammed/";
-    const string Model = "Assets/New Folder/Dammed.fbx";
-    const string SadWalk = "Assets/New Folder/Sad Walk (1).fbx";
+    const string Model = "Assets/Models/Dammed.fbx";
+    const string SadWalk = "Assets/Models/Sad Walk (1).fbx";
     public const float WalkSpeed = 0.7f, RunSpeed = 3.67f, SneakSpeed = 0.7f;
 
     static void ImportHuman(string path, bool loop)

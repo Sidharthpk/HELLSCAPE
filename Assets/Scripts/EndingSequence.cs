@@ -15,7 +15,7 @@ using UnityEngine;
 // down into the sea the same way. (ContinuedEndingBuilder places his points and yours from the arena's deck.)
 // PlayEnding() is called by the bridge boss's death.
 [DefaultExecutionOrder(100)]
-public class EndingSequence : MonoBehaviour
+public partial class EndingSequence : MonoBehaviour
 {
     [System.Serializable]
     public class Being
@@ -74,13 +74,9 @@ public class EndingSequence : MonoBehaviour
     public float walkAwayTime = 16f;       // at least this long, and until the boundLine is done
     public float besideTime = 2.5f;        // the camera stays at his shoulder this long before it starts to pull out
 
-    [Header("The mark: you look down at your hands as it burns in")]
-    public Texture2D markedSkin;            // the arms' skin, reddened, the Sign of Judgement (Assets/New Folder/Judgement.png) etched in the back of each hand (Tools/ending/make_marked_arms.py)
-    public float handsHold = 3f;            // how long you stare at them
-    public float handsPitch = 30f;          // looking this far down
+    [Header("The mark: you look at your palms as it burns in")]
+    public Texture2D markedSkin;            // the arms' skin, reddened, the Sign of Judgement (Tools/ending/Judgement.png) etched in each palm (Tools/ending/make_marked_fists.py)
     public float handsFov = 42f;
-    public float handsRaise = 0.12f;        // the fists come up into the picture
-    public Vector2 handsTwist = new Vector2(130f, -135f);   // forearms turned over (right, left): the backs of the fists face you
 
     [Header("First death: the fall in the prologue (plays on waking in hell)")]
     [TextArea] public string deathLines = "The Demon King: Thou didst strike the street, driver, and the street struck back.|The Demon King: Not every ember is mine to quench. Some I brand, and return to the furnace of the living.|The Demon King: Bear my mark. It shall be a lantern in a country that has forgotten thee.";
@@ -127,20 +123,8 @@ public class EndingSequence : MonoBehaviour
     // what the king says: everything you did in the city, read back to you, then the sentence
     public static string VerdictLines(bool damned)
     {
-        // script 8.2: only the rows that are true of this game, then 8.3 (Damned) or 8.4 (Bound)
-        var l = new System.Collections.Generic.List<string> { "608" };
-        if (Judgement.KilledKiller) l.Add("609");
-        else if (Judgement.SparedKiller) l.Add("610");
-        foreach (var s in Survivor.All)
-        {
-            if (s == null) continue;
-            if (s.displayName == "Maya") l.Add(s.Turned ? "611" : s.Rescued ? "612" : "613");
-            else l.Add(s.Rescued ? "614" : "615");
-        }
-        if (Judgement.Karma <= -2) l.Add("616");
-        // (damned for blaming someone else: the rows where you are told you named it, 617-618 and 621-622, do not apply)
-        l.Add(!damned ? "628-638" : EvidenceJournal.PlayerConfessed ? "617-627" : "619-620,623-627");
-        return HS.S(string.Join(",", l));
+        // V5.1: one judgement, no branching ending (A08_judgement)
+        return HS5.S("A08_judgement");
     }
 
     public static bool Playing { get; private set; }   // (the gun is put away for the judgement)
@@ -207,7 +191,7 @@ public class EndingSequence : MonoBehaviour
         if (standPoint != null) yield return TakeYourPlace();
         if (DialogueBox.Instance != null && !string.IsNullOrEmpty(arriveLine)) DialogueBox.Instance.SayNow(arriveLine);
 
-        bool damned = Judgement.IsDamned();
+        bool damned = false;   // V5.1: no branching ending
         Being being = demon;
 
         being.root.SetActive(true);
@@ -246,7 +230,6 @@ public class EndingSequence : MonoBehaviour
         if (RevisedPlotDirector.Instance != null)
         {
             yield return RevisedPlotDirector.Instance.PlayerConfession();
-            damned = damned || !EvidenceJournal.PlayerConfessed;
         }
 
         // the verdict: it reads back what you did, and passes sentence
@@ -425,52 +408,31 @@ public class EndingSequence : MonoBehaviour
         return fists != null ? fists.GetComponentInChildren<SkinnedMeshRenderer>(true) : null;
     }
 
-    // You look down, your fists come up and turn over, and there it is on the back of each hand: his mark, still
-    // glowing. The arms' animator is stopped for it (the forearms are turned by hand) and started again after.
+    // Your hands come up, palms to you (the arms' Inspect clip), and there it is on each palm: his mark, still glowing.
     IEnumerator LookAtHands(SkinnedMeshRenderer arms, float burn = 1f)
     {
-        Transform cam = playerCamera.transform, rig = arms.transform.parent;
-        var anim = rig.GetComponentInParent<Animator>();
-        if (anim != null) { anim.Update(2f); anim.enabled = false; }   // (past any draw: settled in the guard)
-        var fore = new Transform[2]; var rot0 = new Quaternion[2]; var axis = new Vector3[2];
-        string[] side = { "R", "L" };
-        foreach (var b in arms.bones)
-            for (int s = 0; s < 2; s++)
-            {
-                if (b == null || b.name != "forearm." + side[s]) continue;
-                fore[s] = b; rot0[s] = b.localRotation;
-                Transform hand = b.Find("hand." + side[s]);
-                Vector3 along = hand != null ? hand.position - b.position : b.up;
-                axis[s] = b.parent.InverseTransformDirection(along.normalized);   // (in the parent's space: the camera turns under it)
-            }
+        var anim = arms.GetComponentInParent<Animator>();
+        if (anim == null) yield break;
+        anim.enabled = true; anim.speed = 1f;
+        anim.Play("Inspect", 0, 0f);
+        anim.Update(0f);
 
         var glow = new GameObject("MarkGlow").AddComponent<Light>();
-        glow.transform.SetParent(cam, false);
-        glow.transform.localPosition = new Vector3(0f, 0.05f, 0.25f);
+        glow.transform.SetParent(playerCamera.transform, false);
+        glow.transform.localPosition = new Vector3(0f, -0.05f, 0.2f);
         glow.type = LightType.Point; glow.color = new Color(1f, 0.55f, 0.45f); glow.range = 1.6f; glow.intensity = 0f; glow.shadows = LightShadows.None;
 
-        Vector3 pos0 = rig.localPosition;
-        float fovWas = playerCamera.fieldOfView, pitch0 = cam.eulerAngles.x, yaw = cam.eulerAngles.y;
-        const float turn = 0.9f, back = 0.7f;
-        float total = turn + handsHold + back;
+        float fovWas = playerCamera.fieldOfView, total = anim.GetCurrentAnimatorStateInfo(0).length;
+        const float fade = 0.9f;
         for (float t = 0f; t < total; t += Time.deltaTime)
         {
-            float k = t < turn ? t / turn : t > total - back ? (total - t) / back : 1f;
-            k = Mathf.SmoothStep(0f, 1f, k);
-            cam.rotation = Quaternion.Euler(Mathf.LerpAngle(pitch0, handsPitch, k), yaw, 0f);
+            float k = Mathf.SmoothStep(0f, 1f, Mathf.Min(1f, Mathf.Min(t, total - t) / fade));
             playerCamera.fieldOfView = Mathf.Lerp(fovWas, handsFov, k);
-            rig.localPosition = pos0 + Vector3.up * handsRaise * k + Random.insideUnitSphere * 0.004f * k;   // they're shaking
-            for (int s = 0; s < 2; s++)
-                if (fore[s] != null) fore[s].localRotation = Quaternion.AngleAxis(handsTwist[s] * k, axis[s]) * rot0[s];
             glow.intensity = k * burn * (0.28f + 0.1f * Mathf.Sin(Time.time * 9f) + (burn > 1f ? 0.08f * Random.value : 0f));
             yield return null;
         }
-        cam.rotation = Quaternion.Euler(pitch0, yaw, 0f);
         playerCamera.fieldOfView = fovWas;
-        rig.localPosition = pos0;
-        for (int s = 0; s < 2; s++) if (fore[s] != null) fore[s].localRotation = rot0[s];
         Destroy(glow.gameObject);
-        if (anim != null) anim.enabled = true;
     }
 
     // Not damned, the last shot: you (the Meshy walker) head off toward the city while the boundLine plays over it,
@@ -725,11 +687,13 @@ public class EndingSequence : MonoBehaviour
     public float kingFogDensity = 0.012f;   // eased down while he rises, so his shadow can be seen
     public int skyEyes = 500;               // eyes in the sky by the end of the walk (Resources/VoidEyes: the MovingEyes gif as a flipbook)
     public float aheadEvery = 10f;          // metres walked the way you are looking before a shadow person stands in your way
+    public GameObject shadeModel;           // the shadow people's body, already dark red with red eyes (HellScape > Void: Meshy Cast); none = a blacked-out zombie
+    [Range(0f, 1f)] public float kingWaist = 0.45f;   // how much of him (from the feet) stays under the floor: only his top half rises
 
     // The first mark, on waking in hell after the prologue fall: you died on that street. You are on SoulFloor, an
     // endless textured floor under a pure black sky and black fog. Shadow people appear ahead of you and follow you
     // (never attacking: get close and it's a jumpscare), more of them every ten seconds, until a voice shouts STOP.
-    // Then "???" rises: a huge shadow, never shown in colour, and marks your hands. SleepSequence calls it while the
+    // Then "???" rises to the waist out of the floor, a huge shadow never shown in colour, shouts, and marks your hands. SleepSequence calls it while the
     // screen is black; you are put back where you were afterwards.
     // the void's voices, far apart (script, act 01): most of the sixty seconds is silence
     IEnumerator VoidWhispers()
@@ -742,8 +706,9 @@ public class EndingSequence : MonoBehaviour
     }
 
     public IEnumerator DeathVision()
-
     {
+        var dream = playerCamera != null ? Resources.Load<DreamHall>("DreamHall") : null;   // the cathedral dream (EndingDream.cs); without it, the old black void
+        if (dream != null) { yield return DreamWalk(dream); yield break; }
         if (demon == null || demon.root == null || playerCamera == null) yield break;
         Transform you = playerMovementScript != null ? playerMovementScript.transform : playerCamera.transform.root;
         var body = you.GetComponent<Rigidbody>();
@@ -803,7 +768,6 @@ public class EndingSequence : MonoBehaviour
         if (body != null) { body.isKinematic = false; body.linearVelocity = Vector3.zero; }
         Physics.SyncTransforms();
 
-        var black = new Material(Shader.Find("Universal Render Pipeline/Unlit")); black.color = Color.black;
         var shadeMat = new Material(Shader.Find("Universal Render Pipeline/Unlit")); shadeMat.color = new Color(0.22f, 0.015f, 0.015f);   // slightly red
         var template = MakeShadeTemplate(shadeMat);
         // whispers and a tense bed, both fading in over the whole walk and swelling as the shadows gather
@@ -860,7 +824,10 @@ public class EndingSequence : MonoBehaviour
             {
                 scared = true;
                 var runner = SpawnShade(template, you, floorY, 20f);
-                runner.animSpeed = 2.8f; shades.Add(runner);
+                // (Derek's own run if the shade has one; otherwise the walk, sped up)
+                bool runs = runner.animator != null && runner.animator.HasState(0, Animator.StringToHash("Run"));
+                if (runs) runner.animator.Play("Run", 0, 0f);
+                runner.animSpeed = runs ? 1.6f : 2.8f; shades.Add(runner);
             }
             yield return null;
         }
@@ -885,11 +852,12 @@ public class EndingSequence : MonoBehaviour
             playerCamera.transform.localPosition = cam0;
         }
 
-        // size him first (his pivot is at his feet), then he rises out of the floor ahead of you: a shadow, no colour
+        // size him first (his pivot is at his feet), then he rises out of the floor ahead of you, only to the waist (the
+        // floor hides the rest of him): a shadow, no colour, nothing of him given away
         king.root.SetActive(true);
         Vector3 kingScale0 = king.root.transform.localScale;
-        king.root.transform.localScale = kingScale0 * 4f;   // huge: only his head fits the picture
-        var rends = king.root.GetComponentsInChildren<Renderer>(true);
+        king.root.transform.localScale = kingScale0 * 4f;   // huge
+        var rends = king.root.GetComponentsInChildren<Renderer>();   // (only the body that's switched on: the old one is still in there)
         if (rends.Length > 0)
         {
             Bounds b = rends[0].bounds;
@@ -897,6 +865,7 @@ public class EndingSequence : MonoBehaviour
             kingTop = b.max.y - king.root.transform.position.y;
             kingBottom = b.min.y - king.root.transform.position.y;
         }
+        var black = new Material(Shader.Find("Universal Render Pipeline/Unlit")); black.color = Color.black;
         var swapped = new List<(Renderer r, Material[] mats)>();
         var hidden = new List<Renderer>();
         foreach (var r in rends)
@@ -914,8 +883,8 @@ public class EndingSequence : MonoBehaviour
 
         Vector3 ahead = playerCamera.transform.forward; ahead.y = 0f;
         ahead = ahead.sqrMagnitude > 0.01f ? ahead.normalized : Vector3.forward;
-        float dist = kingTop * 1.15f;   // (the view can't tilt past 40 degrees, so not closer)
-        Vector3 standAt = new Vector3(you.position.x, floorY, you.position.z) + ahead * dist;
+        float dist = kingTop * 0.85f;   // (the view can't tilt past 40 degrees: his head has to stay in it)
+        Vector3 standAt = new Vector3(you.position.x, floorY, you.position.z) + ahead * dist + Vector3.down * kingTop * kingWaist;
         Vector3 sunk = standAt + Vector3.down * (kingTop - kingBottom + 2f);
         king.root.transform.position = sunk;
         FacePlayer(king.root.transform);
@@ -924,10 +893,11 @@ public class EndingSequence : MonoBehaviour
         var haze = GameObject.CreatePrimitive(PrimitiveType.Quad);
         DestroyImmediate(haze.GetComponent<Collider>());
         haze.name = "Soul haze";
-        Vector3 hazeAt = standAt + ahead * 10f + Vector3.up * kingTop * kingHeadHeight;
+        // (well behind him: his cape and spines reach tens of metres back, and would poke through a nearer one)
+        Vector3 hazeAt = standAt + ahead * kingTop * .8f + Vector3.up * kingTop * kingHeadHeight;
         haze.transform.position = hazeAt;
         haze.transform.rotation = Quaternion.LookRotation(hazeAt - playerCamera.transform.position);
-        haze.transform.localScale = Vector3.one * kingTop * 4f;
+        haze.transform.localScale = Vector3.one * kingTop * 6f;
         var hazeTex = new Texture2D(128, 128, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
         for (int y = 0; y < 128; y++)
             for (int x = 0; x < 128; x++)
@@ -942,7 +912,6 @@ public class EndingSequence : MonoBehaviour
         haze.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
         Sounds.OneShot(king.sound, "Ending/Demon rises", null, 0.8f);
-        if (king.animator != null) king.animator.SetTrigger(king.animTrigger);
         const float rise = 4f;
         for (float t = 0f; t < rise; t += Time.deltaTime)
         {
@@ -954,7 +923,10 @@ public class EndingSequence : MonoBehaviour
             Bust(king);
             yield return null;
         }
-        for (float t = 0f; t < 1f; t += Time.deltaTime) { Bust(king); yield return null; }
+        // up: the shout (then he idles)
+        if (king.animator != null) king.animator.SetTrigger(king.animTrigger);
+        Sounds.OneShot(king.sound, "Ending/Demon rises", null, 1f);
+        for (float t = 0f; t < 4f; t += Time.deltaTime) { Bust(king); yield return null; }
         if (DialogueBox.Instance != null && !string.IsNullOrEmpty(deathLines))
         {
             DialogueBox.Instance.SayNow(deathLines.Replace("The Demon King:", "???:"));   // (his name is not given yet)
@@ -1021,6 +993,13 @@ public class EndingSequence : MonoBehaviour
     GameObject MakeShadeTemplate(Material black)
     {
         GameObject t;
+        if (shadeModel != null)
+        {
+            t = Instantiate(shadeModel);   // (its own walk and its own dark red look, eyes and all)
+            t.name = "Soul shade";
+            t.SetActive(false);
+            return t;
+        }
         var z = (Component)FindFirstObjectByType<CivilianWander>(FindObjectsInactive.Include) ?? FindFirstObjectByType<ZombieAI>(FindObjectsInactive.Include);
         if (z != null)
         {
@@ -1132,6 +1111,28 @@ public class EndingSequence : MonoBehaviour
     }
 
     // one got to you: it's suddenly right in your face, a flash, and they're all gone. (The count keeps climbing.)
+    // a full-screen red vignette (the HUD's own is hidden in the void): clear in the middle, blood red at the edges
+    CanvasGroup RedVignette()
+    {
+        var canvas = new GameObject("Scare vignette").AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 500;
+        var group = canvas.gameObject.AddComponent<CanvasGroup>();
+        var tex = new Texture2D(64, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        for (int y = 0; y < 64; y++)
+            for (int x = 0; x < 64; x++)
+            {
+                float d = new Vector2((x - 31.5f) / 31.5f, (y - 31.5f) / 31.5f).magnitude;
+                tex.SetPixel(x, y, new Color(.7f, 0f, 0f, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.45f, 1.2f, d))));
+            }
+        tex.Apply();
+        var img = new GameObject("Red edges").AddComponent<UnityEngine.UI.RawImage>();
+        img.transform.SetParent(canvas.transform, false);
+        img.texture = tex; img.raycastTarget = false;
+        var rt = img.rectTransform; rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
+        return group;
+    }
+
     IEnumerator SoulScare(SoulFollower s, List<SoulFollower> shades, Transform you, float floorY)
     {
         if (playerMovementScript != null) playerMovementScript.enabled = false;
@@ -1147,15 +1148,23 @@ public class EndingSequence : MonoBehaviour
         Sounds.OneShot(voidSfx, "Ending/Shadow scream", null, 1f);
         Sounds.OneShot(voidSfx, "Office/Vane jumpscare", ProceduralAudio.Whisper(1.4f), 0.6f);
         voidSfx.PlayOneShot(ProceduralAudio.Stomp(), 1f);
-        foreach (var r in s.GetComponentsInChildren<Renderer>()) r.material.color = new Color(0.75f, 0.03f, 0.03f);   // lit up red, right in your face
-        playerCamera.fieldOfView = 95f;
+        // right in your face: zoomed in on his head, a black silhouette staring at you with two red dots for eyes,
+        // the edges of the screen gone red and the picture shaking
+        s.gameObject.AddComponent<ShadeStare>().target = cam;
+        Transform head = null;
+        foreach (var b in s.GetComponentsInChildren<Transform>()) if (b.name == "Head" || b.name.EndsWith(":Head")) head = b;
+        playerCamera.fieldOfView = 30f;   // zoomed in: his face fills the picture
+        var vignette = RedVignette();
         Vector3 cam0 = cam.localPosition;
         for (float t = 0f; t < 1.2f; t += Time.deltaTime)
         {
-            TurnCamera(s.transform.position + Vector3.up * 1.65f, 20f);
-            cam.localPosition = cam0 + Random.insideUnitSphere * 0.08f;
+            TurnCamera(head != null ? head.position : s.transform.position + Vector3.up * 1.65f, 20f);
+            cam.localPosition = cam0 + Random.insideUnitSphere * 0.035f;
+            cam.rotation *= Quaternion.Euler(Random.Range(-1.5f, 1.5f), Random.Range(-1.5f, 1.5f), Random.Range(-4f, 4f));
+            vignette.alpha = 0.75f + 0.25f * Mathf.Sin(t * 40f);
             yield return null;
         }
+        Destroy(vignette.GetComponentInChildren<UnityEngine.UI.RawImage>().texture); Destroy(vignette.gameObject);
         cam.localPosition = cam0;
         if (fader != null) yield return fader.FadeTo(1f, 0.12f);
         foreach (var o in shades) if (o != null) Destroy(o.gameObject);

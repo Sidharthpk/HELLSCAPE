@@ -5,7 +5,7 @@ using UnityEngine;
 
 public static class DamnedFloatPose
 {
-    const string Source = "Assets/New Folder/Floating Pose 2.fbx";
+    const string Source = "Assets/Models/Floating Pose 2.fbx";
     const string Copy = "Assets/Enemies/Dammed/Floating Pose 2.fbx";
     const string Controller = "Assets/Resources/OfficeHorror/DamnedFloat.controller";
 

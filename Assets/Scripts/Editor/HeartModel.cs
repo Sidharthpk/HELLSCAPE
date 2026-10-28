@@ -9,8 +9,8 @@ using UnityEngine;
 // the model the HUD heart is rendered from (HudIconRenderer).
 public static class HeartModel
 {
-    public const string Fbx = "Assets/New Folder/heart-animated-anatomical-3d-model/source/heart_v_1_3.fbx";
-    const string Tex = "Assets/New Folder/heart-animated-anatomical-3d-model/textures/";
+    public const string Fbx = "Assets/Models/heart-animated-anatomical-3d-model/source/heart_v_1_3.fbx";
+    const string Tex = "Assets/Models/heart-animated-anatomical-3d-model/textures/";
     const string BossMat = "Assets/Materials/OfficeAct/AnimatedHeart.mat";
     const string Controller = "Assets/Materials/OfficeAct/Anim/HeartBeat.controller";
     // the mesh as it comes: 2.89 units tall, its middle off the pivot, its front towards FrontAxis

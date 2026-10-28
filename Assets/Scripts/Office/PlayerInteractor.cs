@@ -24,7 +24,7 @@ public class PlayerInteractor : MonoBehaviour
     {
         current = null;
         // a note is up (F puts it down, it doesn't pick the next thing up), or you're in the middle of talking to someone
-        if (NoteViewer.Blocking || PauseMenu.Paused || GameOverScreen.Open || TapLock.Active || LockPick.Active || GhostNPC.Conversing)
+        if ((DialogueBox.Instance != null && DialogueBox.Instance.CardOpen) || NoteViewer.Blocking || PauseMenu.Paused || GameOverScreen.Open || TapLock.Active || LockPick.Active || VaultDial.Active || VaultDial.ClosedFrame == Time.frameCount || GhostNPC.Conversing)
         {
             if (Root != null) Root.SetActive(false);
             return;
@@ -32,9 +32,15 @@ public class PlayerInteractor : MonoBehaviour
         if (ChoiceDialogue.Instance == null || !ChoiceDialogue.Instance.Open)
             current = Find();
 
+        if(current!=null && current.GetComponent<OfficeWitness>()!=null)
+            OfficeV52Sequence.Instance?.Opening?.OfferSoulHint();
         Show(current != null ? current.prompt : null);
 
-        if (current != null && Input.GetKeyDown(key)) current.Use();
+        if (current != null && Input.GetKeyDown(key))
+        {
+            current.Use();
+            GetComponentInChildren<PunchController>()?.Take();
+        }
     }
 
     // the prompt itself (null: hidden). Also used by the prologue van, while this is switched off with the player

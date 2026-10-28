@@ -49,7 +49,7 @@ public static class TitleScreenBuilder
         {
             var anim = coreGo.TryGetComponent<Animator>(out var a) ? a : coreGo.AddComponent<Animator>();
             const string ctrlPath = "Assets/Materials/Title/TitleCore.controller";
-            var clip = AssetDatabase.LoadAllAssetsAtPath("Assets/New Folder/Sci fi Core.blend").OfType<AnimationClip>().First(c => !c.name.StartsWith("__preview__"));
+            var clip = AssetDatabase.LoadAllAssetsAtPath("Assets/Models/Sci fi Core.blend").OfType<AnimationClip>().First(c => !c.name.StartsWith("__preview__"));
             if (AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(ctrlPath) == null)
                 UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPathWithClip(ctrlPath, clip);
             anim.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(ctrlPath);

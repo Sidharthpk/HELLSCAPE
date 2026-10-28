@@ -93,7 +93,7 @@ public static class DeliveryBuilder
 
         // getting in: an Interactable on the van, out: F again
         var getIn = van.AddComponent<Interactable>();
-        getIn.prompt = "Get in the van";
+        getIn.prompt = "Start shift";
         getIn.once = false;
         getIn.lockedLine = "";
         var pv = van.AddComponent<PrologueVan>();
@@ -112,8 +112,8 @@ public static class DeliveryBuilder
         }
         Vector3 bay1 = Map(new Vector3(-4.78f, -3.88f, -44.62f));             // the first street of the new block
         Vector3 dir1 = Map(RoadPoint("RoadPoint 00").position) - bay1;
-        Vector3 bay2 = Map(RoadPoint("RoadPoint 03").position);
-        Vector3 dir2 = Map(RoadPoint("RoadPoint 04").position) - bay2;
+        Vector3 bay2 = new Vector3(232f, 0f, -82f);                          // the road in front of Harlow Clinic (copied into the prologue)
+        Vector3 dir2 = Vector3.right;
         var stop1 = Mark("Stop 1 - Mrs Okafor (bay)", bay1, dir1);
         var stop2 = Mark("Stop 2 - Harlow Clinic (bay)", bay2, dir2);
         var depot = Mark("Depot bay (office)", new Vector3(62f, 0f, 1.5f), Vector3.left);
@@ -148,6 +148,8 @@ public static class DeliveryBuilder
         }
         var okafor = Customer("Mrs Okafor", stop1, 1, "Hand over the parcel", out var okaforAnim);
         var clinic = Customer("Man at the door (Harlow Clinic)", stop2, 0, "Hand over the cool box", out var clinicAnim);
+        var clinicAt = OnGround(new Vector3(252f, 0f, -79f));                 // at the clinic's front door
+        clinic.transform.SetPositionAndRotation(clinicAt, Quaternion.LookRotation(new Vector3(stop2.position.x - clinicAt.x, 0f, stop2.position.z - clinicAt.z)));
 
         // a column of light over wherever you're headed
         var beacon = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -163,7 +165,7 @@ public static class DeliveryBuilder
             bm.SetInt("_ZWrite", 0); bm.renderQueue = 3000; bm.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             AssetDatabase.CreateAsset(bm, "Assets/Materials/Prologue_Beacon.mat");
         }
-        bm.SetColor("_BaseColor", new Color(1f, 0.78f, 0.35f, 0.22f));
+        bm.SetColor("_BaseColor", new Color(1f, 0.78f, 0.35f, 0.1f));
         EditorUtility.SetDirty(bm);
         beacon.GetComponent<Renderer>().sharedMaterial = bm;
         beacon.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -187,9 +189,9 @@ public static class DeliveryBuilder
             },
             new DeliveryRun.Stop
             {
-                objective = "Deliver the cool box - Harlow Clinic, back entrance",
+                objective = "Deliver the cool box - Harlow Clinic, front entrance",
                 bay = stop2, bayRadius = 13f, customer = clinic, customerAnimator = clinicAnim,
-                arriveLine = "The cool box. 'KEEP COLD - DO NOT OPEN.' Kessler's handwriting. Same back door every Saturday.",
+                arriveLine = "The cool box. 'KEEP COLD - DO NOT OPEN.' Kessler's handwriting. Same door every Saturday.",
                 handOverLines = "Man at the door: You're late. Kessler said half six.|Man at the door: No paperwork. No names. Same as always.|...What's actually in these boxes?|Man at the door: Spare parts. You drive, you get your bonus, you don't ask. That's the deal.|...Spare parts.",   // (he walks back in through his door: DeliveryRun.Leave)
             },
         };

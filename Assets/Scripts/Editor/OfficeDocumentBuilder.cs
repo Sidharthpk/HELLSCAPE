@@ -10,7 +10,7 @@ public static class OfficeDocumentBuilder
 {
     const string Art = "Assets/Resources/OfficeDocuments/";
     const string Materials = "Assets/Generated/Office/Documents/";
-    static readonly Vector3 Desk = new Vector3(1018f, 3.4f, 904f);
+    static readonly Vector3 Desk = new Vector3(982f, 3.4f, 892f);   // the open-plan floor of the v3 office (plan e 0, n 22)
     const float Top = .84f;
 
     [MenuItem("HellScape/Office/Place Readable Documents In Main Hall")]

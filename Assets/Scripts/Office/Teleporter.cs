@@ -16,10 +16,50 @@ public class Teleporter : MonoBehaviour
     public string musicArea;                 // Sound Library area whose music starts on arrival (empty = no change)
     public UnityEvent onArrive = new UnityEvent();
 
+    [Header("Into another scene (the office + silo are their own scene)")]
+    public string loadScene;                 // empty = same scene, move the player to destination
+    public string arriveAt;                  // name of the object to stand at once that scene has loaded
+    public string arriveCheckpoint;          // name of the Checkpoint to activate there (optional)
+
+    public static string ArriveAt, ArriveCheckpoint, ArriveMusic;   // handed to SceneArrival across the load
+    public static string ArriveLine;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetArrival() => ArriveAt = ArriveCheckpoint = ArriveMusic = ArriveLine = null;
+
     private bool busy;
 
     public void Go()
     {
+        if (name == "Front door (go home)")
+        {
+            var run = FindFirstObjectByType<DeliveryRun>(FindObjectsInactive.Include);
+            if (run != null && run.Started && !run.Done)
+            {
+                DialogueBox.Instance?.Say("Gotta finish the last delivery, then I'm done for the day.");
+                return;
+            }
+        }
+        if (name == "ExitDoor")
+        {
+            var encounter = FindFirstObjectByType<KesslerConfrontation>(FindObjectsInactive.Include);
+            if (encounter != null && encounter.Armed)
+            {
+                DialogueBox.Instance?.Say("Vane is between me and the street. I have to take the silo route.");
+                return;
+            }
+        }
+        if (loadScene == "OfficeSilo" && Inventory.Has("CarKeys"))
+        {
+            DialogueBox.Instance?.Say("I have the keys. I need to get to the van.");
+            return;
+        }
+        if (!string.IsNullOrEmpty(loadScene) &&
+            (!Application.CanStreamedLevelBeLoaded(loadScene) || string.IsNullOrEmpty(arriveAt)))
+        {
+            Debug.LogError("[Teleporter] Invalid scene or arrival on " + name + ": " + loadScene + " / " + arriveAt);
+            return;
+        }
         if (!busy) StartCoroutine(Run());
     }
 
@@ -29,6 +69,15 @@ public class Teleporter : MonoBehaviour
         if (doorSound != null) doorSound.Play();
         if (transition != null && !transition.Busy) yield return transition.Play();
         else if (fader != null) yield return fader.FadeTo(1f, fadeTime);
+
+        if (!string.IsNullOrEmpty(loadScene))
+        {
+            SceneProgress.Capture(gameObject.scene, player);
+            ArriveAt = arriveAt; ArriveCheckpoint = arriveCheckpoint; ArriveMusic = musicArea; ArriveLine = arriveLine;
+            SleepSequence.WakeInHell = true;   // no title screen on the way in
+            UnityEngine.SceneManagement.SceneManager.LoadScene(loadScene);
+            yield break;
+        }
 
         var rb = player.GetComponent<Rigidbody>();
         if (rb != null) rb.linearVelocity = Vector3.zero;

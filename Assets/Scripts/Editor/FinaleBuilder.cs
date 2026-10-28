@@ -553,7 +553,7 @@ public static class FinaleBuilder
 
     // ---------------------------------------------------------------- the user's demon: Tillagemon
 
-    const string TillagemonFbx = "Assets/New Folder/tillagemon-boss-skeleton/source/TillagemonBoss01_Skeleton.fbx";
+    const string TillagemonFbx = "Assets/Models/tillagemon-boss-skeleton/source/TillagemonBoss01_Skeleton.fbx";
     const string TillagemonController = "Assets/Materials/OfficeAct/Anim/TillagemonBoss.controller";
 
     [MenuItem("HellScape/Finale/Use Tillagemon As Boss")]

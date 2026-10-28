@@ -3,8 +3,9 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 
-// The AK a colleague throws down to you in the silo. On the player camera; stays off until Equip().
-// Hitscan, full auto, R to reload. Animator states: Idle, Shoot, Reload, Draw.
+// Your gun: the pistol from Kessler's armory (PistolBuilder). On the player camera; stays off until Equip().
+// Hitscan, R to reload, I to inspect it. Animator states: Idle, Shoot, Reload, Draw, and if there, ReloadEmpty (out
+// of rounds) and Inspect. `automatic` holds the trigger down (the old rifle); the pistol fires a round per click.
 public class GunController : MonoBehaviour
 {
     public static bool Equipped;
@@ -15,11 +16,14 @@ public class GunController : MonoBehaviour
     public GameObject fistsRig;             // the punching arms, hidden while the gun is out
 
     [Header("Shooting")]
-    public float fireRate = 6.5f;           // shots a second (user: 9 was too rapid)
+    public bool automatic = true;
+    public float fireRate = 6.5f;           // shots a second at most (user: 9 was too rapid)
     public float damage = 14f;
     public float range = 150f;
     public int magSize = 30;
     public float reloadTime = 2.2f;
+    public float reloadEmptyTime = 0f;      // > 0: the ReloadEmpty state, this long, when the magazine ran dry
+    public KeyCode inspectKey = KeyCode.I;
     public float kickBack = 0.06f;          // viewmodel recoil
 
     [Header("FX")]
@@ -46,7 +50,20 @@ public class GunController : MonoBehaviour
     {
         Equipped = false;
         holsters.Clear();
-        SceneManager.sceneLoaded += (s, m) => { Equipped = false; holsters.Clear(); };
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    static void OnSceneLoaded(Scene scene, LoadSceneMode mode) => holsters.Clear();
+
+    public object CaptureLoadout() => (ammo, spare, limited);
+    public void RestoreLoadout(object state)
+    {
+        (ammo, spare, limited) = ((int, int, bool))state;
+        if (Equipped && fistsRig != null) fistsRig.SetActive(false);
+        if (viewModel != null) viewModel.SetActive(Equipped);
+        if (ammoText != null) ammoText.gameObject.SetActive(Equipped);
+        UpdateAmmo();
     }
 
     // put away (not lost) while your hands are busy: climbing, swimming, the judgement, or anything that asks
@@ -61,6 +78,12 @@ public class GunController : MonoBehaviour
         if (viewModel != null) { restPos = viewModel.transform.localPosition; viewModel.SetActive(Equipped); }
         if (muzzleLight != null) muzzleLight.enabled = false;
         if (ammoText != null) ammoText.gameObject.SetActive(Equipped);
+        if (Equipped)
+        {
+            ammo = magSize;
+            if (fistsRig != null) fistsRig.SetActive(false);
+            UpdateAmmo();
+        }
     }
 
     // getting into the van switches the player off mid-reload and kills the coroutine: don't stay "reloading" forever
@@ -100,7 +123,8 @@ public class GunController : MonoBehaviour
 
         if (reloading) return;
         if (Input.GetKeyDown(KeyCode.R) && ammo < magSize && (!limited || spare > 0)) { StartCoroutine(Reload()); return; }
-        if (Input.GetMouseButton(0) && Time.time >= nextShot)
+        if (Input.GetKeyDown(inspectKey) && animator != null && animator.HasState(0, Animator.StringToHash("Inspect"))) animator.CrossFadeInFixedTime("Inspect", .1f);
+        if ((automatic ? Input.GetMouseButton(0) : Input.GetMouseButtonDown(0)) && Time.time >= nextShot)
         {
             if (ammo > 0) Fire();
             else if (!limited || spare > 0) StartCoroutine(Reload());
@@ -158,6 +182,9 @@ public class GunController : MonoBehaviour
         if (first < 0) return;
         var hit = hits[first];
 
+        var officeVane = hit.collider.GetComponentInParent<OfficeVaneHit>();
+        if (officeVane != null && officeVane.Hit()) return;
+
         var boss = hit.collider.GetComponentInParent<KillerBoss>();
         if (boss != null) { boss.TakeDamage(damage, hit.point, dir); return; }
 
@@ -174,9 +201,10 @@ public class GunController : MonoBehaviour
     IEnumerator Reload()
     {
         reloading = true;
-        if (animator != null) animator.Play("Reload", 0, 0f);
+        bool dry = ammo <= 0 && reloadEmptyTime > 0f && animator != null && animator.HasState(0, Animator.StringToHash("ReloadEmpty"));
+        if (animator != null) animator.Play(dry ? "ReloadEmpty" : "Reload", 0, 0f);
         if (source != null && reloadClip != null) source.PlayOneShot(reloadClip);
-        yield return new WaitForSeconds(reloadTime);
+        yield return new WaitForSeconds(dry ? reloadEmptyTime : reloadTime);
         if (source != null && reloadClip != null) source.PlayOneShot(reloadClip);
         if (limited) spare = Mathf.Max(0, spare - 1);
         ammo = magSize;

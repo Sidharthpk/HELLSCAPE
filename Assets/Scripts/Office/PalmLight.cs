@@ -1,13 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
 // The light in your hands. In the blacked-out office (InteriorDarkness.blackoutUntilPowered, before the fuses are in)
-// Q plays the arms' push (ArmsRig_push.R) and holds it at frame 13, palms raised: the mark on them gives off a beam
-// where you look, a flashlight. Q again plays the rest of the clip (hands coming down), then the fists come back up
-// into the guard. The fuses going in lowers them too. Sits next to PunchController (InteriorDarkness adds it); the
-// fists are off while the hands are up.
+// Q plays the arms' Take clips (Take_Start, then the Take_Loop held) with the right hand out, the left hidden: the mark on
+// the palm gives off a beam where you look. Q again plays Take_Stop (the hand coming down) and it settles back into the
+// idle. The fuses going in lowers it too. Sits next to PunchController (InteriorDarkness adds it); the fists are off while
+// the hand is up.
 //
 // The light itself is free: hold it as long as you like. Only the flash heats your hands (the skin reddens a little,
 // then cools). With the hands up, left click (your punch, when they're down) spends it all at once: a strobing flash that freezes
@@ -16,8 +17,9 @@ using UnityEngine.UI;
 public class PalmLight : MonoBehaviour
 {
     public KeyCode key = KeyCode.Q;
-    public Color color = new Color(1f, 0.8f, 0.58f);
-    public float range = 24f, angle = 65f, intensity = 8f;
+    public Color color = new Color(1f, 0.9f, 0.72f);
+    public float range = 60f, angle = 105f, intensity = 45f;   // a soft wide glow, strong enough to see the whole room by
+    public float beamAhead = 0.5f;          // the beam starts this far in front of the palm, so it never lights your own hand
     [TextArea] public string hint = "It's pitch black.|[Q] raises my hands. The mark lights the way.|[LEFT CLICK] with my hands up: a flash that stuns them. It recharges slowly.";
 
     [Header("Overuse")]
@@ -28,24 +30,24 @@ public class PalmLight : MonoBehaviour
     [TextArea] public string burnLine = "Too hot. I have to let them cool.";
 
     [Header("Flash")]
-    public float flashRange = 15f;
+    public float flashRange = 24f;
     public float stunTime = 5f;
     public float recharge = 30f;
     public float flashHeat = 0.3f;          // what one flash costs your hands
     [TextArea] public string notReadyLine = "Nothing. It hasn't come back yet.";
 
-    const string Push = "ArmsRig_push_R";     // the user's clip, as a state on ArmsController (30 fps, 23 frames)
-    const float ClipFrames = 23f, HoldFrame = 13f;
-    const float holdAt = HoldFrame / ClipFrames;   // normalized time of the pause: palms raised
+    // Fists 2025's Take clips as their own states on FistsController: the right hand reaches out and holds, looping; the left is hidden
+    const string Start0 = "Light", Loop = "LightLoop", Stop = "LightStop";
 
     enum Phase { Down, Raising, Held, Lowering }
     Phase phase;
 
     PunchController punch;
     Animator arms;
-    Transform cam, palmR, palmL;
+    Transform cam, palmR, palmL, leftArm;
+    Vector3 leftScale;
     Light beam, glowR, glowL, burst;
-    bool hinted, warned, burntOut, flashing;
+    bool hinted, warned, burntOut, flashing, sawStop;
     float phaseAt, heat, charge = 1f;
     Material[] skin; Color[] skin0;
     Image overlay, chargeBar;
@@ -53,7 +55,9 @@ public class PalmLight : MonoBehaviour
 
     // the Damned a flash is holding, and until when
     static readonly Dictionary<ZombieAI, float> stunned = new Dictionary<ZombieAI, float>();
-    public static float FlashedAt = -99f;   // when the last flash went off (the shadow figures vanish on it)
+    public static float FlashedAt = -99f;   // when the last flash went off (Vane's choke breaks on it)
+    public static bool FlashAnytime;        // Vane has you by the throat: the flash needs no raised hands
+    public bool Held => phase == Phase.Held;
     public static bool Stunned(ZombieAI ai) => ai != null && stunned.ContainsKey(ai);
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatic() => stunned.Clear();
@@ -70,21 +74,24 @@ public class PalmLight : MonoBehaviour
         arms = punch.armsAnimator; cam = punch.cam;
         foreach (var t in arms.GetComponentsInChildren<Transform>(true))
         {
-            if (t.name == "palm.03.R") palmR = t;
-            else if (t.name == "palm.03.L") palmL = t;
+            if (t.name == "DEF-palm.03.R") palmR = t;
+            else if (t.name == "DEF-palm.03.L") palmL = t;
+            else if (t.name == "ORG-shoulder.L") leftArm = t;
         }
+        if (leftArm != null) leftScale = leftArm.localScale;
         beam = MakeLight("Palm beam", LightType.Spot);
-        beam.range = range; beam.spotAngle = angle; beam.innerSpotAngle = angle * 0.45f; beam.intensity = intensity;
-        beam.shadows = LightShadows.Hard;
-        glowR = MakeLight("Palm glow R", LightType.Point); glowR.range = 3f; glowR.intensity = 1.8f;
-        glowL = MakeLight("Palm glow L", LightType.Point); glowL.range = 2.5f; glowL.intensity = 1.2f;
+        beam.range = range; beam.spotAngle = angle; beam.innerSpotAngle = angle * 0.15f; beam.intensity = intensity;   // (a soft edge: it glows off into the dark)
+        beam.shadows = LightShadows.Soft;
+        // the palm glows are faint and sit out in front of the hands: close to the camera a bright light on the skin blinds
+        glowR = MakeLight("Palm glow R", LightType.Point); glowR.range = 10f; glowR.intensity = 0.2f;
+        glowL = MakeLight("Palm glow L", LightType.Point); glowL.range = 16f; glowL.intensity = .5f;
         burst = MakeLight("Palm flash", LightType.Point); burst.range = flashRange * 1.6f; burst.intensity = 0f; burst.color = Color.white; burst.enabled = false;
         Show(false);
 
         // the arms' own materials (instances: RevisedPlotDirector paints the mark on the same ones)
         var mats = new List<Material>();
         foreach (var r in arms.GetComponentsInChildren<SkinnedMeshRenderer>(true))
-            foreach (var m in r.materials) if (m.HasProperty("_BaseColor")) { m.EnableKeyword("_EMISSION"); mats.Add(m); }
+            foreach (var m in r.materials) if (m.HasProperty("_BaseColor")) { m.DisableKeyword("_EMISSION"); mats.Add(m); }   // (the hands never glow: only the light does)
         skin = mats.ToArray(); skin0 = new Color[skin.Length];
         for (int i = 0; i < skin.Length; i++) skin0[i] = skin[i].GetColor("_BaseColor");
 
@@ -113,13 +120,29 @@ public class PalmLight : MonoBehaviour
         return l;
     }
 
-    void Show(bool v) { beam.enabled = glowR.enabled = glowL.enabled = v; }
+    void Show(bool v) { beam.enabled = v; glowR.enabled = glowL.enabled = false; }   // (just the beam: point lights by the palm lit the skin like a glow)
+
+    public void LowerForAction()
+    {
+        Show(false);phase=Phase.Down;
+        if(leftArm!=null) leftArm.localScale=leftScale;
+        if(arms!=null) arms.speed=1f;
+    }
+    public void PrepareOpeningFlash()
+    {
+        charge=1f;heat=0f;burntOut=false;
+    }
 
     void Update()
     {
         bool live = Time.timeScale > 0f && !PauseMenu.Paused && !GunController.Equipped;
         bool allowed = (InteriorDarkness.Blackout || (cam != null && OfficeHorrorDirector.In(cam.position))) && live && !burntOut;
-        if (InteriorDarkness.Blackout && live && !hinted && DialogueBox.Instance != null) { hinted = true; DialogueBox.Instance.Say(hint); }
+        if (OfficeV52Sequence.Instance != null && OfficeV52Sequence.Instance.Opening != null)
+        {
+            hinted=true; // OfficeOpening presents controls as HUD instructions, never spoken dialogue.
+            if(OfficeV52Sequence.Instance.Opening.Busy && !OfficeV52Sequence.Instance.Opening.AwaitingFlash) live=allowed=false;
+        }
+        else if (InteriorDarkness.Blackout && live && !hinted && DialogueBox.Instance != null) { hinted = true; DialogueBox.Instance.Say(hint); }
         if (allowed && Input.GetKeyDown(key)) Set(phase == Phase.Down);
         else if (!allowed && (phase == Phase.Raising || phase == Phase.Held)) Set(false);
 
@@ -127,15 +150,13 @@ public class PalmLight : MonoBehaviour
         Flash(live);
 
         var st = arms.GetCurrentAnimatorStateInfo(0);
-        bool inPush = st.IsName(Push) && !arms.IsInTransition(0);
         switch (phase)
         {
             case Phase.Raising:
                 // (timeout: if the clip never reports in, e.g. another state took over, still raise the light)
-                if ((inPush && st.normalizedTime >= holdAt) || Time.time - phaseAt > 0.6f)
+                if (st.IsName(Loop) || Time.time - phaseAt > 1.2f)
                 {
-                    arms.Play(Push, 0, holdAt);   // frame 13, exactly
-                    arms.speed = 0f;              // ...and paused there
+                    arms.speed = 1f;   // the hand holds in the Take loop
                     phase = Phase.Held;
                     Show(true);
                 }
@@ -143,13 +164,16 @@ public class PalmLight : MonoBehaviour
             case Phase.Held:
                 // steady while it's cool; guttering as it nears the end
                 float gutter = heat > 0.75f ? 0.75f + 0.25f * Mathf.PerlinNoise(Time.time * 14f, 0f) : 1f;
-                beam.intensity = intensity * gutter * (0.94f + 0.06f * Mathf.Sin(Time.time * 17f) * Mathf.Sin(Time.time * 5.3f));
+                // a slow breath in and out (~3 s): the glow is in the light, never on the skin
+                float breathe = 0.65f + 0.35f * (0.5f + 0.5f * Mathf.Sin(Time.time * 2.1f));
+                beam.intensity = intensity * gutter * breathe;
                 break;
             case Phase.Lowering:
-                if ((inPush && st.normalizedTime >= 0.98f) || Time.time - phaseAt > 0.8f)
+                // (the state's own exit takes it back into the idle)
+                sawStop |= st.IsName(Stop);
+                if ((sawStop && (!st.IsName(Stop) || st.normalizedTime > .55f)) || Time.time - phaseAt > 1.5f)
                 {
                     arms.speed = 1f;
-                    arms.Play("GuardDraw", 0, 0f);   // hands down, then the fists back up into the guard
                     punch.enabled = true;
                     phase = Phase.Down;
                 }
@@ -169,15 +193,13 @@ public class PalmLight : MonoBehaviour
 
         // skin: nothing for the first moments, then the red comes in and finally glows
         float k = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.12f, 1f, heat));
-        float throb = heat > 0.75f ? 0.75f + 0.25f * Mathf.Sin(Time.time * 7f) : 1f;
         for (int i = 0; i < skin.Length; i++)
         {
             if (skin[i] == null) continue;
             skin[i].SetColor("_BaseColor", Color.Lerp(skin0[i], skin0[i] * burnt, k));
-            skin[i].SetColor("_EmissionColor", burnt * (k * k * 0.9f * throb + Surge));
         }
         Color c = Color.Lerp(color, burnt, k * 0.65f);
-        beam.color = glowR.color = glowL.color = c;
+        beam.color = glowL.color = c;
     }
 
     // ---------------------------------------------------------------- the flash
@@ -200,7 +222,7 @@ public class PalmLight : MonoBehaviour
         chargeBar.fillAmount = charge;
         chargeBar.color = BloodBar.Red * Mathf.Lerp(.55f, 1f, charge);
 
-        if (!live || phase != Phase.Held || flashing || !Input.GetMouseButtonDown(0)) return;   // only with the palms up: the click that would have been a punch
+        if (!live || (phase != Phase.Held && !FlashAnytime) || flashing || !Input.GetMouseButtonDown(0)) return;   // only with the palms up: the click that would have been a punch
         if (RevisedPlotDirector.Instance != null && RevisedPlotDirector.Instance.Echo) return;   // the memory has nothing to burn
         if (GhostNPC.Conversing || NoteViewer.Blocking || (ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open)) return;
         if (charge < 1f || burntOut) { Say(notReadyLine); return; }
@@ -223,7 +245,7 @@ public class PalmLight : MonoBehaviour
         {
             bool on = (int)(t * 22f) % 2 == 0;
             burst.transform.position = cam.position + cam.forward * 0.4f;
-            burst.intensity = on ? 90f : 0f;
+            burst.intensity = on ? 260f : 0f;
             overlay.color = on ? new Color(1f, 1f, 1f, 0.92f) : new Color(0f, 0f, 0f, 0.82f);   // the impact frames
             yield return null;
         }
@@ -231,7 +253,7 @@ public class PalmLight : MonoBehaviour
         {
             float k = 1f - t / fade;
             burst.transform.position = cam.position + cam.forward * 0.4f;
-            burst.intensity = 40f * k * k;
+            burst.intensity = 120f * k * k;
             overlay.color = new Color(1f, 0.93f, 0.85f, 0.6f * k * k);
             yield return null;
         }
@@ -255,9 +277,9 @@ public class PalmLight : MonoBehaviour
             if (ai.agent != null && ai.agent.isOnNavMesh) { ai.agent.isStopped = true; ai.agent.velocity = Vector3.zero; }
             if (ai.animator != null) ai.animator.speed = 0f;   // caught mid-step
         }
+        if (VaneHunt.Instance != null) VaneHunt.Instance.OnFlash(eye, cam.forward, flashRange);
         var horror = FindFirstObjectByType<OfficeHorrorDirector>();
         if (horror != null && horror.Auditor != null && horror.Auditor.Present && Vector3.Distance(horror.Auditor.Position, eye) < flashRange) horror.Auditor.Vanish();
-        if (horror != null && horror.Eye != null) horror.Eye.Flashed(eye, flashRange, stunTime);   // the Eye is blinded, not stopped for good
     }
 
     bool Clear(Vector3 eye, Vector3 to, Transform target)
@@ -285,8 +307,8 @@ public class PalmLight : MonoBehaviour
         {
             if (phase != Phase.Down) return;
             punch.enabled = false;                 // no punching with your hands up
-            arms.speed = 1f;
-            arms.CrossFadeInFixedTime(Push, 0.1f, 0, 0f);
+            arms.speed = 1.4f;                     // (the light is wanted now: the hand comes up quickly)
+            arms.CrossFadeInFixedTime(Start0, 0.1f, 0, 0f);
             phase = Phase.Raising;
             phaseAt = Time.time;
         }
@@ -294,8 +316,9 @@ public class PalmLight : MonoBehaviour
         {
             if (phase != Phase.Raising && phase != Phase.Held) return;
             Show(false);
-            arms.speed = 1f;                       // (resumes from the pause)
-            phase = Phase.Lowering;
+            arms.speed = 1.4f;
+            arms.CrossFadeInFixedTime(Stop, 0.1f, 0, 0f);   // the hand comes back down
+            phase = Phase.Lowering; sawStop = false;
             phaseAt = Time.time;
         }
     }
@@ -305,13 +328,12 @@ public class PalmLight : MonoBehaviour
         // (added on top of wherever the arms are, and taken off again: nothing else that moves them is disturbed)
         Vector3 shake = Surge > 0f ? Random.insideUnitSphere * (.012f * Mathf.Min(1f, Surge)) : Vector3.zero;
         arms.transform.localPosition += shake - tremble; tremble = shake;
+        if (leftArm != null) leftArm.localScale = phase == Phase.Down ? leftScale : Vector3.zero;   // only the right hand carries the light
         if (phase != Phase.Held) return;
-        // the beam leaves the palm and goes where you look; the palms glow
-        Vector3 from = (palmR != null ? palmR.position : cam.position + cam.forward * 0.5f) + cam.forward * 0.12f
-            - cam.up * 0.07f + cam.right * 0.08f;   // a touch lower and to the right
-        beam.transform.SetPositionAndRotation(from, Quaternion.LookRotation(cam.forward));
-        if (palmR != null) glowR.transform.position = palmR.position;
-        if (palmL != null) glowL.transform.position = palmL.position;
+        // the beam leaves the right palm and goes where you look; the palm glows
+        Vector3 from = palmR != null ? palmR.position : cam.position + cam.forward * 0.5f;
+        beam.transform.SetPositionAndRotation(from + cam.forward * beamAhead, Quaternion.LookRotation(cam.forward));
+        glowR.transform.position = from + cam.forward * .35f;
     }
 
     void OnDestroy()

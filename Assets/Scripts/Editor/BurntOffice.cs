@@ -8,7 +8,7 @@ using UnityEngine;
 public static class BurntOffice
 {
     const string Dir = "Assets/Generated/Burnt";
-    const string OriginalDir = "Assets/New Folder/lowpoly-mobile-cartoon-office-rooms/textures/";
+    const string OriginalDir = "Assets/Models/lowpoly-mobile-cartoon-office-rooms/textures/";
     const string ModelName = "Sketchfab_2023_11_11_16_15_44";
 
     // texture name -> how much of it burns (ceilings take the most soot, furniture the least)
@@ -53,6 +53,152 @@ public static class BurntOffice
         }
         AssetDatabase.SaveAssets();
         Debug.Log($"Office burnt down: {swapped} material slots swapped.");
+    }
+
+    // ---- the v3 office's furniture and props (MainGameScene): the rooms are already burnt, the furniture was showroom
+    // clean. Every prop material is swapped for a copy (the FBX ones can't be edited) with no shine at all, its colour
+    // drained and darkened, and a tiling soot/char layer over it (URP detail map, so each prop keeps its own texture).
+    const string PropDir = Dir + "/Props";
+    static readonly string[] PropRoots = { "Office Ground Floor", "control room 3D Model Avatar of amogusstrikesback2 amogusstrikes", "Fuse" };
+
+    [MenuItem("HellScape/Office/Burn The Office Props")]
+    public static void BurnProps()
+    {
+        Directory.CreateDirectory(PropDir);
+        var soot = SootDetail(PropDir + "/burnt_props_soot.png");
+        var copies = new System.Collections.Generic.Dictionary<Material, Material>();
+        int slots = 0;
+        foreach (var rootName in PropRoots)
+        {
+            var root = GameObject.Find(rootName);
+            if (root == null) { Debug.LogWarning("Burn props: no " + rootName + " in the open scene"); continue; }
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r is ParticleSystemRenderer) continue;
+                var mats = r.sharedMaterials;
+                bool changed = false;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null || !Burnable(m)) continue;
+                    if (!copies.TryGetValue(m, out var nm)) copies[m] = nm = PropCopy(m, soot);
+                    mats[i] = nm; changed = true; slots++;
+                }
+                if (changed) { Undo.RecordObject(r, "Burn props"); r.sharedMaterials = mats; }
+            }
+        }
+        AssetDatabase.SaveAssets();
+        UnityEditor.SceneManagement.EditorSceneManager.MarkAllScenesDirty();
+        Debug.Log($"Office props burnt: {copies.Count} materials, {slots} slots.");
+    }
+
+    // the rooms themselves (already burnt), glass, blood, anything that glows, and copies from an earlier run stay
+    static bool Burnable(Material m)
+    {
+        string n = m.name.ToLower();
+        if (n.Contains("old office") || n == "ceiling" || n.Contains("glazing") || n.Contains("glass") || n.StartsWith("blood")) return false;
+        if (Gltf(m)) return m.GetFloat("_Surface") < 0.5f;
+        if (!m.shader.name.StartsWith("Universal Render Pipeline/Lit")) return false;
+        if (m.IsKeywordEnabled("_EMISSION") || m.GetFloat("_Surface") > 0.5f) return false;   // lights, screens, see-through
+        return true;
+    }
+
+    static Material PropCopy(Material m, Texture2D soot)
+    {
+        // run again: the copies already in the scene just get the shine and soot settings again (colour isn't darkened twice)
+        bool again = AssetDatabase.GetAssetPath(m).StartsWith(PropDir);
+        string safe = string.Join("_", m.name.Split(Path.GetInvalidFileNameChars())) + (Gltf(m) ? "_glb" : "");   // (the packs reuse names)
+        string path = $"{PropDir}/burnt_{safe}.mat";
+        var nm = again ? m : AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (nm == null) { nm = Gltf(m) ? FromGltf(m) : new Material(m); nm.name = "burnt_" + safe; AssetDatabase.CreateAsset(nm, path); }
+        else if (!again) { if (Gltf(m)) { var fresh = FromGltf(m); nm.shader = fresh.shader; nm.CopyPropertiesFromMaterial(fresh); } else nm.CopyPropertiesFromMaterial(m); }
+
+        // no shine: burnt things don't reflect
+        nm.SetFloat("_Smoothness", 0f); nm.SetFloat("_Metallic", 0f);
+        nm.SetTexture("_MetallicGlossMap", null); nm.DisableKeyword("_METALLICSPECGLOSSMAP");
+        nm.SetFloat("_SpecularHighlights", 0f); nm.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+        nm.SetFloat("_EnvironmentReflections", 0f); nm.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+
+        // colour drained and darkened (plain white plastic would still glow: it goes to ash grey)
+        if (!again)
+        {
+            Color c = nm.GetColor("_BaseColor");
+            float lum = c.r * 0.3f + c.g * 0.59f + c.b * 0.11f;
+            Color drained = Color.Lerp(c, new Color(lum, lum, lum), 0.55f) * (nm.GetTexture("_BaseMap") != null ? 0.55f : 0.4f);
+            drained.a = c.a;
+            nm.SetColor("_BaseColor", drained);
+        }
+
+        // the soot layer
+        nm.SetTexture("_DetailAlbedoMap", soot);
+        nm.SetTextureScale("_DetailAlbedoMap", new Vector2(6f, 6f));
+        nm.SetFloat("_DetailAlbedoMapScale", 1f);
+        nm.EnableKeyword("_DETAIL_MULX2");
+        EditorUtility.SetDirty(nm);
+        return nm;
+    }
+
+    static bool Gltf(Material m) => m.shader.name.StartsWith("Shader Graphs/glTF");
+
+    // the glTF imports (the control-room set) are Sketchfab bakes: the whole lit look sits in the EMISSIVE slot, so they
+    // glowed at full brightness in the dark. As URP Lit: that bake becomes the colour, and nothing glows.
+    static Material FromGltf(Material g)
+    {
+        var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        var tex = g.GetTexture("baseColorTexture");
+        bool fromBase = tex != null;
+        if (!fromBase) tex = g.GetTexture("emissiveTexture");
+        m.SetTexture("_BaseMap", tex);
+        m.SetTextureScale("_BaseMap", g.GetTextureScale(fromBase ? "baseColorTexture" : "emissiveTexture"));
+        m.SetTextureOffset("_BaseMap", g.GetTextureOffset(fromBase ? "baseColorTexture" : "emissiveTexture"));
+        m.SetColor("_BaseColor", fromBase || tex == null ? g.GetColor("baseColorFactor") : Color.white);
+        var normal = g.GetTexture("normalTexture");
+        if (normal != null) { m.SetTexture("_BumpMap", normal); m.SetFloat("_BumpScale", g.GetFloat("normalTexture_scale")); m.EnableKeyword("_NORMALMAP"); }
+        return m;
+    }
+
+    // a tiling grey layer for URP's x2 detail blend: 0.5 leaves the prop as it is, darker is soot and char, a little
+    // lighter is ash
+    static Texture2D SootDetail(string pngPath)
+    {
+        const int w = 512;
+        var px = new Color[w * w];
+        // summed noise bunches up round 0.5: stretch each layer to 0..1 first, or there's nothing to see
+        var fire = new float[w * w]; var smoke = new float[w * w]; var dirt = new float[w * w];
+        for (int y = 0; y < w; y++)
+            for (int x = 0; x < w; x++)
+            {
+                float u = (x + 0.5f) / w, v = (y + 0.5f) / w;
+                fire[y * w + x] = Fbm(u, v, 3, 901) * 0.6f + Fbm2(u, v, 8, 2, 922) * 0.4f;
+                smoke[y * w + x] = Fbm(u, v, 9, 908);
+                dirt[y * w + x] = Fbm(u, v, 64, 915);
+            }
+        Stretch(fire); Stretch(smoke); Stretch(dirt);
+        for (int i = 0; i < px.Length; i++)
+        {
+            float charred = Mathf.SmoothStep(0.45f, 0.8f, fire[i]);
+            float g = Mathf.Lerp(0.42f, 0.06f, charred);                                  // soot everywhere, char in patches
+            g += Mathf.SmoothStep(0.65f, 0.95f, smoke[i]) * (1f - charred) * 0.1f;       // ash dusting
+            g *= 0.8f + dirt[i] * 0.4f;                                                   // grime
+            px[i] = new Color(g, g, g, 1f);
+        }
+        var tex = new Texture2D(w, w, TextureFormat.RGBA32, false);
+        tex.SetPixels(px); tex.Apply();
+        File.WriteAllBytes(pngPath, tex.EncodeToPNG());
+        Object.DestroyImmediate(tex);
+        AssetDatabase.ImportAsset(pngPath);
+        var imp = (TextureImporter)AssetImporter.GetAtPath(pngPath);
+        imp.sRGBTexture = false; imp.wrapMode = TextureWrapMode.Repeat; imp.mipmapEnabled = true; imp.anisoLevel = 4;
+        imp.textureCompression = TextureImporterCompression.Compressed;
+        imp.SaveAndReimport();
+        return AssetDatabase.LoadAssetAtPath<Texture2D>(pngPath);
+    }
+
+    static void Stretch(float[] a)
+    {
+        float lo = float.MaxValue, hi = float.MinValue;
+        foreach (var f in a) { lo = Mathf.Min(lo, f); hi = Mathf.Max(hi, f); }
+        for (int i = 0; i < a.Length; i++) a[i] = (a[i] - lo) / Mathf.Max(hi - lo, 1e-5f);
     }
 
     static void Burn(Texture2D src, float burn, string pngPath)

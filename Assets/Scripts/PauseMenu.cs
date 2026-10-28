@@ -184,7 +184,7 @@ public class PauseMenu : MonoBehaviour
     }
 
     static bool CanPause() =>
-        !TapLock.Active && !LockPick.Active && TapLock.ClosedFrame != Time.frameCount && LockPick.ClosedFrame != Time.frameCount && !TitleScreen.Showing && !GameOverScreen.Open && !NoteViewer.Blocking && !EndingSequence.Playing && Time.timeScale > 0f;
+        !TapLock.Active && !LockPick.Active && !VaultDial.Active && VaultDial.ClosedFrame != Time.frameCount && TapLock.ClosedFrame != Time.frameCount && LockPick.ClosedFrame != Time.frameCount && !TitleScreen.Showing && !GameOverScreen.Open && !NoteViewer.Blocking && !EndingSequence.Playing && Time.timeScale > 0f;
 
     public void Pause()
     {

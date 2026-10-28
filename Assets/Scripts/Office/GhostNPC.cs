@@ -23,7 +23,7 @@ public class GhostNode
 // multiple-choice conversation: some answers get you puzzle hints, some weigh on your soul.
 // They wander slowly around the room they died in (idle / walk on the civilian controller's "Speed"), never
 // through a wall, and stand still and turn to you when you come close, so they're easy to talk to.
-public class GhostNPC : MonoBehaviour
+public class GhostNPC : MonoBehaviour, ISceneProgress
 {
     public enum Fate { Undecided, Lost, Damned, Confessed, Gone }
     public Fate fate;                       // set by the answers you draw out; Gone if the memory fades unanswered
@@ -37,6 +37,7 @@ public class GhostNPC : MonoBehaviour
     [Header("Look")]
     public Transform body;
     public Animator animator;               // Civilian.controller: "Speed" 0 idle .. 1.3 walk
+    public Material skin;                   // a model with its own texture: WitnessLook soots this instead of the Burnt materials
     public float hoverHeight = 0f;          // body lifted this far off the floor
     public float bobHeight = 0f;
     public float bobSpeed = 1.3f;
@@ -78,6 +79,16 @@ public class GhostNPC : MonoBehaviour
     private static RuntimeAnimatorController floatPose;
     private bool finished;
     private readonly HashSet<int> judged = new HashSet<int>();   // karma counts once per question
+
+    public object CaptureProgress() => (finished, fate, new List<int>(judged).ToArray(), afterLine);
+    public void RestoreProgress(object state)
+    {
+        var saved = ((bool finished, Fate fate, int[] questions, string afterLine))state;
+        finished = saved.finished; fate = saved.fate; afterLine = saved.afterLine;
+        judged.Clear(); foreach (int question in saved.questions) judged.Add(question);
+        if (TryGetComponent<WitnessLook>(out var look) && fate != Fate.Undecided)
+            look.Set(fate == Fate.Damned ? WitnessLook.Mode.Damned : fate == Fate.Confessed ? WitnessLook.Mode.Confessed : WitnessLook.Mode.Lost);
+    }
 
     // A ghost is mid-conversation: its question is up, its answer is still being said, or the next question is on
     // its way. PlayerInteractor shows no "F Talk to ..." (and takes no F) until it's over.
@@ -136,11 +147,11 @@ public class GhostNPC : MonoBehaviour
         Vector3 toPlayer = player != null ? player.position - transform.position : Vector3.one * 999f;
         toPlayer.y = 0f;
         bool talking = ChoiceDialogue.Instance != null && ChoiceDialogue.Instance.Open;
-        if (mine && !talking && !nextComing && (DialogueBox.Instance == null || !DialogueBox.Instance.Busy)) { mine = false; Conversing = false; }
+        if (mine && !talking && !nextComing && (DialogueBox.Instance == null || (!DialogueBox.Instance.Busy && !DialogueBox.Instance.CardOpen))) { mine = false; Conversing = false; }
         Vector3 look = toPlayer;
         bool moving = false;
         bool lost = fate == Fate.Lost || fate == Fate.Gone;   // the Lost hang in the floating pose, they never walk again
-        if (lost && animator != null && floatPose != null && animator.runtimeAnimatorController != floatPose)
+        if (lost && animator != null && animator.isHuman && floatPose != null && animator.runtimeAnimatorController != floatPose)   // (a Generic Meshy rig keeps its own idle)
         {
             animator.runtimeAnimatorController = floatPose;
             animator.applyRootMotion = false;
@@ -189,12 +200,18 @@ public class GhostNPC : MonoBehaviour
 
     public void Talk()
     {
-        if (ChoiceDialogue.Instance == null || ChoiceDialogue.Instance.Open || Conversing || nextComing || mine) return;
+        if (!isActiveAndEnabled || ChoiceDialogue.Instance == null || ChoiceDialogue.Instance.Open || Conversing || nextComing || mine) return;
         mine = true;
         Conversing = true;
-        if (TryGetComponent<OfficeWitness>(out var witness) && witness.RedTalk()) return;
-        if (fate == Fate.Gone) { Say(HS.S("240", ghostName)); return; }
-        if (finished) { Say(afterLine); return; }
+        StartCoroutine(BeginTalk());
+    }
+    IEnumerator BeginTalk()
+    {
+        if(TryGetComponent<OfficeWitness>(out _) && DialogueBox.Instance!=null)
+            yield return DialogueBox.Instance.SoulTutorial();
+        if (TryGetComponent<OfficeWitness>(out var witness) && witness.RedTalk()) yield break;
+        if (fate == Fate.Gone) { Say(HS.S("240", ghostName)); yield break; }
+        if (finished) { Say(afterLine); yield break; }
         if (string.IsNullOrEmpty(opening)) ShowNode(0);
         else { Say(opening); StartCoroutine(Continue(0)); }   // what is said before the first question
     }

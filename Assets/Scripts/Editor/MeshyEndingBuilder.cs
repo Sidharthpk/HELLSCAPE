@@ -12,8 +12,8 @@ using UnityEngine;
 // HellScape > Finale > Meshy Walk-Away Ending. (MainGameScene must be open.)
 public static class MeshyEndingBuilder
 {
-    const string CursedDir = "Assets/New Folder/Confessor_Cursed/Meshy_AI_rigged_survivor_biped/";
-    const string WalkDir = "Assets/New Folder/Confessor_Walk/Meshy_AI_rigged_survivor_biped/";
+    const string CursedDir = "Assets/Models/Confessor_Cursed/Meshy_AI_rigged_survivor_biped/";
+    const string WalkDir = "Assets/Models/Confessor_Walk/Meshy_AI_rigged_survivor_biped/";
     const string CursedFbx = CursedDir + "Meshy_AI_rigged_survivor_biped_Animation_01a1215f-d21e-7463-8c18-e22d7848dcd5_withSkin.fbx";
     const string WalkFbx = WalkDir + "Meshy_AI_rigged_survivor_biped_Animation_Injured_Walk_withSkin.fbx";
 

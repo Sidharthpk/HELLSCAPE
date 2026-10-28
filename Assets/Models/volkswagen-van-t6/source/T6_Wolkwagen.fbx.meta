@@ -1,0 +1,266 @@
+fileFormatVersion: 2
+guid: 2ecc024895426784d91e31280d255829
+ModelImporter:
+  serializedVersion: 24300
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: metal_blanc
+    second: {fileID: 2100000, guid: 6bf561703b355294fbf3758b2717ab73, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: metal_gris
+    second: {fileID: 2100000, guid: 6d383f14dde790346a1446891d45620c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mirroir
+    second: {fileID: 2100000, guid: 76b6718254f59ff47b6810f9ec6b4827, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: phare
+    second: {fileID: 2100000, guid: 4e70caca20cfb854a938df27e2404b63, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: plastique_noir
+    second: {fileID: 2100000, guid: cbc52f1734998b64a9abeb0b62f6dc14, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: pneu
+    second: {fileID: 2100000, guid: 3dcf17b1635de4846be3f5d823e5b02a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tissu
+    second: {fileID: 2100000, guid: b50b3c9532b0eb7499aac9cfc6342dd6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: verre
+    second: {fileID: 2100000, guid: 2b4dbbda18437404883568a14ba9721f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: verre_noir
+    second: {fileID: 2100000, guid: fa96f403a2ad2824281585d98abf6ece, type: 2}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_blanc_BaseColor
+    second: {fileID: 2800000, guid: 02ac97e4aef4ca14ab93b53493b2c924, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_blanc_Metallic
+    second: {fileID: 2800000, guid: 4c6560c4673b069499297ff512556932, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_blanc_Normal
+    second: {fileID: 2800000, guid: 0e54909520f4c0e44b9b2762330fb7ba, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_blanc_Roughness
+    second: {fileID: 2800000, guid: 5ec9454ffeb11074b8e88a93c340cb23, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_gris_BaseColor
+    second: {fileID: 2800000, guid: ed72dc9d4acda95489041bafc58608b2, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_gris_Metallic
+    second: {fileID: 2800000, guid: 90b03d6fd9c94744ca795eba81bdd008, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_gris_Normal
+    second: {fileID: 2800000, guid: 6e1d3969fef9d534a8c190d35330b53b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: metal_gris_Roughness
+    second: {fileID: 2800000, guid: 913ec0cc7a74eec46bd03a34e938d333, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: phare_Alpha
+    second: {fileID: 2800000, guid: 374aa52dbec80c9489eb6b9f62bcecaa, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: phare_BaseColor
+    second: {fileID: 2800000, guid: 962d1a024cd834f44805a493aee3b6ca, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: phare_Emission
+    second: {fileID: 2800000, guid: 490e492fa2c94a740a49cee3e5d05370, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: phare_Metallic
+    second: {fileID: 2800000, guid: 228c30c748cf72042a30aa306dee9225, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: phare_Normal
+    second: {fileID: 2800000, guid: bfedc34630661a047a537f4028f33169, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: phare_Roughness
+    second: {fileID: 2800000, guid: c91d1c2c99bd1a5438d179b3a4c9fd02, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: plastique_noir_BaseColor
+    second: {fileID: 2800000, guid: 384e45fb2ea76ae4c86720d68b1398cc, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: plastique_noir_Metallic
+    second: {fileID: 2800000, guid: cd45873d093a10b448e933d8047cf18b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: plastique_noir_Normal
+    second: {fileID: 2800000, guid: 1b4e4ed3393803f419b206721ab4a694, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: plastique_noir_Roughness
+    second: {fileID: 2800000, guid: 8bd738c57b3cbbe46b64f5a62ee590ba, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: pneu_BaseColor
+    second: {fileID: 2800000, guid: 2f096379dfe6ede4da37a5ea0a708059, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: pneu_Metallic
+    second: {fileID: 2800000, guid: 53406d4f5259dd64fb510b9c0a069a81, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: pneu_Normal
+    second: {fileID: 2800000, guid: 93690b87108cef342856b483e034c263, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: pneu_Roughness
+    second: {fileID: 2800000, guid: 168d8bd6260b48742a708d49eec6568b, type: 3}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+    searchTexturesGlobally: 0
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -14,7 +14,7 @@ using UnityEngine.SceneManagement;
 public static class HudIconRenderer
 {
     const string Out = "Assets/UI/Modern/";
-    const string VanTex = "Assets/New Folder/stylized-pixel-fiat-ducato-gen-i-jacex/textures/";
+    const string VanTex = "Assets/Models/stylized-pixel-fiat-ducato-gen-i-jacex/textures/";
     static Scene stage;
     static Camera cam;
     static readonly List<Object> temp = new List<Object>();

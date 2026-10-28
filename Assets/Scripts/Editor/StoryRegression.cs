@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -29,7 +30,7 @@ public static class StoryRegression
                 {
                     var box = Object.FindFirstObjectByType<DialogueBox>(FindObjectsInactive.Include);
                     if (box == null) { Finish("FAIL: No dialogue component"); return; }
-                    Object.FindFirstObjectByType<PauseMenu>(FindObjectsInactive.Include).StartCoroutine(Guard(Checks(box)));
+                    Object.FindFirstObjectByType<PauseMenu>(FindObjectsInactive.Include).StartCoroutine(Guard(SessionState.GetBool("HellScape.EchoConversationOnly", false) ? EchoConversationChecks(box) : Checks(box)));
                 };
             }
         };
@@ -45,9 +46,70 @@ public static class StoryRegression
     public static void Run()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "OfficeSilo")
+        {
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            EditorSceneManager.OpenScene("Assets/Scenes/OfficeSilo.unity");
+        }
+        Directory.CreateDirectory("Library/GameplayTestArtifacts/Story/office");
+        Directory.CreateDirectory("Library/GameplayTestArtifacts/Story/echo");
         SessionState.SetBool(Key, true);
         EditorApplication.isPlaying = true;
     }
+    [MenuItem("HellScape/Tests/Echo conversation timer (Play mode)")]
+    public static void RunEchoConversation()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+        SessionState.SetBool("HellScape.EchoConversationOnly", true);
+        Run();
+    }
+
+    static IEnumerator EchoConversationChecks(DialogueBox box)
+    {
+        yield return null;
+        yield return null;
+        var director = Object.FindFirstObjectByType<RevisedPlotDirector>();
+        Check(director != null, "Story director initialized");
+        director.enabled = false; // Keep this isolated check at its chosen realm.
+        var visit = director.GetComponent<EchoVisit>();
+        var choices = ChoiceDialogue.Instance;
+        box.Clear(); choices.Close();
+        foreach (var g in RevisedPlot.All<GhostNPC>(director.gameObject.scene)) g.CancelConversation();
+        director.SetEcho(true); box.Clear();
+        visit.AdvanceClock(2f);
+        float remaining = visit.Remaining;
+        Check(Mathf.Approximately(remaining, 4f), "Exploration consumes Echo time");
+        var speaker = System.Array.Find(RevisedPlot.All<GhostNPC>(director.gameObject.scene), g => g.ghostName == "Tomas");
+        Check(speaker != null, "Non-Vane conversation participant available");
+        speaker.gameObject.SetActive(true);
+        speaker.opening = "You: Tell me what happened.";
+        speaker.Talk();
+        yield return null;
+        Check(GhostNPC.Conversing && box.Busy && box.PlayerSpeaking, "Conversation includes the player's spoken reply");
+        visit.AdvanceClock(20f);
+        Check(visit.HeldForConversation && Mathf.Approximately(visit.Remaining, remaining), "Player reply holds remaining Echo time");
+        box.Clear();
+        visit.AdvanceClock(20f);
+        Check(Mathf.Approximately(visit.Remaining, remaining), "Gap between conversation lines holds Echo time");
+        choices.Show("Tomas", "What do you want to know?", new[] { "Continue" }, _ => { });
+        visit.AdvanceClock(20f);
+        Check(Mathf.Approximately(visit.Remaining, remaining), "Dialogue choices hold Echo time");
+        speaker.CancelConversation(); choices.Close();
+        box.Say("Tomas: This is my final reply.");
+        yield return null;
+        visit.AdvanceClock(20f);
+        Check(box.Busy && Mathf.Approximately(visit.Remaining, remaining), "Final NPC reply holds Echo time after conversation callback");
+        box.Clear();
+        visit.AdvanceClock(.5f);
+        Check(Mathf.Approximately(visit.Remaining, remaining - .5f), "Countdown resumes from remaining time, without resetting");
+        visit.AdvanceClock(20f);
+        choices.Show("Tomas", "Still speaking at the deadline.", new[] { "Continue" }, _ => { });
+        yield return null;
+        Check(director.Echo && !visit.Returning, "Zero-time deadline cannot interrupt an open conversation");
+        choices.Close();
+        director.SetEcho(false);
+    }
+
     static void Watch()
     {
         if (EditorApplication.timeSinceStartup > deadline) Finish("FAIL: Regression timed out");
@@ -58,6 +120,7 @@ public static class StoryRegression
         if (runtimeErrors.Count > 0) status = "FAIL: Runtime exceptions\n" + string.Join("\n", runtimeErrors);
         File.WriteAllText(Result, string.Join("\n", results) + "\n" + status);
         SessionState.SetBool(Key, false);
+        SessionState.EraseBool("HellScape.EchoConversationOnly");
         EditorApplication.update -= Watch;
         EditorApplication.isPlaying = false;
     }
@@ -115,8 +178,8 @@ public static class StoryRegression
             camera.Render();
             RenderTexture.active = target;
             pixels.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0); pixels.Apply();
-            Directory.CreateDirectory("docs/media/echo");
-            File.WriteAllBytes("docs/media/echo/" + name + ".png", pixels.EncodeToPNG());
+            Directory.CreateDirectory("Library/GameplayTestArtifacts/Story/echo");
+            File.WriteAllBytes("Library/GameplayTestArtifacts/Story/echo/" + name + ".png", pixels.EncodeToPNG());
         }
         finally
         {
@@ -188,6 +251,22 @@ public static class StoryRegression
         Object.Destroy(lockObject); Object.Destroy(unrelated.gameObject);
 
         var director = RevisedPlotDirector.Instance;
+        // Real imported doors have a 100x scale and rotated local axes. Their clearance stays in metres.
+        var clearanceScene = UnityEngine.SceneManagement.SceneManager.CreateScene("Door clearance regression");
+        var clearanceRoot = new GameObject("Scaled doorway");
+        UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(clearanceRoot, clearanceScene);
+        clearanceRoot.transform.localScale = Vector3.one * 100f;
+        clearanceRoot.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+        var clearanceBox = clearanceRoot.AddComponent<BoxCollider>(); clearanceBox.size = new Vector3(.01f, .003f, .03f);
+        var clearanceDoor = clearanceRoot.AddComponent<KesslerDoor>(); clearanceDoor.blocker = clearanceBox;
+        var clearance = clearanceRoot.AddComponent<OfficeRealmPuzzles>(); clearance.Initialize();
+        var probe = new GameObject("Player clearance probe");
+        UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(probe, clearanceScene);
+        probe.transform.position = Vector3.zero;
+        Check(!clearance.CanSwitch(probe.transform, false), "Scaled doorway prevents switching inside its blocker");
+        probe.transform.position = Vector3.forward * 3f;
+        Check(clearance.CanSwitch(probe.transform, false), "Scaled doorway allows switching three metres away");
+        UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(clearanceScene);
         var ghosts = RevisedPlot.All<GhostNPC>(director.gameObject.scene);
         var states = new Dictionary<GhostNPC, bool>();
         foreach (var g in ghosts) if (g != null && g.ghostName != "Vane") states[g] = g.gameObject.activeSelf;
@@ -303,7 +382,12 @@ public static class StoryRegression
         var conf = RevisedPlot.All<KesslerConfrontation>(director.gameObject.scene)[0];
         var fpc = conf.fpc;
         var arrival = GameObject.Find("OfficeArrival").transform;
-        fpc.transform.position = arrival.position + arrival.forward * 5f;
+        fpc.transform.position = arrival.position;
+        // The old five-metre offset is inside a fused doorway in the rebuilt office.
+        // Exercise a legal realm change, with the same clearance rule the player uses.
+        for (int offset = 0; offset < 8 && !director.GetComponent<OfficeRealmPuzzles>().CanSwitch(fpc.transform, false); offset++)
+            fpc.transform.position = arrival.position + arrival.forward * (offset + 1f);
+        Check(director.GetComponent<OfficeRealmPuzzles>().CanSwitch(fpc.transform, false), "Blink test stands clear of fused doorways");
         fpc.transform.rotation = arrival.rotation;
         if (fpc.TryGetComponent<Rigidbody>(out var body)) { body.position = fpc.transform.position; body.linearVelocity = Vector3.zero; }
         fpc.enabled = true; Physics.SyncTransforms();
@@ -324,14 +408,15 @@ public static class StoryRegression
         pause.Resume();
         Time.timeScale = 0f;
         yield return null; yield return null;
-        ScreenCapture.CaptureScreenshot(System.IO.Path.GetFullPath("docs/media/office/realm-blink.png"));
+        ScreenCapture.CaptureScreenshot(System.IO.Path.GetFullPath("Library/GameplayTestArtifacts/Story/office/realm-blink.png"));
         yield return null; yield return null; Time.timeScale = 1f;
         bool switchedBehindLids = false;
         for (float wait = 0f; horror.Switching && wait < 5f; wait += Time.deltaTime) {
             if (!director.Echo && blink.Closed > .99f) switchedBehindLids = true;
             yield return null;
         }
-        Check(switchedBehindLids && !director.Echo && !blink.Active && fpc.enabled, "Realm swaps behind closed eyelids and restores controls");
+        Check(switchedBehindLids && !director.Echo && !blink.Active && fpc.enabled,
+            "Realm swaps behind closed eyelids and restores controls (echo=" + director.Echo + ", active=" + blink.Active + ", movement=" + fpc.enabled + ", behindLids=" + switchedBehindLids + ")");
         horror.RequestSwitch(true, () => director.SetEcho(true)); yield return new WaitForSeconds(.08f);
         horror.CancelSwitch();
         Check(!horror.Switching && !blink.Active && blink.Closed == 0f && fpc.enabled, "Interrupted blink clears the overlay and restores movement");
@@ -361,7 +446,7 @@ public static class StoryRegression
             }
             box.Clear();
         }
-        yield return new WaitForSeconds(4f); ScreenCapture.CaptureScreenshot(System.IO.Path.GetFullPath("docs/media/office/tomas-tape.png"));
+        yield return new WaitForSeconds(4f); ScreenCapture.CaptureScreenshot(System.IO.Path.GetFullPath("Library/GameplayTestArtifacts/Story/office/tomas-tape.png"));
         for (float wait = 0f; wait < 35f && !conf.Armed; wait += Time.deltaTime) yield return null;
         Check(conf.Armed, "Solving CCTV plays the murder footage and arms Vane");
         Check(director.GetComponent<OfficeHorrorDirector>().Stage == 5, "CCTV reaches the final horror stage");
@@ -394,7 +479,7 @@ public static class StoryRegression
         var target = new RenderTexture(1280, 720, 24); var old = camera.targetTexture; var active = RenderTexture.active;
         var pixels = new Texture2D(1280, 720, TextureFormat.RGB24, false);
         try { camera.targetTexture = target; camera.Render(); RenderTexture.active = target; pixels.ReadPixels(new Rect(0,0,1280,720),0,0); pixels.Apply();
-            Directory.CreateDirectory("docs/media/office"); File.WriteAllBytes("docs/media/office/" + name + ".png", pixels.EncodeToPNG()); }
+            Directory.CreateDirectory("Library/GameplayTestArtifacts/Story/office"); File.WriteAllBytes("Library/GameplayTestArtifacts/Story/office/" + name + ".png", pixels.EncodeToPNG()); }
         finally { camera.targetTexture = old; RenderTexture.active = active; Object.Destroy(target); Object.Destroy(pixels); }
     }
 }

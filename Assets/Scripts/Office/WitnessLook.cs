@@ -31,8 +31,8 @@ public class WitnessLook : MonoBehaviour
         block = new MaterialPropertyBlock();
         if (skins.Length == 0) { enabled = false; return; }
         ghostMat = skins[0].sharedMaterial;
-        burnt = Load(skins[0].sharedMesh != null && skins[0].sharedMesh.name == "Cylinder" ? "BurntFemale" : "BurntMale");
-        intact = Load(skins[0].sharedMesh != null && skins[0].sharedMesh.name == "Cylinder" ? "IntactFemale" : "IntactMale");
+        burnt = ghost != null && ghost.skin != null ? ghost.skin : Load(skins[0].sharedMesh != null && skins[0].sharedMesh.name == "Cylinder" ? "BurntFemale" : "BurntMale");
+        intact = ghost != null && ghost.skin != null ? ghost.skin : Load(skins[0].sharedMesh != null && skins[0].sharedMesh.name == "Cylinder" ? "IntactFemale" : "IntactMale");
         scale0 = body.localScale;
         smoke = Emitter("smoke", new Color(.12f, .1f, .1f, 1f), .06f, 2f, .25f, -.02f, 3f);
         ash = Emitter("ash", new Color(.55f, .55f, .55f, 1f), .045f, 1.8f, .05f, .12f, 0f);

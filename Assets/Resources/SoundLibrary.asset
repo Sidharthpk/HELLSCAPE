@@ -21,11 +21,17 @@ MonoBehaviour:
     ambience: {fileID: 0}
     ambienceVolume: 0.5
     sounds:
+    - name: Opening sting
+      note: 'The sting as the title screen opens: the HELLSCAPE logo slams in on
+        its beat (TitleScreen.stingHit), then the title music comes in (now: HellScapeSting).'
+      clips:
+      - {fileID: 8300000, guid: 457ec307e6077cc49a4b0e79a2ec303b, type: 3}
+      volume: 1
     - name: Start pressed
       note: 'Hit when you press START (built-in: a low thud). Title music = this
         area''s Music (built-in: a drone).'
       clips:
-      - {fileID: 8300000, guid: af7950687aaf6dd4d9e05e309232e234, type: 3}
+      - {fileID: 8300000, guid: 809700c22b4e1ea4888028de6eab3c68, type: 3}
       volume: 1
   - name: Prologue
     music: {fileID: 0}
@@ -49,10 +55,10 @@ MonoBehaviour:
       - {fileID: 8300000, guid: 0413bc46f8aacb04c8367105b75c9ae0, type: 3}
       volume: 1
     - name: Street ambience
-      note: 'The morning street outside the flats (now: New York City Streets Ambience).'
+      note: 'The street outside the flats, now a rainy thunderstorm (now: Rain and Thunderstorm Sounds).'
       clips:
-      - {fileID: 8300000, guid: 39076266763ce9c44a2abfe307cd800e, type: 3}
-      volume: 1
+      - {fileID: 8300000, guid: 1a472945f9035de44ac82925d6afceef, type: 3}
+      volume: 0.7
     - name: Office ambience
       note: 'The office background noise under the Friday-night flashback (now: At
         The Office).'
@@ -395,7 +401,7 @@ MonoBehaviour:
     - name: Shadow scream
       note: Nightmare yelling when a shadow person catches you.
       clips:
-      - {fileID: 8300000, guid: aeeee505593a30f48ae52ee2e3917f03, type: 3}
+      - {fileID: 8300000, guid: 73a9c5d13b38892438711e6889494d71, type: 3}
       volume: 1
     - name: Demon King talking
       note: The Demon King's voice while he passes sentence, after he rises.

@@ -63,7 +63,21 @@ public class SleepSequence : MonoBehaviour
         if (!WakeInHell && TitleScreen.Showing) return;
         // from the prologue, or a reload (a game over before the first checkpoint): back on the red street
         WakeInHell = false;
+        // the office scene, or through a door from it: no fall and no wake-up, just the hell city as it is when you're up
+        if (Teleporter.ArriveAt != null || gameObject.scene.name == "OfficeSilo") { ArriveInHell(); return; }
         StartCoroutine(WakeFromFall());
+    }
+
+    void ArriveInHell()
+    {
+        ApplyLook(true);
+        playerMovementScript.enabled = true;
+        if (punchController != null)
+        {
+            punchController.enabled = !GunController.Equipped;
+            if (!GunController.Equipped && punchController is PunchController fists) fists.Draw();
+        }
+        if (RevisedPlotDirector.Instance != null) RevisedPlotDirector.Instance.MarkHands();   // the Sign of Judgement on your palms
     }
 
     // straight into hell: flat on your back in the street, looking up at the red sky, then up on your feet
@@ -82,6 +96,16 @@ public class SleepSequence : MonoBehaviour
         if (FallSpot.HasValue && streetAnchor != null) PlaceAtFallSpot();
         bool fromPrologue = FallSpot.HasValue;
         FallSpot = null;
+        // shot on the sofa in the prologue: you come to on the same sofa, in the red flat (the void puts you back here)
+        var redFlat = fromPrologue ? FindFirstObjectByType<RedFlat>() : null;
+        Transform seat = redFlat != null ? redFlat.sofaSeat : null;
+        var body = playerRoot.GetComponent<Rigidbody>();
+        if (seat != null)
+        {
+            if (body != null) { body.linearVelocity = Vector3.zero; body.isKinematic = true; }
+            playerRoot.transform.SetPositionAndRotation(seat.position + Vector3.up, Quaternion.LookRotation(seat.forward));   // (the root sits 1 m up)
+            Physics.SyncTransforms();
+        }
         yield return null;
         if (fader != null) fader.fade.alpha = 1f;   // the fader's own Start clears it
         var ending = fromPrologue ? FindFirstObjectByType<EndingSequence>(FindObjectsInactive.Include) : null;
@@ -94,9 +118,17 @@ public class SleepSequence : MonoBehaviour
         Waking = false;
 
         var cam = playerRoot.GetComponentInChildren<Camera>();
+        Vector3 cam0 = cam != null ? cam.transform.localPosition : Vector3.zero;
+        if (seat != null)
+        {
+            // still sitting: head lolled back on the sofa, looking at the ceiling
+            if (body != null) { body.linearVelocity = Vector3.zero; body.isKinematic = true; }
+            playerRoot.transform.SetPositionAndRotation(seat.position + Vector3.up, Quaternion.LookRotation(seat.forward));
+            if (cam != null) cam.transform.localPosition = cam0 + Vector3.down * .35f;
+        }
         if (wakeSound != null) wakeSound.Play();
         yield return new WaitForSeconds(1.5f);
-        if (cam != null) cam.transform.localRotation = Quaternion.Euler(-80f, 0f, 12f);
+        if (cam != null) cam.transform.localRotation = seat != null ? Quaternion.Euler(-60f, 0f, 8f) : Quaternion.Euler(-80f, 0f, 12f);
         if (fader != null) yield return fader.FadeTo(0f, 3f);
         yield return new WaitForSeconds(0.8f);
         if (cam != null)
@@ -110,9 +142,26 @@ public class SleepSequence : MonoBehaviour
             cam.transform.localRotation = Quaternion.identity;
             if (playerMovementScript is FirstPersonController fpc) fpc.SetPitch(0f);
         }
+        if (seat != null)
+        {
+            // up off the sofa, a step towards the TV
+            Vector3 from = playerRoot.transform.position, to = from + seat.forward * .7f;
+            for (float t = 0f; t < 1f; t += Time.deltaTime)
+            {
+                float k = Mathf.SmoothStep(0f, 1f, t);
+                playerRoot.transform.position = Vector3.Lerp(from, to, k);
+                if (cam != null) cam.transform.localPosition = cam0 + Vector3.down * .35f * (1f - k);
+                yield return null;
+            }
+            playerRoot.transform.position = to;
+            if (cam != null) cam.transform.localPosition = cam0;
+            if (body != null) body.isKinematic = false;
+            Physics.SyncTransforms();
+        }
         if (fists != null) fists.Draw();       // up on your feet: fists up into the guard
         MusicManager.Area("Hell City");
-        StartCoroutine(SayAfter(fallWakeLine, 0.3f));
+        if (seat != null) redFlat.ArriveNow();   // "...Derek?" and the flat's own story (not the street's lines)
+        else StartCoroutine(SayAfter(fallWakeLine, 0.3f));
         playerMovementScript.enabled = true;
         if (punchController != null) punchController.enabled = true;
         onWake.Invoke();

@@ -37,7 +37,10 @@ public class CityWalkers : MonoBehaviour
         for (int i = 0; i < damned + lost; i++)
         {
             bool isLost = i >= damned;
-            if (!Point(isLost ? minDistance * .6f : minDistance * 1.6f, out var at)) continue;
+            // the Damned gather at the burning trees (if the red city has them); the Lost roam the whole map
+            Vector3 at = default, fire = default;
+            bool atFire = !isLost && AtFire(minDistance * 1.6f, out at, out fire);
+            if (!atFire && !Point(isLost ? minDistance * .6f : minDistance * 1.6f, out at)) continue;
             if (isLost) { if (lostModel != null) SpawnLost(at); }
             else
             {
@@ -46,9 +49,10 @@ public class CityWalkers : MonoBehaviour
                 go.SetActive(true);
                 var ai = go.GetComponent<ZombieAI>();
                 if (ai == null) continue;
-                ai.dormantChance = 0f;
+                ai.dormantChance = atFire ? .5f : 0f;   // half of them just stand there staring at the flames
                 ai.walkSpeedRange = new Vector2(.45f, .7f);
-                ai.wanderRadius = 55f;
+                ai.wanderRadius = atFire ? 6f : 55f;
+                if (atFire) go.AddComponent<DamnedAtFire>().fire = fire;
                 ai.sightRange = 0f; ai.hearRange = 0f;
                 calm.Add(ai);
             }
@@ -67,6 +71,26 @@ public class CityWalkers : MonoBehaviour
             if (NavMesh.SamplePosition(p, out var hit, 8f, NavMesh.AllAreas) && Vector3.Distance(hit.position, player.position) >= min) { at = hit.position; return true; }
         }
         at = default;
+        return false;
+    }
+
+    // a spot on the street 3-6 m from the foot of a burning tree that is within reach of you
+    bool AtFire(float min, out Vector3 at, out Vector3 fire)
+    {
+        at = fire = default;
+        var trees = HellTrees.Instance;
+        if (trees == null || trees.Count == 0) return false;
+        for (int tries = 0; tries < 30; tries++)
+        {
+            int i = Random.Range(0, trees.Count);
+            Vector3 b = trees.Base(i);
+            float d = Vector3.Distance(new Vector3(b.x, player.position.y, b.z), player.position);
+            if (d < min || d > maxDistance) continue;
+            Vector2 r = Random.insideUnitCircle.normalized * Random.Range(3f, 6f);
+            if (!NavMesh.SamplePosition(b + new Vector3(r.x, 0f, r.y), out var hit, 4f, NavMesh.AllAreas)) continue;
+            at = hit.position; fire = trees.Top(i);
+            return true;
+        }
         return false;
     }
 

@@ -1,0 +1,43 @@
+PASS Scene sequence present
+PASS Seven existing CCTV feeds retained
+PASS Required scene references assigned
+PASS Original human Vane owns pre-CCTV patrol
+PASS Existing filmed fire recording assigned
+PASS Full fire recording completes
+PASS Required CCTV playback is one-time
+PASS Red encounter suspends patrol
+PASS East exit physically blocked
+PASS West alternate doorway remains passable
+PASS Alternate exit completes encounter
+PASS Vane resumes original AI after alternate exit
+PASS Omar releases after truth dialogue
+PASS Omar release persists once
+PASS Priya releases after truth dialogue
+PASS Priya release persists once
+PASS Nadia releases after truth dialogue
+PASS Nadia release persists once
+PASS Ben releases after truth dialogue
+PASS Ben release persists once
+PASS All-four release gate accepts non-default order
+PASS Fourth release enables transformation at authored area
+PASS Cry Wolf reuses existing actor without competing legacy AI
+PASS Kessler entrance remains shut in Red City
+PASS Kessler entrance opens in Echo
+PASS Office interior records entry
+PASS Echo timeout returns inside office without ejecting player
+PASS Breach timer does not start at pry interaction
+PASS Breach timer starts after opening completes
+PASS Armory checkpoint activated
+PASS Locker UI does not pause breach timer
+PASS Correct numbers with wrong directions rejected
+PASS Death restores armory checkpoint and running encounter
+PASS Retry preserves worker liberation and transformation
+PASS Timeout breaches door; unsolved locker remains available
+PASS L18 R07 L31 opens only locker; items require collection
+PASS Existing gun equip and silo key pickup complete armory
+PASS Office bullets absorb damage and stagger, repeated hit does not defeat Vane
+FAIL Stagger recovers during immunity window
+PASS Existing silo transition completes office
+PASS Normal tunnel checkpoint retained and office timer stopped
+PASS Office damage override releases shared tunnel actor
+NOT RUN: full manual input playthrough, alternate worker order beyond tested order, later silo boss/chapters, final asset/animation review.

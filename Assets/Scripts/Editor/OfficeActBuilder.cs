@@ -21,10 +21,10 @@ using Object = UnityEngine.Object;
 public static class OfficeActBuilder
 {
     const string MatDir = "Assets/Materials/OfficeAct";
-    const string JasonFbx = "Assets/New Folder/jason-manhattan-no-mask/source/Jason_Manhattan.fbx";
-    const string AkFbx = "Assets/New Folder/ak74u-free-animation/source/AK74U.fbx";
-    const string MacheteFbx = "Assets/New Folder/jason-voorhees-machete-stab-animation/source/machete stab.fbx";          // the killer stabs Derek
-    const string KitchenKnifeFbx = "Assets/New Folder/tommy-jarvis-multiple-stab-animation/source/kitchenknife multistab.fbx"; // Derek stabs Tomas
+    const string JasonFbx = "Assets/Models/jason-manhattan-no-mask/source/Jason_Manhattan.fbx";
+    const string AkFbx = "Assets/Models/ak74u-free-animation/source/AK74U.fbx";
+    const string MacheteFbx = "Assets/Models/jason-voorhees-machete-stab-animation/source/machete stab.fbx";          // the killer stabs Derek
+    const string KitchenKnifeFbx = "Assets/Models/tommy-jarvis-multiple-stab-animation/source/kitchenknife multistab.fbx"; // Derek stabs Tomas
     const string CivilianController = "Assets/Enemies/Civilian.controller";
     const string OfficeModelName = "Sketchfab_2023_11_11_16_15_44";
     const string ComplexModelName = "BloodPool_low";
@@ -45,13 +45,13 @@ public static class OfficeActBuilder
         "Office/Keypad", "Office/Body#0", "Office/Body#1", "Office/BloodWriting",
         "SiloComplex/PushTrigger",
     };
-    const string DoorFbx = "Assets/New Folder/room-door-animation/source/4bfaca4c4a794e9393a413e88dd5611a.fbx.fbx";
+    const string DoorFbx = "Assets/Models/room-door-animation/source/4bfaca4c4a794e9393a413e88dd5611a.fbx.fbx";
     static readonly Vector3 DoorStage = new Vector3(-3000f, -500f, -3000f);   // far off the map, nothing else in view        // ~1.7 m tall: eye level with the office ghosts
     const string AnimDir = MatDir + "/Anim";                                         // humanoid copies of the Mixamo clips
     const string DamnedPrefab = "Assets/Enemies/Scary Zombie Pack/PrimeZombie.prefab";   // what Kessler becomes
     const string ZombieAttackFbx = "Assets/Enemies/Scary Zombie Pack/zombie attack.fbx";
     const string ZombieRunFbx = "Assets/Enemies/Scary Zombie Pack/zombie run.fbx";
-    static readonly string[] FloatFbx = { "Assets/New Folder/Floating Pose.fbx", "Assets/New Folder/Floating Pose 2.fbx" };
+    static readonly string[] FloatFbx = { "Assets/Models/Floating Pose.fbx", "Assets/Models/Floating Pose 2.fbx" };
 
     const float R = 7f;     // silo tower radius (the model's wall sits at 6.3-8.3)
     const float RigScale = 2.05f / 5.17f;   // the Jason FBXs are ~5 units tall
@@ -1809,7 +1809,9 @@ public static class OfficeActBuilder
         surface.transform.SetParent(s, false);
         surface.transform.localPosition = new Vector3(0f, 0.3f, 0f);
         surface.transform.localScale = new Vector3(1.6f, 1f, 1.6f);
-        surface.GetComponent<Renderer>().sharedMaterial = mBloodSurface;
+        // the same water shader as the silo's blood pool (SiloBloodPool), not a flat glossy red that reads as jelly
+        var waterBlood = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/OfficeAct/SiloBlood.mat");
+        surface.GetComponent<Renderer>().sharedMaterial = waterBlood != null ? waterBlood : mBloodSurface;
         Object.DestroyImmediate(surface.GetComponent<Collider>());
         var flood = s.gameObject.AddComponent<BloodFlood>();
         flood.surface = surface.transform;
@@ -1940,8 +1942,8 @@ public static class OfficeActBuilder
     // both FBXs come in untextured: map each embedded material (by name) to its texture set
     static void RigMaterials(GameObject rig)
     {
-        const string mj = "Assets/New Folder/jason-voorhees-machete-stab-animation/textures/";
-        const string kk = "Assets/New Folder/tommy-jarvis-multiple-stab-animation/textures/";
+        const string mj = "Assets/Models/jason-voorhees-machete-stab-animation/textures/";
+        const string kk = "Assets/Models/tommy-jarvis-multiple-stab-animation/textures/";
         Material Tex(string matName, string diffuse, string normal = null, float smooth = 0.15f)
         {
             if (normal != null && AssetImporter.GetAtPath(normal) is TextureImporter ti && ti.textureType != TextureImporterType.NormalMap)
@@ -2164,7 +2166,7 @@ public static class OfficeActBuilder
     // the FBX's embedded materials come in untextured; remap them to textured ones (the mask has no texture: stained white)
     static void JasonMaterials(ModelImporter mi)
     {
-        const string tex = "Assets/New Folder/jason-manhattan-no-mask/textures/T_Jason_V8_";
+        const string tex = "Assets/Models/jason-manhattan-no-mask/textures/T_Jason_V8_";
         Material Textured(string part)
         {
             var normalPath = tex + part + "_N.jpeg";
@@ -2195,7 +2197,7 @@ public static class OfficeActBuilder
 
     // ---------------------------------------------------------------- the giant blood orb (the user's BloodOrb.blend)
 
-    const string OrbModel = "Assets/New Folder/BloodOrb.blend";
+    const string OrbModel = "Assets/Models/BloodOrb.blend";
     const float OrbDiameter = 26f;   // eight storeys: fills the street without cutting through the buildings either side
 
     // the orb takes the old wall's place on the BloodWave: a pivot that rises and rolls, the model spinning inside it

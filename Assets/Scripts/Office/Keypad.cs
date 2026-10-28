@@ -3,7 +3,7 @@ using UnityEngine.Events;
 using TMPro;
 
 // Puzzle 2: a door keypad. Wire each digit button's Interactable.onUse to Press("7").
-public class Keypad : MonoBehaviour
+public class Keypad : MonoBehaviour, ISceneProgress
 {
     public string code = "1304";
     public TextMeshPro display;
@@ -17,6 +17,14 @@ public class Keypad : MonoBehaviour
 
     private string entry = "";
     private bool solved, echo;
+
+    public object CaptureProgress() => (entry, solved, powered);
+    public void RestoreProgress(object state)
+    {
+        (entry, solved, powered) = ((string, bool, bool))state;
+        Refresh();
+        if (solved) onSolved.Invoke();
+    }
 
     void Start() => Refresh();
 

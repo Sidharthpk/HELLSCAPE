@@ -44,8 +44,7 @@ public class BossHUDLayout : MonoBehaviour
     public void Refresh()
     {
         if (!(transform is RectTransform rect) || !(rect.parent is RectTransform parent)) return;
-        var canvas = GetComponentInParent<Canvas>();
-        float inset = Application.isPlaying ? ObjectiveUI.TopInset(canvas) : 64f;
+        const float inset = 0f;   // (the objective folds away to the top left: the top middle is the boss's)
         rect.anchorMin = rect.anchorMax = new Vector2(.5f, 1f);
         rect.pivot = new Vector2(.5f, .5f);
         rect.sizeDelta = new Vector2(Mathf.Min(720f, Mathf.Max(200f, parent.rect.width - 64f)), 36f);

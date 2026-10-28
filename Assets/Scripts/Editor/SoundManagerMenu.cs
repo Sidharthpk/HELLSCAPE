@@ -12,12 +12,13 @@ static class SoundManagerMenu
     // area, slot, what it is now
     static readonly (string area, string slot, string note)[] Registry =
     {
+        ("Title", "Opening sting", "The sting as the title screen opens: the HELLSCAPE logo slams in on its beat (TitleScreen.stingHit), then the title music comes in (now: HellScapeSting)."),
         ("Title", "Start pressed", "Hit when you press START (built-in: a low thud). Title music = this area's Music (built-in: a drone)."),
 
         ("Prologue", "Heartbeat", "Heartbeat under the prologue from the open flat door onwards (now: WakeHeartbeat)."),
         ("Prologue", "Sting (body, spotted)", "Stinger when you find Derek and when you spot the killer (now: TitleSting)."),
         ("Prologue", "Stabbing on the tape", "The stabbing on the CCTV tape (now: the stabbing sound effect)."),
-        ("Prologue", "Street ambience", "The morning street outside the flats (now: New York City Streets Ambience)."),
+        ("Prologue", "Street ambience", "The street outside the flats, now a rainy thunderstorm (now: Rain and Thunderstorm Sounds)."),
         ("Prologue", "Office ambience", "The office background noise under the Friday-night flashback (now: At The Office)."),
         ("Prologue", "TV murmur", "The TV murmuring in the living room (built-in: generated murmur)."),
         ("Prologue", "Wind (roof and fall)", "Wind on the roof and during the fall (built-in: generated wind)."),

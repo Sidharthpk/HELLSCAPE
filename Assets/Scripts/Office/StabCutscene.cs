@@ -20,6 +20,7 @@ public class StabCutscene : MonoBehaviour
     [Header("Viewing")]
     public Camera cam;                      // null = through the player's eyes
     public GameObject overlay;              // e.g. the CCTV "REC" text, shown while cam is on
+    public string recordingStamp;           // explicit camera identity, applied after legacy text migration
     public Transform player;
     public Behaviour[] lockDuring;          // movement, punching, gun, interacting
     public ScreenFader fader;
@@ -40,6 +41,10 @@ public class StabCutscene : MonoBehaviour
     GameObject scanlines;
     string stamp;
     Quaternion camRest;
+
+    public Func<IEnumerator> sequence;      // set by a script on this object (TomasTape): runs in place of `length`
+    [NonSerialized] public bool keepControlsLocked; // CCTV playlist owns the input lock across camera changes
+    [NonSerialized] public bool holdBlackAfter;      // next recording opens directly from the black cut
 
     public bool Playing { get; private set; }
     public Vector3 HiddenSpot { get; private set; }   // where the hideAfter parts stood when they were hidden
@@ -89,7 +94,7 @@ public class StabCutscene : MonoBehaviour
     IEnumerator Tape()
     {
         var text = overlay != null ? overlay.GetComponent<TMPro.TMP_Text>() : null;
-        if (text != null && stamp == null) stamp = text.text;
+        if (text != null && stamp == null) stamp = !string.IsNullOrEmpty(recordingStamp) ? recordingStamp : text.text;
         camRest = cam.transform.localRotation;
         for (float s = 0f; Playing && cam.enabled; s += Time.deltaTime)
         {
@@ -165,7 +170,7 @@ public class StabCutscene : MonoBehaviour
             if (to.sqrMagnitude > 0.01f) player.rotation = Quaternion.LookRotation(to);
         }
 
-        yield return new WaitForSeconds(length);
+        yield return sequence != null ? sequence() : new WaitForSeconds(length);
 
         StartCoroutine(FadeSound(0.6f));
         yield return Fade(1f, cam != null ? 0.5f : 0.15f);
@@ -184,7 +189,7 @@ public class StabCutscene : MonoBehaviour
         if (overlay != null) overlay.SetActive(false);
         TapeOn(false);
         atBlack?.Invoke();
-        yield return Fade(0f, cam != null ? 0.8f : 0.3f);
+        if (!holdBlackAfter) yield return Fade(0f, cam != null ? 0.8f : 0.3f);
 
         Lock(false);
         Playing = false;
@@ -194,6 +199,7 @@ public class StabCutscene : MonoBehaviour
 
     void Lock(bool on)
     {
+        if (!on && keepControlsLocked) return;
         if (lockDuring == null) return;
         foreach (var b in lockDuring) if (b != null) b.enabled = !on;
         if (on && player != null && player.TryGetComponent(out Rigidbody rb) && !rb.isKinematic) rb.linearVelocity = Vector3.zero;

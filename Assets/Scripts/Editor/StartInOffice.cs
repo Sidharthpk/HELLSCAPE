@@ -21,7 +21,7 @@ public static class StartInOffice
             SessionState.EraseString(Key);
             SleepSequence.WakeInHell = true;
             SceneManager.sceneLoaded += OnLoaded;
-            SceneManager.LoadScene("MainGameScene");
+            SceneManager.LoadScene("OfficeSilo");
         };
     }
 

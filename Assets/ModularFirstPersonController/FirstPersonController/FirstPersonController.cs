@@ -113,6 +113,7 @@ public class FirstPersonController : MonoBehaviour
 
     // Internal Variables
     private bool isCrouched = false;
+    public bool IsCrouched => isCrouched;   // (PunchController blocks, PlayerFootStep goes quiet)
     private Vector3 originalScale;
 
     #endregion
@@ -134,6 +135,10 @@ public class FirstPersonController : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        // (HellScape: no friction on the body, so walking into a wall or a desk edge slides along it instead of
+        // sticking; movement sets the velocity itself, so the feet need no grip)
+        if (TryGetComponent<CapsuleCollider>(out var body))
+            body.sharedMaterial = new PhysicsMaterial("Player (no friction)") { dynamicFriction = 0f, staticFriction = 0f, frictionCombine = PhysicsMaterialCombine.Minimum, bounceCombine = PhysicsMaterialCombine.Minimum };
 
         crosshairObject = GetComponentInChildren<Image>();
 
@@ -501,6 +506,14 @@ public class FirstPersonController : MonoBehaviour
 
             isCrouched = true;
         }
+    }
+
+    // Room volumes adjust the bob rest pose, so movement cannot reset the lowered viewpoint.
+    public Vector3 ViewRestPosition => jointOriginalPos;
+    public void SetViewRestPosition(Vector3 position)
+    {
+        jointOriginalPos = position;
+        joint.localPosition = position;
     }
 
     private void HeadBob()

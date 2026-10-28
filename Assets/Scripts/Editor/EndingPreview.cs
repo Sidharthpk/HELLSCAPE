@@ -12,6 +12,7 @@ public static class EndingPreview
     [MenuItem("HellScape/Debug/Play Bound Ending (to be continued)")] static void Bound() => Begin("bound");
     [MenuItem("HellScape/Debug/Play Demon Ending")] static void Demon() => Begin("demon");
     [MenuItem("HellScape/Debug/Play Death Vision (wake after the fall)")] static void Vision() => Begin("vision");
+    [MenuItem("HellScape/Debug/Walk The Dream (you play it)")] static void Dream() => Begin("dream");
 
     static void Begin(string which)
     {
@@ -38,7 +39,7 @@ public static class EndingPreview
     static void Load()
     {
         SleepSequence.WakeInHell = true;
-        if (SessionState.GetString(Key, "") == "vision") { SleepSequence.FallSpot = Vector3.zero; SleepSequence.FallFacing = Vector3.forward; }
+        if (SessionState.GetString(Key, "") == "vision" || SessionState.GetString(Key, "") == "dream") { SleepSequence.FallSpot = Vector3.zero; SleepSequence.FallFacing = Vector3.forward; }
         SceneManager.sceneLoaded += OnLoaded;
         SceneManager.LoadScene("MainGameScene");
     }
@@ -46,6 +47,7 @@ public static class EndingPreview
     static void OnLoaded(Scene s, LoadSceneMode m)
     {
         SceneManager.sceneLoaded -= OnLoaded;
+        if (SessionState.GetString(Key, "") == "dream") { SessionState.EraseString(Key); return; }   // (the wake-up starts it by itself; no robot)
         if (SessionState.GetString(Key, "") == "vision")
         {
             SessionState.EraseString(Key);
@@ -64,7 +66,9 @@ public static class EndingPreview
         string dir = System.IO.Path.Combine(Application.dataPath, "../Logs/vision");
         System.IO.Directory.CreateDirectory(dir);
         var auto = typeof(DialogueBox).GetField("AutoAdvanceAfter");
-        for (int i = 0, shots = 0; i < 400 && shots < 60; i++)
+        e.soulWalkTime = 30f;   // (a shorter walk for the robot: the real one is longer)
+        e.StartCoroutine(WalkDream(e));
+        for (int i = 0, shots = 0; i < 700 && shots < 260; i++)
         {
             if (auto != null) auto.SetValue(null, 1.2f);
             yield return new WaitForSeconds(0.5f);
@@ -79,6 +83,25 @@ public static class EndingPreview
             shots++;
         }
         Debug.Log("[robot] vision frames written to Logs/vision");
+    }
+
+    // robot legs for the dream hall (no keyboard here): walk straight ahead whenever the dream lets you
+    static IEnumerator WalkDream(EndingSequence e)
+    {
+        var you = e.playerMovementScript.transform;
+        var body = you.GetComponent<Rigidbody>();
+        float since = -1f;
+        while (true)
+        {
+            yield return null;
+            if (!e.playerMovementScript.enabled || you.position.y > -2500f || GameObject.Find("Dream hall") == null) continue;
+            if (since < 0f) since = Time.time;
+            float t = Time.time - since;
+            if ((t > 13f && t < 15f) || (t > 19f && t < 21f) || (t > 25f && t < 26.5f)) { you.rotation = Quaternion.Euler(0f, 180f, 0f); continue; }   // glance back at the stalkers
+            you.rotation = Quaternion.identity;
+            Vector3 p = you.position + Vector3.forward * 3.4f * Time.deltaTime;
+            if (body != null && !body.isKinematic) body.position = p; else you.position = p;
+        }
     }
 
     static IEnumerator Run(EndingSequence e, bool damned)

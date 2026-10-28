@@ -44,14 +44,12 @@ public static class PostCreditsTest
 
         var want = new List<string> { "ring", "pick up" };
         var problems = new List<string>();
-        foreach (int id in RevisedPlotDirector.CallRows)
+        foreach (var row in RevisedPlotDirector.CallLines())
         {
-            var row = HS.Rows[id];
-            bool named = id > RevisedPlotDirector.CallReveal;   // his name is only on the plate after Kessler has said it
-            if (row.speaker != "KESSLER" && row.speaker != (named ? "DEREK" : "UNKNOWN")) problems.Add("HS_0" + id + " is spoken as " + row.speaker);
-            want.Add("line " + id); want.Add(row.speaker + ": " + row.text);
+            if (row.speaker != "KESSLER" && row.speaker != "MERCER") problems.Add(row.id + " is spoken as " + row.speaker + " (V5.1: Kessler and Mercer only)");
+            want.Add("line " + row.id.Substring(4)); want.Add(row.speaker + ": " + row.text);   // (the name plate shows the speaker in capitals)
         }
-        if (!HS.Rows[RevisedPlotDirector.CallReveal].text.Contains("Derek")) problems.Add("the reveal row does not say his name");
+        if (RevisedPlotDirector.CallLines().Exists(r => r.text.Contains("Derek"))) problems.Add("the call mentions Derek");
         want.Add("disconnect"); want.Add("end");
         if (string.Join("\n", seen) != string.Join("\n", want)) problems.Add("order differs from the script");
         if (seen.Count != played) problems.Add("it played a second time");

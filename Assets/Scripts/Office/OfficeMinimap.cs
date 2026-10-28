@@ -20,24 +20,21 @@ public class OfficeMinimap : MonoBehaviour
     // the names on the whole-floor map: metres east and north of the middle of the office (the room map in NewOfficeFit)
     public static readonly (string name, float x, float z)[] Rooms =   // (InteriorDarkness hangs an emergency lamp over each)
     {
-        ("ENTRANCE\nLOBBY", -33.5f, -22.9f), ("RECEPTION", -44f, -7.4f), ("STORAGE", -10f, -8.9f), ("OPEN OFFICE", -20.5f, 6.6f),
-        ("KITCHEN /\nBREAK ROOM", -29.5f, 21.6f), ("CONFERENCE\nROOM", -6.5f, 29.6f), ("RECORDS\nARCHIVE", 17f, 17.1f), ("SECURITY\nROOM", 8f, -4.9f),
-        ("VANE'S\nOFFICE", 35f, 5.1f), ("SERVICE\nCORRIDOR", 24.5f, -11.1f), ("TO SILO", 43f, -10.7f),
-        ("MAIN HALL", 3.2f, 12f), ("RETURN\nHALL", 5.8f, -14.3f),
+        ("ENTRANCE\nLOBBY", -.2f, -19.4f), ("RECEPTION", 0f, -9.6f), ("LOUNGE", -25.4f, -11.2f), ("ARMORY", 25.4f, -12.2f),
+        ("KESSLER'S\nOFFICE", 25.4f, -5.1f), ("VANE'S\nOFFICE", 25.4f, 2.3f), ("MAINTENANCE", 25.7f, 12.8f), ("BOARDROOM", -25.4f, .5f),
+        ("SECURITY\nROOM", 17.7f, 12f), ("ARCHIVE", 11.3f, 10.1f), ("PANTRY", -4.9f, 10.6f), ("TO SILO", -4.5f, 17.7f),
+        ("RESTROOMS", -23.2f, 11.2f), ("OPEN OFFICE", .1f, .3f), ("MAIN HALL", -12.2f, -12.3f),
     };
 
-    // the floors of the model (Floor_<room> in Office Ground Floor): world x0, x1, z0, z1 -> the name shown at the left
+    // the rooms of the model (the v3 office, NewOfficeFit's plan): world x0, x1, z0, z1 -> the name shown at the left
     static readonly (float x0, float x1, float z0, float z1, string name)[] Floors =
     {
-        (974.2f, 999.5f, 870f, 896.5f, "ENTRANCE LOBBY"), (978.8f, 985.2f, 864f, 870f, "ENTRANCE LOBBY"), (989.8f, 993.9f, 871.7f, 878.1f, "ENTRANCE LOBBY"),
-        (965.7f, 977.2f, 883f, 903.3f, "RECEPTION"), (977.2f, 980.8f, 897.2f, 900.7f, "RECEPTION"),
-        (980.9f, 1008.6f, 896.5f, 915.3f, "OPEN OFFICE"), (1002.6f, 1006.4f, 895.1f, 896.5f, "OPEN OFFICE"),
-        (976.2f, 995.8f, 914.5f, 928.3f, "KITCHEN / BREAK ROOM"), (1000.7f, 1017.4f, 923.1f, 934.6f, "CONFERENCE ROOM"),
-        (1024.2f, 1042.2f, 910.4f, 922.9f, "RECORDS ARCHIVE"), (1021.2f, 1024.2f, 911.7f, 918.8f, "RECORDS ARCHIVE"),
-        (1016.9f, 1030.7f, 889.4f, 899.7f, "SECURITY ROOM"), (1041.6f, 1059.2f, 897.4f, 912.5f, "VANE'S OFFICE"),
-        (1030.7f, 1061.3f, 883.8f, 899.7f, "SERVICE CORRIDOR"), (1061.3f, 1065.5f, 881.3f, 886f, "TO THE SILO"),
-        (999.5f, 1011.9f, 880.9f, 895.1f, "STORAGE"), (995.8f, 1041.6f, 899.7f, 923.1f, "MAIN HALL"),
-        (1011.9f, 1030.7f, 880.9f, 889.4f, "RETURN HALL"), (1013.8f, 1025f, 899.7f, 902.9f, "UTILITY"),
+        (974.1f, 990f, 870.2f, 875.6f, "ENTRANCE LOBBY"), (974.4f, 989.8f, 880.2f, 885.2f, "RECEPTION"), (952.4f, 961.2f, 877f, 885.2f, "LOUNGE"),
+        (1003.3f, 1011.8f, 877.1f, 883.1f, "ARMORY"), (1003.3f, 1011.8f, 883.4f, 891f, "KESSLER'S OFFICE"), (1003.3f, 1011.8f, 891.3f, 897.9f, "VANE'S OFFICE"),
+        (1003.9f, 1011.8f, 901.8f, 908.4f, "MAINTENANCE"), (952.4f, 961.2f, 885.3f, 900.3f, "BOARDROOM"), (996f, 1003.7f, 900.1f, 908.4f, "SECURITY ROOM"),
+        (991.3f, 995.7f, 900.1f, 904.6f, "ARCHIVE"), (969.4f, 985.2f, 900.1f, 905.6f, "PANTRY"), (969.4f, 985.9f, 905.9f, 914.2f, "LOADING / TO SILO"),
+        (985.9f, 996.4f, 908.4f, 911.4f, "LOADING / TO SILO"), (952.4f, 965.5f, 900.5f, 906.5f, "RESTROOMS"), (961.2f, 1003.3f, 885.2f, 900f, "OPEN OFFICE"),
+        (961.2f, 1003.3f, 875.6f, 885.2f, "MAIN HALL"), (1003.3f, 1011.8f, 898f, 901.8f, "WEST CORRIDOR"),
     };
 
     public static string RoomAt(Vector3 p)
@@ -59,7 +56,6 @@ public class OfficeMinimap : MonoBehaviour
     GameObject mini, full; RectTransform miniMap, fullDot, miniArrow;
     TextMeshProUGUI roomText; string room; float roomShown;
     bool open;
-    Canvas mapCanvas;
 
     public void Init(Transform body, Bounds office) { player = body; zone = office; }
 
@@ -77,8 +73,8 @@ public class OfficeMinimap : MonoBehaviour
 
         var rim = Make<Image>("Minimap", canvas.transform, new Vector2(Size + 10f, Size + 10f)); rim.sprite = disc; rim.color = Rim;
         rim.rectTransform.anchorMin = rim.rectTransform.anchorMax = rim.rectTransform.pivot = Vector2.one;
-        mini = rim.gameObject;   // (placed under the objective box in Update)
-        mapCanvas = c;
+        rim.rectTransform.anchoredPosition = new Vector2(-30f, -110f);   // under the Echo label
+        mini = rim.gameObject;
         var face = Make<Image>("Face", mini.transform, new Vector2(Size, Size)); face.sprite = disc; face.color = Back;
         face.gameObject.AddComponent<Mask>();
         var map = Make<RawImage>("Plan", face.transform, zone.size.x * Size / (2f * Range) * new Vector2(1f, aspect)); map.texture = plan; map.color = Floor;
@@ -127,10 +123,7 @@ public class OfficeMinimap : MonoBehaviour
         else if (!PauseMenu.Paused && Input.GetKeyDown(Key)) open = !open;
         if (mini.activeSelf != (show && !open)) mini.SetActive(show && !open);
         if (full.activeSelf != (show && open)) full.SetActive(show && open);
-        if (!show) return;
-
-        // top right, under the objective box (it docks in the same corner)
-        ((RectTransform)mini.transform).anchoredPosition = new Vector2(-36f, -Mathf.Max(30f, ObjectiveUI.TopInset(mapCanvas) + 16f));
+        if (!show) { roomText.gameObject.SetActive(false); return; }
 
         // the arrow points the way you look (north is up on the plan; the body turns with the look)
         var facing = Quaternion.Euler(0f, 0f, -player.eulerAngles.y);
@@ -214,7 +207,7 @@ public class OfficeMinimap : MonoBehaviour
     }
 
     // an arrowhead pointing up (turned to the way you look)
-    static Sprite Arrow()
+    internal static Sprite Arrow()
     {
         const int n = 64;
         var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { name = "Arrow", wrapMode = TextureWrapMode.Clamp };
@@ -238,7 +231,7 @@ public class OfficeMinimap : MonoBehaviour
         return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
     }
 
-    static Sprite Disc()
+    internal static Sprite Disc()
     {
         const int n = 128;
         var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { name = "Disc" };

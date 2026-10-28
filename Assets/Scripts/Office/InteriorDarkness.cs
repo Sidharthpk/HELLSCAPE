@@ -28,18 +28,26 @@ public class InteriorDarkness : MonoBehaviour
     public float emergencyIntensity = 1.5f, emergencyRange = 14f, emergencyHeight = 1.1f;   // (height above the middle of the zone: just under the ceiling)
     public Vector3[] emergencySpots;        // world, at the ceiling: set = a lamp at each of these only, not one over every room
     public Material emergencyLampMaterial;  // the lamp you see at each spot (none: only its light)
+    public bool emergencyLamps = true;      // false: no red lamps at all, the dark rooms stay dark
     private GameObject emergency;
 
     [Header("Fog of war (the office)")]
     public bool fogOfWar;                   // black distance fog, powered or not; the noisy screen fog and the drifting fog particles are off inside
+    public Color poweredFog = new Color(0.06f, 0.05f, 0.045f);   // once the lamps are back: a dim warm haze, thinner
+    [Range(0f, 1f)] public float poweredFogScale = 0.35f;
     private ParticleSystemRenderer[] mist = new ParticleSystemRenderer[0];
 
     // the office (the blackout zone) is darker still than its saved dim/lightDim, but never black: ambient and every
     // lamp are scaled by this (the emergency red before the fuses is left as it was). Raise it to lighten the office.
-    const float OfficeGloom = 0.65f;
+    const float OfficeGloom = 0.9f;
     float Gloom => blackoutUntilPowered ? OfficeGloom : 1f;
 
     private bool inside, powered;
+    public bool Powered => powered;
+    public bool Echo => echo;
+    private bool echo;
+    public Color echoAmbient = new Color(1.1f, 1.3f, 1.7f);   // the Echo: a clean memory, lamps back on, cold and pale (bright: the walls are red, blue needs a lot)
+    public Color echoFog = new Color(0.2f, 0.36f, 0.6f);
     private bool blackNow;                  // this zone is blacked out and you're in it
     private readonly System.Collections.Generic.List<Light> switchedOff = new System.Collections.Generic.List<Light>();
 
@@ -47,12 +55,21 @@ public class InteriorDarkness : MonoBehaviour
     public static bool Blackout { get; private set; }
     private static int blackZones;
 
+    void Awake()
+    {
+        if (blackoutUntilPowered && GetComponent<OfficeAtmosphere>() == null)
+            gameObject.AddComponent<OfficeAtmosphere>().Initialize(this);
+    }
+
     void Start()
     {
         if (blackoutUntilPowered)
         {
             if (player != null && player.GetComponentInChildren<PunchController>(true) is PunchController pc && pc.GetComponent<PalmLight>() == null) pc.gameObject.AddComponent<PalmLight>();
             Lamps(false);
+        }
+        if (blackoutUntilPowered && emergencyLamps)
+        {
             // not quite black: a dim red emergency lamp over each room, until the fuses are in
             emergency = new GameObject("Emergency lights");
             emergency.transform.SetParent(transform, false);
@@ -79,7 +96,7 @@ public class InteriorDarkness : MonoBehaviour
         }
         if (fogOfWar)
         {
-            fogDensity = Mathf.Max(fogDensity, 0.09f);   // depth: nothing far ahead shows through the dark
+            fogDensity = Mathf.Max(fogDensity, 0.04f);   // depth: nothing far ahead shows through the dark
             mist = System.Array.ConvertAll(FindObjectsByType<FogFollow>(FindObjectsInactive.Include, FindObjectsSortMode.None), f => f.GetComponent<ParticleSystemRenderer>());
         }
         float lamps = lightDim * Gloom;
@@ -102,6 +119,8 @@ public class InteriorDarkness : MonoBehaviour
             if (l.type == LightType.Directional || !l.enabled || !zone.Contains(l.transform.position)) continue;
             if (player != null && l.transform.IsChildOf(player)) continue;   // your own light
             if (l.GetComponentInParent<WitnessLook>() != null) continue;     // the burnt dead glow: the only thing to see by
+            if (l.name.StartsWith("Battery")) continue;                      // exit signs, the security screens: on their own batteries
+            if (l.name.StartsWith("Window")) continue;                       // what comes in from outside
             l.enabled = false;
             switchedOff.Add(l);
         }
@@ -113,14 +132,36 @@ public class InteriorDarkness : MonoBehaviour
     private static float sunIntensity, reflection, density;
     private static AmbientMode ambientMode;
     private static Color ambient, fog;
+    private static bool fogEnabled;
+    private static FogMode fogMode;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatic() { activeZones = 0; blackZones = 0; Blackout = false; }
+
+    void OnDisable()
+    {
+        if (blackNow) blackZones = Mathf.Max(0, blackZones - 1);
+        Blackout = blackZones > 0; blackNow = false;
+        if (inside || k > 0f) activeZones = Mathf.Max(0, activeZones - 1);
+        bool restore = inside || k > 0f;
+        inside = false; k = 0f;
+        if (restore && activeZones == 0) Apply();
+    }
 
     public void SetPowered(bool on)
     {
         powered = on;
         if (blackoutUntilPowered && on) Lamps(true);   // the fuses are in: the lights come back
+        if (emergency != null) emergency.SetActive(!on);
+    }
+
+    // the Echo is not the blackout: the lamps and the clean memory are seen as they were
+    public void SetEcho(bool on)
+    {
+        if (echo == on) return;
+        echo = on;
+        if (!blackoutUntilPowered || powered) return;
+        if (on) Lamps(true); else Lamps(false);
         if (emergency != null) emergency.SetActive(!on);
     }
 
@@ -134,7 +175,7 @@ public class InteriorDarkness : MonoBehaviour
             activeZones++;
         }
         inside = now;
-        bool black = blackoutUntilPowered && inside && !powered;
+        bool black = blackoutUntilPowered && inside && !powered && !echo;
         if (black != blackNow) { blackNow = black; blackZones += black ? 1 : -1; Blackout = blackZones > 0; }
 
         float target = inside ? 1f : 0f;
@@ -153,19 +194,28 @@ public class InteriorDarkness : MonoBehaviour
         fog = RenderSettings.fogColor;
         density = RenderSettings.fogDensity;
         reflection = RenderSettings.reflectionIntensity;
+        fogEnabled = RenderSettings.fog;
+        fogMode = RenderSettings.fogMode;
     }
 
     void Capture() => Capture(sun);
 
     void Apply()
     {
+        if (fogOfWar)
+        {
+            RenderSettings.fog = k > 0f || fogEnabled;
+            RenderSettings.fogMode = k > 0f ? FogMode.ExponentialSquared : fogMode;
+        }
         if (sun != null) sun.intensity = Mathf.Lerp(sunIntensity, 0f, k);
         RenderSettings.ambientMode = k > 0f ? AmbientMode.Flat : ambientMode;
-        bool blackedOut = blackoutUntilPowered && !powered;
-        RenderSettings.ambientLight = Color.Lerp(ambient, blackedOut ? emergencyAmbient : (powered ? poweredAmbient : darkAmbient) * dim * Gloom, k);
-        RenderSettings.fogColor = Color.Lerp(fog, blackedOut || fogOfWar ? blackFog : darkFog, k);
+        bool blackedOut = blackoutUntilPowered && !powered && !echo;
+        bool remembered = echo && !powered && blackoutUntilPowered;
+        RenderSettings.ambientLight = Color.Lerp(ambient, blackedOut ? emergencyAmbient : remembered ? echoAmbient : (powered ? poweredAmbient : darkAmbient) * dim * Gloom, k);
+        bool lit = fogOfWar && !blackedOut && (powered || remembered);
+        RenderSettings.fogColor = Color.Lerp(fog, remembered ? echoFog : lit ? poweredFog : blackedOut || fogOfWar ? blackFog : darkFog, k);
         foreach (var m in mist) if (m != null) m.enabled = k <= 0f;
-        if (fogDensity >= 0f) RenderSettings.fogDensity = Mathf.Lerp(density, fogDensity, k);
+        if (fogDensity >= 0f) RenderSettings.fogDensity = Mathf.Lerp(density, lit ? fogDensity * poweredFogScale : fogDensity, k);
         RenderSettings.reflectionIntensity = Mathf.Lerp(reflection, 0.05f, k);
     }
 }
