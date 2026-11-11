@@ -10,7 +10,7 @@
 
 <p align="center"><b><a href="docs/media/trailer/hellscape-trailer.mp4">▶ Watch the trailer (50 s)</a></b></p>
 
-<p align="center"><b>The game will be released on itch.io.</b> This repository is the source code and the making-of, not a download.</p>
+<p align="center"><b><a href="https://guardyangel.itch.io/hellscape">Download HELLSCAPE on itch.io</a></b><br>This repository is the source code and the making-of, not a download.</p>
 
 ## The story
 
@@ -96,8 +96,10 @@ In hell, the dead are sorted:
 | **The Lost** drift where they died | **The Damned** wait in the light |
 | ![The van](docs/media/trailer/van.gif) | ![Escape](docs/media/trailer/chase.gif) |
 | **Kessler & Vane Logistics:** your van | **Escape:** drive, and don't look back |
-| ![Vane](docs/media/trailer/vane.gif) | ![Red city office](docs/media/echo/red-city.png) |
+| ![Vane](docs/media/trailer/vane.gif) | ![The burnt office](docs/media/shots/office.jpg) |
 | **Vane** is still in the office | **The burnt office** in the red city |
+| ![The silo](docs/media/shots/silo.jpg) | ![The road out](docs/media/shots/chase.jpg) |
+| **The silo:** a long way up | **The road out:** drive for the bridge |
 
 ## Controls
 
@@ -125,7 +127,7 @@ In hell, the dead are sorted:
 
 ## About this repository
 
-This repository shows how HELLSCAPE is made. It holds the game's own C# scripts and shaders, the design notes, and the trailer and screenshots. It does **not** hold the models, scenes, textures, audio or the third-party plugins, so the project cannot be opened and played from here. To play the game, get it from itch.io.
+This repository shows how HELLSCAPE is made. It holds the game's own C# scripts and shaders, the design notes, and the trailer and screenshots. It does **not** hold the models, scenes, textures, audio or the third-party plugins, so the project cannot be opened and played from here. To play the game, get it from [itch.io](https://guardyangel.itch.io/hellscape).
 
 | Folder | What is in it |
 |---|---|
