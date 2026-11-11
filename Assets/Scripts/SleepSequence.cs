@@ -1,0 +1,293 @@
+using System.Collections;
+using UnityEngine;
+
+// Waking up in the hell city after the fall off the roof: the world turns red, you come to flat on your back in
+// the street, and get up. (It used to be a bed you slept in; the prologue replaced that.) Also knows the day and
+// hell looks, which the title screen and the ending borrow.
+public class SleepSequence : MonoBehaviour
+{
+    [Header("UI")]
+    public ScreenFader fader;
+
+    [Header("Player")]
+    public GameObject playerRoot;
+    public MonoBehaviour playerMovementScript;
+    public MonoBehaviour punchController;
+    public Transform wakePoint;          // fallback if there's no fall wake point
+
+    [Header("Worlds")]
+    public GameObject dayWorld;          // civilians, bright props, day Global Volume
+    public GameObject hellWorld;         // blood, bodies, deer zombie, red Global Volume
+    public GateButton garageDoor;        // optional: open during the day, shut when you wake
+    public GameObject[] hellOnlyUI;      // HUD, crosshair... hidden during the day, shown when you wake
+
+    [Header("Day Look")]
+    public Material daySkybox;
+    public Color dayFogColor = new Color(0.75f, 0.82f, 0.9f);
+    public float dayFogDensity = 0.005f;
+
+    [Header("Hell Look")]
+    public Material hellSkybox;
+    public Color hellFogColor = new Color(0.34f, 0.17f, 0.15f);
+    public float hellFogDensity = 0.022f;
+
+    [Header("Sun")]
+    public Light sun;
+    public Color daySunColor = new Color(1f, 0.95f, 0.85f);
+    public float daySunIntensity = 1.2f;
+    public Color hellSunColor = new Color(0.6f, 0.1f, 0.08f);
+    public float hellSunIntensity = 0.4f;
+
+    [Header("Dead City air (the open city only: the office keeps the scene's own)")]
+    public bool deadCityAir;
+    public Color hellAmbientSky = new Color(0.058f, 0.147f, 0.162f);
+    public Color hellAmbientEquator = new Color(0.023f, 0.069f, 0.078f);
+    public Color hellAmbientGround = new Color(0.005f, 0.012f, 0.014f);
+
+    [Header("Blood tide (the chase and the bridge: the red comes back)")]
+    public Material bloodSkybox;
+    public Color bloodFogColor = new Color(0.208f, 0f, 0f);
+    public Color bloodSunColor = new Color(0.6f, 0.1f, 0.08f);
+    public Color bloodAmbient = new Color(0.09f, 0.02f, 0.02f);
+    public UnityEngine.Rendering.Volume bloodVolume;
+    public ParticleSystemRenderer[] mist;   // the city's ground mist: dried blood on the tide
+    public Color mistColor = new Color(0.25f, 0.44f, 0.42f), bloodMistColor = new Color(0.3f, 0.03f, 0.03f);
+
+    [Header("Audio / Timing")]
+    public AudioSource wakeSound;        // heartbeat as you come to
+
+    public UnityEngine.Events.UnityEvent onWake = new UnityEngine.Events.UnityEvent();   // e.g. the first checkpoint
+
+    [Header("Arriving from the prologue (the fall off the roof)")]
+    public Transform fallWakePoint;      // where you come to on the street; wakePoint if empty
+    public Transform streetAnchor;       // a street piece the prologue scene has too: you wake where you hit the ground
+    [TextArea] public string fallWakeLine = "...I should be dead.|Where... is this?|Why is the sky RED?";
+
+    public static bool WakeInHell;       // set by the prologue before it loads this scene
+    public static bool FromStory;        // came here through the title/prologue, not a debug jump (which skips Tomas's opening)
+    public static Vector3? FallSpot;     // where you hit the ground, in the street anchor's space
+    public static Vector3 FallFacing;    // which way to face when you get up (same space)
+    public static bool Waking { get; private set; }   // out cold (and in the death vision): CityWalkers waits for it
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatic() { Waking = false; FromStory = false; }
+
+    void Start()
+    {
+        // first load: the title screen is up, and START plays the prologue (which comes back here with WakeInHell)
+        if (!WakeInHell && TitleScreen.Showing) return;
+        // from the prologue, or a reload (a game over before the first checkpoint): back on the red street
+        WakeInHell = false;
+        // the office scene, or through a door from it: no fall and no wake-up, just the hell city as it is when you're up
+        if (Teleporter.ArriveAt != null || gameObject.scene.name == "OfficeSilo") { ArriveInHell(); return; }
+        StartCoroutine(WakeFromFall());
+    }
+
+    void ArriveInHell()
+    {
+        ApplyLook(true);
+        playerMovementScript.enabled = true;
+        if (punchController != null)
+        {
+            punchController.enabled = !GunController.Equipped;
+            if (!GunController.Equipped && punchController is PunchController fists) fists.Draw();
+        }
+        if (RevisedPlotDirector.Instance != null) RevisedPlotDirector.Instance.MarkHands();   // the Sign of Judgement on your palms
+    }
+
+    // straight into hell: flat on your back in the street, looking up at the red sky, then up on your feet
+    IEnumerator WakeFromFall()
+    {
+        Waking = true;
+        playerMovementScript.enabled = false;
+        if (punchController != null) punchController.enabled = false;
+        Sounds.Apply(wakeSound, "Hell City/Wake heartbeat");
+        var fists = punchController as PunchController;
+        if (fists != null) fists.HoldDown();   // flat on your back: no guard yet
+        if (fader != null) fader.fade.alpha = 1f;
+        ApplyLook(true);
+        Transform at = fallWakePoint != null ? fallWakePoint : wakePoint;
+        if (at != null) playerRoot.transform.SetPositionAndRotation(at.position, at.rotation);
+        if (FallSpot.HasValue && streetAnchor != null) PlaceAtFallSpot();
+        bool fromPrologue = FallSpot.HasValue;
+        FallSpot = null;
+        // shot on the sofa in the prologue: you come to on the same sofa, in the red flat (the void puts you back here)
+        var redFlat = fromPrologue ? FindFirstObjectByType<RedFlat>() : null;
+        Transform seat = redFlat != null ? redFlat.sofaSeat : null;
+        var body = playerRoot.GetComponent<Rigidbody>();
+        if (seat != null)
+        {
+            if (body != null) { body.linearVelocity = Vector3.zero; body.isKinematic = true; }
+            playerRoot.transform.SetPositionAndRotation(seat.position + Vector3.up, Quaternion.LookRotation(seat.forward));   // (the root sits 1 m up)
+            Physics.SyncTransforms();
+        }
+        yield return null;
+        if (fader != null) fader.fade.alpha = 1f;   // the fader's own Start clears it
+        var ending = fromPrologue ? FindFirstObjectByType<EndingSequence>(FindObjectsInactive.Include) : null;
+        if (ending != null)
+        {
+            yield return ending.DeathVision();   // you died on that street: the King marks your hands first
+            if (fists != null) fists.HoldDown();
+            if (fader != null) fader.fade.alpha = 1f;
+        }
+        Waking = false;
+
+        var cam = playerRoot.GetComponentInChildren<Camera>();
+        Vector3 cam0 = cam != null ? cam.transform.localPosition : Vector3.zero;
+        if (seat != null)
+        {
+            // still sitting: head lolled back on the sofa, looking at the ceiling
+            if (body != null) { body.linearVelocity = Vector3.zero; body.isKinematic = true; }
+            playerRoot.transform.SetPositionAndRotation(seat.position + Vector3.up, Quaternion.LookRotation(seat.forward));
+            if (cam != null) cam.transform.localPosition = cam0 + Vector3.down * .35f;
+        }
+        if (wakeSound != null) wakeSound.Play();
+        yield return new WaitForSeconds(1.5f);
+        if (cam != null) cam.transform.localRotation = seat != null ? Quaternion.Euler(-60f, 0f, 8f) : Quaternion.Euler(-80f, 0f, 12f);
+        if (fader != null) yield return fader.FadeTo(0f, 3f);
+        yield return new WaitForSeconds(0.8f);
+        if (cam != null)
+        {
+            Quaternion from = cam.transform.localRotation;
+            for (float t = 0f; t < 2.2f; t += Time.deltaTime)
+            {
+                cam.transform.localRotation = Quaternion.Slerp(from, Quaternion.identity, Mathf.SmoothStep(0f, 1f, t / 2.2f));
+                yield return null;
+            }
+            cam.transform.localRotation = Quaternion.identity;
+            if (playerMovementScript is FirstPersonController fpc) fpc.SetPitch(0f);
+        }
+        if (seat != null)
+        {
+            // up off the sofa, a step towards the TV
+            Vector3 from = playerRoot.transform.position, to = from + seat.forward * .7f;
+            for (float t = 0f; t < 1f; t += Time.deltaTime)
+            {
+                float k = Mathf.SmoothStep(0f, 1f, t);
+                playerRoot.transform.position = Vector3.Lerp(from, to, k);
+                if (cam != null) cam.transform.localPosition = cam0 + Vector3.down * .35f * (1f - k);
+                yield return null;
+            }
+            playerRoot.transform.position = to;
+            if (cam != null) cam.transform.localPosition = cam0;
+            if (body != null) body.isKinematic = false;
+            Physics.SyncTransforms();
+        }
+        if (fists != null) fists.Draw();       // up on your feet: fists up into the guard
+        MusicManager.Area("Hell City");
+        if (seat != null) redFlat.ArriveNow();   // "...Derek?" and the flat's own story (not the street's lines)
+        else StartCoroutine(SayAfter(fallWakeLine, 0.3f));
+        playerMovementScript.enabled = true;
+        if (punchController != null) punchController.enabled = true;
+        onWake.Invoke();
+    }
+
+    // the same spot on the same street, just... red
+    void PlaceAtFallSpot()
+    {
+        Vector3 p = streetAnchor.TransformPoint(FallSpot.Value);
+        Vector3 f = streetAnchor.TransformDirection(FallFacing);
+        f.y = 0f;
+        float ground = float.MinValue;
+        foreach (var h in Physics.RaycastAll(p + Vector3.up * 30f, Vector3.down, 60f, ~0, QueryTriggerInteraction.Ignore))
+        {
+            if (h.collider.transform.IsChildOf(playerRoot.transform)) continue;
+            if (h.point.y < p.y - 5f || h.point.y > p.y + 2f) continue;   // not roofs, awnings
+            ground = Mathf.Max(ground, h.point.y);
+        }
+        if (ground > float.MinValue) p.y = ground;
+        // the hell city has its own walls (the garage gate is where the flats were): step out into the street
+        for (int i = 0; i < 12 && f.sqrMagnitude > 0.01f && Blocked(p); i++) p += f.normalized * 0.5f;   // (facing the city: forward is away from the wall)
+        playerRoot.transform.SetPositionAndRotation(p + Vector3.up,   // the root sits 1 m up, like FallWakePoint
+            f.sqrMagnitude > 0.01f ? Quaternion.LookRotation(f) : playerRoot.transform.rotation);
+    }
+
+    bool Blocked(Vector3 feet)
+    {
+        foreach (var c in Physics.OverlapCapsule(feet + Vector3.up * 0.4f, feet + Vector3.up * 1.6f, 0.35f, ~0, QueryTriggerInteraction.Ignore))
+            if (!c.transform.IsChildOf(playerRoot.transform)) return true;
+        return false;
+    }
+
+    IEnumerator SayAfter(string line, float delay)
+    {
+        while (TitleScreen.Showing) yield return null;   // the start screen is up: the day hasn't begun yet
+        yield return new WaitForSeconds(delay);
+        if (!string.IsNullOrEmpty(line) && DialogueBox.Instance != null) DialogueBox.Instance.Say(line);
+    }
+
+    void ApplyLook(bool hell)
+    {
+        if (dayWorld != null) dayWorld.SetActive(!hell);
+        if (hellWorld != null) hellWorld.SetActive(hell);
+        if (garageDoor != null) garageDoor.SetOpen(!hell);
+        foreach (var ui in hellOnlyUI)
+            if (ui != null) ui.SetActive(hell);
+        if (DialogueBox.Instance != null) DialogueBox.Instance.SetHellStyle(hell);
+
+        Material sky = hell ? hellSkybox : daySkybox;
+        if (sky != null) RenderSettings.skybox = sky;
+        RenderSettings.fogColor = hell ? hellFogColor : dayFogColor;
+        RenderSettings.fogDensity = hell ? hellFogDensity : dayFogDensity;
+
+        if (sun != null)
+        {
+            sun.color = hell ? hellSunColor : daySunColor;
+            sun.intensity = hell ? hellSunIntensity : daySunIntensity;
+        }
+        if (deadCityAir)
+        {
+            RenderSettings.fogMode = hell ? FogMode.Exponential : FogMode.ExponentialSquared;
+            RenderSettings.ambientMode = hell ? UnityEngine.Rendering.AmbientMode.Trilight : UnityEngine.Rendering.AmbientMode.Skybox;
+            RenderSettings.reflectionIntensity = hell ? 0f : 1f;   // (the sky must not light the buildings through their reflections)
+            tide = 0f;
+            SetTide(0f);
+        }
+        DynamicGI.UpdateEnvironment();
+    }
+
+    float tide;
+    Coroutine tideRun;
+    MaterialPropertyBlock mistBlock;
+
+    // the city's ordinary air goes red and back (DemonBoss: the chase, the bridge). Safe to call twice; nothing happens in the office.
+    public static void BloodTide(float seconds) => TideTo(1f, seconds);
+    public static void BloodTideOff() => TideTo(0f, 0f);
+
+    static void TideTo(float to, float seconds)
+    {
+        var s = FindFirstObjectByType<SleepSequence>();
+        if (s == null || !s.deadCityAir) return;
+        if (s.tideRun != null) s.StopCoroutine(s.tideRun);
+        s.tideRun = s.StartCoroutine(s.Tide(to, seconds));
+    }
+
+    IEnumerator Tide(float to, float seconds)
+    {
+        Material sky = to > 0f ? bloodSkybox : hellSkybox;
+        if (sky != null) RenderSettings.skybox = sky;
+        while (!Mathf.Approximately(tide, to))
+        {
+            tide = Mathf.MoveTowards(tide, to, Time.deltaTime / Mathf.Max(0.01f, seconds));
+            SetTide(tide);
+            yield return null;
+        }
+        SetTide(to);
+        DynamicGI.UpdateEnvironment();
+    }
+
+    void SetTide(float k)
+    {
+        if (k == 0f && deadCityAir && hellWorld != null)
+            hellWorld.GetComponent<DeadCityAtmosphere>()?.RestoreExteriorFog();
+        RenderSettings.fogColor = Color.Lerp(hellFogColor, bloodFogColor, k);
+        RenderSettings.ambientSkyColor = Color.Lerp(hellAmbientSky, bloodAmbient, k);
+        RenderSettings.ambientEquatorColor = Color.Lerp(hellAmbientEquator, bloodAmbient * 0.6f, k);
+        RenderSettings.ambientGroundColor = Color.Lerp(hellAmbientGround, bloodAmbient * 0.2f, k);
+        if (sun != null) sun.color = Color.Lerp(hellSunColor, bloodSunColor, k);
+        if (bloodVolume != null) bloodVolume.weight = k;
+        if (mistBlock == null) mistBlock = new MaterialPropertyBlock();
+        mistBlock.SetColor("_BaseColor", Color.Lerp(mistColor, bloodMistColor, k));
+        foreach (var r in mist) if (r != null) r.SetPropertyBlock(mistBlock);
+    }
+}

@@ -1,0 +1,25 @@
+Editor Play Mode integration review — 2026-11-02T04:35:30.0038403Z
+PASS Exterior owns exploration; local scattering permitted
+PASS Exploration fog .008
+PASS Render Graph selected local streetlights: 9
+PASS Volumetric fog drawn in the street; weight=1
+PASS Street lamps are the only city lights: 40 lit
+PASS No ambient or reflected light
+PASS No fire left in the city
+PASS Damned anchors clean, no fire crackle; gathering spots=31
+PASS Streetlight pool cap respected
+UNVERIFIED Echo manager or blackout interior absent
+PASS Aerial cinematic fog remains untouched
+Driving test: original EnterCar path, encounter callbacks temporarily held for this isolated Play Mode test; restored immediately.
+PASS EnterCar outside a scripted encounter selects driving atmosphere
+PASS Driving fog settles near .0035; actual=0.003536719
+PASS Actual driving camera supports local scattering
+PASS Vehicle exit restores exploration visibility
+PASS Selected horror street reaches dense .016 preset
+PASS Existing BloodTide takes exclusive crimson lighting ownership
+PASS Volumetric fog stays on through the blood tide
+PASS BloodTideOff restores exterior state
+PASS Original bridge LightArena keeps clear fog and red judgement light
+Arena actual sun=0 fog=6.771088E-08 tide=1
+UNVERIFIED full Vane chase/fight AI, checkpoint death/retry and scene traversal; these checks exercised lighting integration only.
+COMPLETE integration review

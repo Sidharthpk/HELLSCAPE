@@ -1,0 +1,11 @@
+FAIL Hell city: died: your camera is off
+FAIL Escape: died: your camera is off
+PASS Bridge: died
+PASS Office entrance: died
+FAIL Kessler tunnel: restart from the pause menu in the middle of the door cutscene: error: UnassignedReferenceException: The variable cam of KillerCutscenes has not been assigned.
+PASS Kessler tunnel: died in the middle of the cutscene of him coming through
+PASS Kessler tunnel: died in the chase
+PASS Silo complex: died while Kessler beats on the door
+PASS Silo complex: died
+PASS Lower bridge: died
+PASS Silo floor: died

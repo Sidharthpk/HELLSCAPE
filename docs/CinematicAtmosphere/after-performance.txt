@@ -1,0 +1,11 @@
+Editor Play Mode; 180 distinct game frames, 45 warmup frames
+Frame median ms=14.2177934646606
+Mean ms=14.63175
+GPU frame median ms=4.837376
+CPU frame median ms=14.1855
+Draw calls median=746
+Camera=1920x888
+Quality=Ultra vsync=1
+Scattering=True
+Local scattering lights=8
+Graphics device=NVIDIA GeForce RTX 2060

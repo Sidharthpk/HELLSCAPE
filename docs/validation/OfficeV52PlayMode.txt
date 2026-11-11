@@ -1,0 +1,64 @@
+PASS Scene sequence present
+PASS Seven existing CCTV feeds retained
+PASS Required scene references assigned
+PASS Original human Vane owns pre-CCTV patrol
+PASS Existing filmed fire recording assigned
+PASS Three recovered recordings have requested order
+PASS CCTV still requires existing security pass
+PASS First recording: Mercer shoots Tomas
+PASS First recording: Mercer starts stair exit
+PASS Second recording follows completed silo recording
+PASS Mercer visibly climbs the existing silo stairs before the cut
+PASS CCTV playlist keeps gameplay HUD and controls held across recordings
+PASS Red encounter does not begin after first recording
+PASS Second recording: Mercer crosses Kessler office doorway
+PASS Existing fire recording plays third
+PASS Kessler office entry recording finishes and records evidence
+PASS Office entry camera retains Kessler identity after legacy migration
+PASS Red encounter waits for the third recording
+PASS All three recovered recordings complete
+PASS Required CCTV playback is one-time
+PASS CCTV playlist restores gameplay HUD
+PASS Red encounter suspends patrol
+PASS East exit physically blocked
+PASS West alternate doorway remains passable
+PASS Alternate exit completes encounter
+PASS Vane resumes original AI after alternate exit
+PASS Ben releases after truth dialogue
+PASS Ben release persists once
+PASS Nadia releases after truth dialogue
+PASS Nadia release persists once
+PASS Priya releases after truth dialogue
+PASS Priya release persists once
+PASS Omar releases after truth dialogue
+PASS Omar release persists once
+PASS All-four release gate accepts non-default order
+PASS Fourth release enables transformation at authored area
+PASS Cry Wolf reuses existing actor without competing legacy AI
+PASS Active Cry Wolf animator used by office and tunnel
+PASS Kessler entrance remains shut in Red City
+PASS Kessler entrance opens in Echo
+PASS Office interior records entry
+PASS Echo timeout returns inside office without ejecting player
+PASS Breach timer does not start at pry interaction
+PASS Breach timer starts after opening completes
+PASS Armory checkpoint activated
+PASS Locker UI does not pause breach timer
+PASS Correct numbers with wrong directions rejected
+PASS Pause menu pauses breach timer
+PASS Existing journal is available while breach timer continues
+PASS Death restores armory checkpoint and running encounter
+PASS Retry preserves worker liberation and transformation
+PASS Timeout breaches door; unsolved locker remains available
+PASS L18 R07 L31 opens only locker; items require collection
+PASS Existing gun equip and silo key pickup complete armory
+PASS Office bullets absorb damage and stagger, repeated hit does not defeat Vane
+PASS Immune repeated hit does not extend stagger
+PASS Stagger recovers
+PASS Stagger recovers during immunity window
+PASS Existing silo transition completes office
+PASS Normal tunnel checkpoint retained and office timer stopped
+PASS Office damage override releases shared tunnel actor
+PASS Existing dialogue CSV validation
+PASS No game-script runtime errors: 
+NOT RUN: full manual input playthrough, later silo boss/chapters, final asset/animation review.

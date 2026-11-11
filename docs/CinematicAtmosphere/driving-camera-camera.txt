@@ -1,0 +1,6 @@
+Camera=Main Camera
+Position=(20.4515, 4.6921, 45.5799)
+Rotation=(7.5946, 270.0001, 0.0000)
+FOV=62
+Resolution=1600x900
+Fog=Exponential 0.003536719 RGBA(0.035, 0.020, 0.016, 1.000)

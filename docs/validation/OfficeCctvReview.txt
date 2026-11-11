@@ -1,0 +1,26 @@
+PASS Scene sequence present
+PASS Seven existing CCTV feeds retained
+PASS Required scene references assigned
+PASS Original human Vane owns pre-CCTV patrol
+PASS Existing filmed fire recording assigned
+PASS Three recovered recordings have requested order
+PASS CCTV still requires existing security pass
+PASS First recording: Mercer shoots Tomas
+PASS First recording: Mercer starts stair exit
+PASS Second recording follows completed silo recording
+PASS Mercer visibly climbs the existing silo stairs before the cut
+PASS CCTV playlist keeps gameplay HUD and controls held across recordings
+PASS Red encounter does not begin after first recording
+PASS Second recording: Mercer crosses Kessler office doorway
+PASS Office-entry recording has no burnt materials, including furniture and doorway
+PASS Office-entry walls, carpet and ceiling use pre-fire materials
+PASS Existing fire recording plays third
+PASS Vane execution uses his authored office and entrance
+PASS Kessler office entry recording finishes and records evidence
+PASS Office entry camera retains Kessler identity after legacy migration
+PASS Red encounter waits for the third recording
+PASS All three recovered recordings complete
+PASS Required CCTV playback is one-time
+PASS CCTV playlist restores gameplay HUD
+PASS No game-script errors during CCTV review: 
+CCTV-only review. Full office flow results are saved separately in docs/validation/OfficeV52PlayMode.txt.

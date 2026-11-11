@@ -1,0 +1,6 @@
+Camera=PlayerCamera
+Position=(-827.0003, 16.3540, -142.0000)
+Rotation=(0.0000, 180.0000, 0.0000)
+FOV=42
+Resolution=1600x900
+Fog=Exponential 0.008 RGBA(0.208, 0.000, 0.000, 1.000)

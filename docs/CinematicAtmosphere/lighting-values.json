@@ -1,0 +1,170 @@
+{
+  "unity": "6000.3.24f1",
+  "urp": "17.3.0",
+  "rendering": "Forward+",
+  "render_graph": true,
+  "ambient": {
+    "mode": "Trilight",
+    "sky": "#3A565B",
+    "equator": "#263D41",
+    "ground": "#10191C"
+  },
+  "sun": {
+    "color": "#819FA6",
+    "intensity": 0.15,
+    "shadow": "Soft",
+    "shadow_strength": 0.85,
+    "orientation": "unchanged"
+  },
+  "fog": {
+    "mode": "Exponential",
+    "exploration": {
+      "color": "#344F51",
+      "density": 0.008
+    },
+    "dense": {
+      "color": "#485B59",
+      "density": 0.016,
+      "bounds_center": [
+        -90,
+        3,
+        65
+      ],
+      "bounds_size": [
+        12,
+        8,
+        24
+      ]
+    },
+    "driving": {
+      "color": "#29494C",
+      "density": 0.0035
+    },
+    "blend": "1-exp(-0.8*deltaTime)",
+    "danger_driving": "density .0035, existing encounter colour/sky/sun/grade retained; opening/arena/external fog owners take priority"
+  },
+  "scattering": {
+    "resolution": "half width and height",
+    "format": "R16G16B16A16_SFloat",
+    "steps": 32,
+    "anisotropy": 0.35,
+    "strength": 0.055,
+    "distance_m": 80,
+    "maximum_visible_lamps": 6,
+    "temporal_accumulation": false,
+    "resolve": "4-tap depth-aware additive",
+    "occlusion": "camera depth; existing URP additional-light shadows where source light casts shadows"
+  },
+  "lamps": {
+    "working_lights": 407,
+    "shadow_capable": 35,
+    "active_pool_cap": 28,
+    "amber": "#D8AA72",
+    "green": "#B5DBAA",
+    "intensity": "amber 2.5*h*h, green 1.5*h*h; h=ground height excluding pole colliders, clamped 4..14 m",
+    "range": "clamp(2.2*h,12,28) m",
+    "outer_angle": 105,
+    "inner_angle": 65,
+    "shadow_strength": 0.8,
+    "shadow_bias": 0.08,
+    "normal_bias": 0.25,
+    "shadow_resolution_tier": "Medium",
+    "cookie": "LampCookie.png, 128x128 linear, soft edge and subtle irregularity"
+  },
+  "asphalt": {
+    "shader": "existing HellScape/Worn Road",
+    "metallic": 0,
+    "smoothness": "packed map alpha approximately .215..85; multiplier 1",
+    "wet_mask": "AsphaltWetness.png 512x512 linear",
+    "preserved": "albedo, UVs, markings, existing procedural wear; clean/day mapping"
+  },
+  "ssao": {
+    "existing_feature_reused": true,
+    "intensity": 0.65,
+    "radius": 0.3,
+    "source": "DepthNormals",
+    "samples": "Medium",
+    "blur": "Medium",
+    "downsample": true
+  },
+  "trees": {
+    "existing_flame_flipbooks": "preserved #B9FF75/#70D64A/#276C49 palette",
+    "point_light_intensity": 22,
+    "range_m": 10,
+    "active_light_cap": 8,
+    "shadows": false,
+    "flicker_floor": 0.88,
+    "flicker_span": 0.28
+  },
+  "mist": {
+    "palette": [
+      "#416F6B",
+      "#294D4C"
+    ],
+    "particle_alpha": 0.08,
+    "billboard_width_m": [
+      12,
+      22
+    ],
+    "billboard_height_m": [
+      0.65,
+      1.3
+    ],
+    "emission_global_per_s": 12,
+    "emission_pocket_per_s": 2,
+    "particle_cap_per_system": 100,
+    "velocity_x_m_s": [
+      -0.12,
+      0.12
+    ],
+    "velocity_z_m_s": [
+      -0.08,
+      0.08
+    ],
+    "soft_depth_fade_m": 2,
+    "camera_clear_radius_m": 10,
+    "camera_full_visibility_m": 18,
+    "distance_fade_m": [
+      85,
+      120
+    ],
+    "interior_echo_and_judgement": "hidden or cleared by existing state"
+  },
+  "ocean": {
+    "deep": "#071719",
+    "surface": "#102D32",
+    "surface_alpha": 0.863,
+    "smoothness": 0.15,
+    "existing_shader_and_wave_parameters": "preserved"
+  },
+  "probes": {
+    "existing_count": 13,
+    "mode": "Realtime",
+    "refresh": "OnAwake",
+    "time_slicing": "IndividualFaces",
+    "resolution_cap": 128,
+    "box_projection": true
+  },
+  "post": {
+    "tonemapping": "ACES",
+    "exposure": -0.2,
+    "contrast": 16,
+    "saturation": -16,
+    "filter": "#E5EDE9",
+    "white_balance_temperature": -7,
+    "tint": 0,
+    "bloom_threshold": 1.15,
+    "bloom_intensity": 0.22,
+    "bloom_scatter": 0.6,
+    "bloom_hq": false,
+    "vignette": 0.18,
+    "vignette_smoothness": 0.45,
+    "grain": "Thin1 .06 via existing accessibility-aware RetroLook",
+    "chromatic_aberration": 0.01,
+    "motion_blur": 0,
+    "depth_of_field": "Off",
+    "lens_distortion": 0,
+    "anti_aliasing": "unchanged"
+  },
+  "new_dependencies": []
+}

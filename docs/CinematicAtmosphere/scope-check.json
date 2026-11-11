@@ -1,0 +1,20 @@
+{
+  "baseline_protected_blocks": 9830,
+  "current_protected_blocks": 9830,
+  "changed_protected_ids": [],
+  "added_protected_ids": [],
+  "prefab_transform_overrides_unchanged": true,
+  "changed_existing_files_since_checkpoint": [
+    "Assets/Scenes/MainGameScene.unity",
+    "Assets/Scripts/RetroLook.cs",
+    "Assets/Scripts/SleepSequence.cs",
+    "Assets/Settings/High_PipelineAsset.asset",
+    "Assets/Settings/Low_PipelineAsset.asset",
+    "Assets/Settings/Medium_PipelineAsset.asset",
+    "Assets/Settings/Ultra_PipelineAsset.asset",
+    "Assets/Settings/Very High_PipelineAsset.asset",
+    "Assets/Settings/Very Low_PipelineAsset.asset"
+  ],
+  "original_dead_city_assets_preserved": true,
+  "original_renderer_assets_preserved": true
+}

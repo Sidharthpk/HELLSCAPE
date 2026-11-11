@@ -1,0 +1,7 @@
+Editor Play Mode; 180 editor update samples, not standalone benchmark
+Frame median ms=12.1888
+Mean ms=14.34796
+Draw calls=693
+GPU timing supported=3.762176
+Camera=1920x888
+Quality=Ultra vsync=1

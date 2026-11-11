@@ -1,0 +1,9 @@
+Original vehicle onEnter callbacks executed; original opening advanced with existing CutsceneSkip mechanism.
+Chasing=True
+Boss movement over 1.5 game seconds=0.006003781
+State=Danger driving
+Fog=0.003500595
+Fog colour=RGBA(0.208, 0.000, 0.000, 1.000)
+Blood volume=1
+Exterior scattering permitted=False
+Full fight and judgement outcome were not played.
